@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Jewellery product in the catalogue",
+      "type": "object",
+      "properties": {
+        "sku": { "type": "string", "minLength": 2, "maxLength": 50 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "metal": { "type": "string", "enum": ["gold", "silver"] },
+        "category": { "type": "string", "maxLength": 50 },
+        "karat": { "type": "number", "enum": [0, 18, 21, 22, 24, 925] },
+        "weightG": { "type": "number" },
+        "makingType": { "type": "string", "enum": ["fixed", "perGram"] },
+        "makingValue": { "type": "number" },
+        "stock": { "type": "integer" },
+        "status": { "type": "string", "enum": ["draft", "active", "archived"] },
+        "featured": { "type": "boolean" },
+        "images": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["sku", "name", "metal", "category", "weightG", "makingType", "makingValue", "stock", "status"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Global store settings including bullion rates and store hours",
+      "type": "object",
+      "properties": {
+        "gold24kPerTola": { "type": "number" },
+        "silverRate": { "type": "number" },
+        "silverUnit": { "type": "string", "enum": ["tola", "gram"] },
+        "ratesUpdatedAt": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "hoursText": { "type": "string" },
+        "address": { "type": "string" },
+        "deliveryText": { "type": "string" }
+      },
+      "required": ["gold24kPerTola", "silverRate", "silverUnit"]
+    },
+    "RateHistory": {
+      "title": "RateHistory",
+      "description": "Audit trail log of bullion rate adjustments",
+      "type": "object",
+      "properties": {
+        "metal": { "type": "string" },
+        "oldValue": { "type": "number" },
+        "newValue": { "type": "number" },
+        "unit": { "type": "string" },
+        "changedBy": { "type": "string" },
+        "changedAt": { "type": "string" }
+      },
+      "required": ["metal", "newValue", "unit", "changedBy"]
+    },
+    "Enquiry": {
+      "title": "Enquiry",
+      "description": "Customer order inquiry submitted via WhatsApp checkout",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 50 },
+        "fulfilment": { "type": "string", "enum": ["courier", "pickup"] },
+        "status": {
+          "type": "string",
+          "enum": ["new", "contacted", "awaiting_customer", "confirmed", "completed", "cancelled"]
+        },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "rateSnapshot": { "type": "object" },
+        "estimatedTotal": { "type": "number" },
+        "items": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["fulfilment", "status", "estimatedTotal", "items"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Staff member authorization and role mapping",
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["owner", "rate_manager", "product_manager", "support", "viewer"]
+        },
+        "name": { "type": "string", "maxLength": 100 },
+        "addedAt": { "type": "string" }
+      },
+      "required": ["role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Collection of all jewellery products"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/StoreSettings" },
+      "description": "Singleton configuration document for rates and shop metadata"
+    },
+    "/rateHistory/{historyId}": {
+      "schema": { "$ref": "#/entities/RateHistory" },
+      "description": "Immutable log of rate changes written synchronously with rate updates"
+    },
+    "/enquiries/{enquiryId}": {
+      "schema": { "$ref": "#/entities/Enquiry" },
+      "description": "Inquiries initiated from the storefront"
+    },
+    "/staff/{email}": {
+      "schema": { "$ref": "#/entities/Staff" },
+      "description": "Authorized staff list keyed by email address"
+    }
+  }
+}

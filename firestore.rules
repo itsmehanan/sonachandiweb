@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperOwner() {
+      return isSignedIn() && request.auth.token.email == 'bengamers494@gmail.com';
+    }
+
+    function staffDocExists() {
+      return isSignedIn() && exists(/databases/$(database)/documents/staff/$(request.auth.token.email));
+    }
+
+    function getStaffRole() {
+      return isSuperOwner()
+        ? 'owner'
+        : (staffDocExists() ? get(/databases/$(database)/documents/staff/$(request.auth.token.email)).data.role : 'none');
+    }
+
+    function isOwner() {
+      return isSignedIn() && (isSuperOwner() || getStaffRole() == 'owner');
+    }
+
+    function isRateManager() {
+      return isSignedIn() && (isOwner() || getStaffRole() == 'rate_manager');
+    }
+
+    function isProductManager() {
+      return isSignedIn() && (isOwner() || getStaffRole() == 'product_manager');
+    }
+
+    function isSupport() {
+      return isSignedIn() && (isOwner() || getStaffRole() == 'support');
+    }
+
+    function isStaff() {
+      return isSignedIn() && (isOwner() || getStaffRole() != 'none');
+    }
+
+    // Validation for Product documents
+    function isValidProduct(data) {
+      return data.sku is string && data.sku.size() > 0 &&
+             data.name is string && data.name.size() > 0 &&
+             data.metal in ['gold', 'silver'] &&
+             data.category is string &&
+             data.weightG is number && data.weightG > 0 &&
+             data.makingType in ['fixed', 'perGram'] &&
+             data.makingValue is number && data.makingValue >= 0 &&
+             data.stock is int && data.stock >= 0 &&
+             data.status in ['draft', 'active', 'archived'] &&
+             (data.metal != 'gold' || data.karat in [18, 21, 22, 24]);
+    }
+
+    // Validation for Store Settings & Rates
+    function isValidSettings(data) {
+      return data.gold24kPerTola is number && data.gold24kPerTola > 0 &&
+             data.silverRate is number && data.silverRate > 0 &&
+             data.silverUnit in ['tola', 'gram'];
+    }
+
+    // Validation for Enquiries
+    function isValidEnquiry(data) {
+      return data.fulfilment in ['courier', 'pickup'] &&
+             data.status in ['new', 'contacted', 'awaiting_customer', 'confirmed', 'completed', 'cancelled'] &&
+             data.estimatedTotal is number && data.estimatedTotal >= 0 &&
+             data.items is list && data.items.size() > 0;
+    }
+
+    // 1. PRODUCTS COLLECTION
+    // Public may read only products with status 'active'.
+    // Staff may read all products.
+    // Only owner and product_manager write products.
+    match /products/{productId} {
+      allow get, list: if (resource.data.status == 'active') || isStaff();
+      allow create: if isProductManager() && isValidProduct(request.resource.data);
+      allow update: if isProductManager() && isValidProduct(request.resource.data);
+      allow delete: if isProductManager();
+    }
+
+    // 2. SETTINGS COLLECTION (settings/store)
+    // Public may read settings/store.
+    // Only owner and rate_manager write rates.
+    // Every rate change must be saved in the SAME batched write as a rateHistory document.
+    match /settings/{settingId} {
+      allow get, list: if settingId == 'store' || isStaff();
+      allow create, update: if isRateManager() &&
+                               isValidSettings(request.resource.data) &&
+                               (request.resource.data.lastHistoryId is string &&
+                                existsAfter(/databases/$(database)/documents/rateHistory/$(request.resource.data.lastHistoryId)));
+      allow delete: if false;
+    }
+
+    // 3. RATE HISTORY COLLECTION
+    // Read-only for staff.
+    // Created only in the same batch by rate managers or owners.
+    match /rateHistory/{historyId} {
+      allow get, list: if isStaff();
+      allow create: if isRateManager() &&
+                       request.resource.data.metal is string &&
+                       request.resource.data.newValue is number && request.resource.data.newValue > 0 &&
+                       request.resource.data.changedBy == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // 4. ENQUIRIES COLLECTION
+    // Public may create an enquiry, but never read, update, or delete one.
+    // Only owner and support may read or update status and notes.
+    match /enquiries/{enquiryId} {
+      allow create: if isValidEnquiry(request.resource.data);
+      allow get, list: if isSupport() || isStaff();
+      allow update: if isSupport() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'notes', 'updatedAt']);
+      allow delete: if isOwner();
+    }
+
+    // 5. STAFF COLLECTION
+    // Document id = email address.
+    // Authenticated user may read their own staff record to verify their assigned role.
+    // Owner can read all staff records and add, update, or remove staff.
+    match /staff/{email} {
+      allow get: if isSignedIn() && (request.auth.token.email == email || isOwner());
+      allow list: if isOwner();
+      allow create, update, delete: if isOwner() &&
+                                       (request.resource == null || request.resource.data.role in ['owner', 'rate_manager', 'product_manager', 'support', 'viewer']);
+    }
+  }
+}
