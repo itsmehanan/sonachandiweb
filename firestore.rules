@@ -66,8 +66,21 @@ service cloud.firestore {
              (data.metal != 'gold' || data.karat in [18, 21, 22, 24]);
     }
 
-    // Validation for Store Settings & Rates
+    // Check if any of the three bullion rate fields are modified in this write
+    function rateFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['gold24kPerTola', 'silverRate', 'silverUnit']);
+    }
+
+    // Validation for Store Settings & Info
+    // Rate fields are optional on create or info-only updates; if present, they must be numbers >= 0 and silverUnit must be 'tola' or 'gram'
     function isValidSettings(data) {
+      return (!('gold24kPerTola' in data) || (data.gold24kPerTola is number && data.gold24kPerTola >= 0)) &&
+             (!('silverRate' in data) || (data.silverRate is number && data.silverRate >= 0)) &&
+             (!('silverUnit' in data) || data.silverUnit in ['tola', 'gram']);
+    }
+
+    // Strict validation when rate fields are being set or modified
+    function hasValidRateFields(data) {
       return data.gold24kPerTola is number && data.gold24kPerTola >= 0 &&
              data.silverRate is number && data.silverRate >= 0 &&
              data.silverUnit in ['tola', 'gram'];
@@ -118,10 +131,14 @@ service cloud.firestore {
       allow list: if isStaff();
       allow create: if isOwner() && isValidSettings(request.resource.data);
       allow update: if isValidSettings(request.resource.data) && (
-                       (isOwner() && (!('lastGoldHistoryId' in request.resource.data) || hasValidRateAudit())) ||
-                       (isRateManager() &&
+                       // Rate change: when any of the 3 rate fields change, require atomic rate audit for both owner and rate_manager
+                       (rateFieldsChanged() &&
+                        hasValidRateFields(request.resource.data) &&
                         hasValidRateAudit() &&
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gold24kPerTola', 'silverRate', 'silverUnit', 'ratesUpdatedAt', 'lastHistoryId', 'lastGoldHistoryId', 'lastSilverHistoryId']))
+                        (isOwner() || (isRateManager() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gold24kPerTola', 'silverRate', 'silverUnit', 'ratesUpdatedAt', 'lastHistoryId', 'lastGoldHistoryId', 'lastSilverHistoryId']))))
+                       ||
+                       // Info change: when none of the 3 rate fields change, owner may update info/policy fields freely without rate audit
+                       (!rateFieldsChanged() && isOwner())
                      );
       allow delete: if false;
     }
