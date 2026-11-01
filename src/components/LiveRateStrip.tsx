@@ -1,6 +1,6 @@
 import React from 'react';
-import { Sparkles, Calculator, Clock, CircleDot, AlertCircle } from 'lucide-react';
-import { BullionRates, formatPKR, get24KGoldPerGram, getGoldPerGramForKarat } from '../lib/pricing';
+import { Calculator } from 'lucide-react';
+import { BullionRates, formatPKR, getGoldPerGramForKarat } from '../lib/pricing';
 import { getStoreStatus } from '../data/store';
 
 interface LiveRateStripProps {
@@ -10,7 +10,9 @@ interface LiveRateStripProps {
 
 export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalculator }) => {
   const storeStatus = getStoreStatus();
-  const gold22KGram = getGoldPerGramForKarat('22K', rates.gold24KPerTola);
+  const hasGoldRate = rates.gold24KPerTola > 0;
+  const hasSilverRate = rates.silverRate > 0;
+  const gold22KGram = hasGoldRate ? getGoldPerGramForKarat('22K', rates.gold24KPerTola) : 0;
 
   return (
     <div className="bg-[#FAF7F2] border-b border-[#E2D8C9] text-xs py-2 px-4 select-none">
@@ -22,7 +24,7 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
               24K Gold / Tola:
             </span>
             <span className="font-mono font-bold text-[#1E1B18]">
-              {formatPKR(rates.gold24KPerTola)}
+              {hasGoldRate ? formatPKR(rates.gold24KPerTola) : 'Rate unavailable'}
             </span>
           </div>
 
@@ -35,7 +37,7 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
               22K / Gram:
             </span>
             <span className="font-mono text-[#1E1B18]">
-              {formatPKR(gold22KGram)}
+              {hasGoldRate ? formatPKR(gold22KGram) : 'Rate unavailable'}
             </span>
           </div>
 
@@ -48,17 +50,20 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
               Silver ({rates.silverUnit === 'per_tola' ? 'Tola' : 'Gram'}):
             </span>
             <span className="font-mono text-[#1E1B18]">
-              {formatPKR(rates.silverRate)}
+              {hasSilverRate ? formatPKR(rates.silverRate) : 'Rate unavailable'}
             </span>
           </div>
 
-          <span className="text-[#CBD5E1] hidden lg:inline" aria-hidden="true">
-            ·
-          </span>
-
-          <span className="text-[11px] text-[#64748B] hidden lg:inline">
-            {rates.lastUpdated}
-          </span>
+          {rates.lastUpdated ? (
+            <>
+              <span className="text-[#CBD5E1] hidden lg:inline" aria-hidden="true">
+                ·
+              </span>
+              <span className="text-[11px] text-[#64748B] hidden lg:inline">
+                {rates.lastUpdated}
+              </span>
+            </>
+          ) : null}
         </div>
 
         {/* Right: Store Hours Status + Calculator trigger */}
@@ -80,7 +85,7 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
           {/* Quick Rate Calculator Trigger */}
           <button
             onClick={onOpenCalculator}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#8E6E24] hover:text-[#1E1B18] bg-white hover:bg-[#FAF7F2] border border-[#C9A54B]/40 hover:border-[#C9A54B] rounded transition-all shadow-2xs"
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#8E6E24] hover:text-[#1E1B18] bg-white hover:bg-[#FAF7F2] border border-[#C9A54B]/40 hover:border-[#C9A54B] rounded transition-all shadow-2xs cursor-pointer"
           >
             <Calculator className="w-3.5 h-3.5" />
             <span>Rate Calculator</span>

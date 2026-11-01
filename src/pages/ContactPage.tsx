@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   RotateCcw,
   AlertCircle,
-  Building,
 } from 'lucide-react';
 import { getSettings, getStoreStatus } from '../data/store';
 import { ESTIMATE_DISCLAIMER } from '../lib/pricing';
@@ -76,7 +75,7 @@ export const ContactPage: React.FC = () => {
           </div>
         </div>
 
-        {/* WhatsApp & Direct Orders */}
+        {/* WhatsApp & Direct Inquiries */}
         <div className="p-6 bg-white border border-[#E2D8C9] rounded-2xl space-y-4 shadow-xs">
           <div className="w-10 h-10 rounded-lg bg-[#FAF7F2] border border-[#C9A54B]/30 flex items-center justify-center text-emerald-600">
             <MessageCircle className="w-5 h-5" />
@@ -99,73 +98,49 @@ export const ContactPage: React.FC = () => {
               className="gold-sheen w-full py-3 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center justify-center gap-2"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Open WhatsApp: +92 310 9412332</span>
+              <span>Open WhatsApp: +{settings.whatsappNumber}</span>
             </a>
 
             <div className="p-2.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-xs text-[#64748B]">
-              <span className="font-semibold text-[#1E1B18] block">Telephone Desk (Placeholder):</span>
-              <span className="font-mono">{settings.phonePlaceholder}</span>
+              <span className="font-semibold text-[#1E1B18] block">Instant Inquiry Support:</span>
+              <span>Available Monday to Saturday during showroom hours.</span>
             </div>
           </div>
         </div>
 
-        {/* Flagship Showroom Location */}
+        {/* Showroom Location */}
         <div className="p-6 bg-white border border-[#E2D8C9] rounded-2xl space-y-4 shadow-xs">
           <div className="w-10 h-10 rounded-lg bg-[#FAF7F2] border border-[#C9A54B]/30 flex items-center justify-center text-[#8E6E24]">
             <MapPin className="w-5 h-5" />
           </div>
 
           <div>
-            <h3 className="font-serif text-lg font-semibold text-[#1E1B18]">Flagship Showroom</h3>
-            <p className="text-xs text-[#8E6E24] font-medium mt-0.5">Lahore Gold Souk</p>
+            <h3 className="font-serif text-lg font-semibold text-[#1E1B18]">Boutique Location</h3>
+            <p className="text-xs text-[#8E6E24] font-medium mt-0.5">Physical Showroom &amp; Pickup</p>
           </div>
 
           <div className="p-3 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-xs text-[#64748B] space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E6E24] block">
-              Marked Placeholder Address:
-            </span>
-            <p className="font-light text-[#1E1B18] leading-relaxed">
-              {settings.addressPlaceholder}
-            </p>
+            {settings.address ? (
+              <p className="font-light text-[#1E1B18] leading-relaxed">
+                {settings.address}
+              </p>
+            ) : (
+              <p className="font-light text-[#64748B] leading-relaxed italic">
+                Contact us on WhatsApp to arrange private appointments and showroom pickup.
+              </p>
+            )}
           </div>
 
-          <p className="text-[11px] text-[#64748B] italic">
-            *Valet parking and private security escorts provided for bridal viewing.
-          </p>
-        </div>
-      </div>
-
-      {/* Pickup Showrooms in Other Cities */}
-      <div className="bg-white border border-[#E2D8C9] rounded-2xl p-6 sm:p-10 space-y-6">
-        <div>
-          <h2 className="font-serif text-2xl text-[#1E1B18] font-normal">
-            Store Pickup Showroom Branches
-          </h2>
-          <p className="text-xs text-[#64748B] mt-1 font-light">
-            When ordering through WhatsApp, you may select any of our verified partner branches for in-person inspection and pickup
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {settings.pickupBranches.map((branch) => (
-            <div
-              key={branch.name}
-              className="p-5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl space-y-2"
+          <div className="pt-1">
+            <a
+              href={`https://wa.me/${settings.whatsappNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium text-[#8E6E24] hover:underline"
             >
-              <div className="flex items-center gap-2">
-                <Building className="w-4 h-4 text-[#8E6E24]" />
-                <h4 className="font-serif text-base font-semibold text-[#1E1B18]">
-                  {branch.name}
-                </h4>
-              </div>
-              <span className="inline-block text-[11px] font-semibold uppercase tracking-wider text-[#8E6E24]">
-                {branch.city}
-              </span>
-              <p className="text-xs text-[#64748B] font-light leading-relaxed">
-                {branch.addressPlaceholder}
-              </p>
-            </div>
-          ))}
+              Book an appointment on WhatsApp →
+            </a>
+          </div>
         </div>
       </div>
 
@@ -173,10 +148,10 @@ export const ContactPage: React.FC = () => {
       <div className="space-y-6">
         <div>
           <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal">
-            Official Store Policies &amp; Terms
+            Store Policies &amp; Terms
           </h2>
           <p className="text-xs text-[#64748B] mt-1 font-light">
-            Clearly marked placeholder policies governing our trade, transit, and pricing
+            Transparent policies governing our trade, transit, and pricing
           </p>
         </div>
 
@@ -189,12 +164,11 @@ export const ContactPage: React.FC = () => {
                 Price Estimate Policy
               </h3>
             </div>
-            <p className="text-xs text-[#64748B] leading-relaxed">
+            <p className="text-xs text-[#64748B] leading-relaxed font-medium">
               "{ESTIMATE_DISCLAIMER}"
             </p>
             <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              Bullion markets fluctuate continuously. Our website rates reflect prevailing Lahore &amp; Karachi
-              Sarafa Association benchmarks. When you click "Order on WhatsApp", our sales team confirms the exact
+              Bullion markets fluctuate continuously. When you tap "Order on WhatsApp", our sales desk confirms the exact
               live market rate per gram before your transaction is formalized.
             </p>
           </div>
@@ -208,7 +182,8 @@ export const ContactPage: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              {settings.policies.hallmarkPolicy}
+              {settings.policies?.hallmarkPolicy ||
+                'Every piece is crafted in certified 24K, 22K, 21K, 18K solid gold or 925 solid sterling silver with laser hallmark inspection.'}
             </p>
           </div>
 
@@ -221,7 +196,8 @@ export const ContactPage: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              {settings.policies.exchangePolicy}
+              {settings.policies?.exchangePolicy ||
+                'Bullion buyback and exchange available at prevailing daily net metal rates.'}
             </p>
           </div>
 
@@ -234,7 +210,8 @@ export const ContactPage: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              {settings.policies.shippingPolicy}
+              {settings.deliveryText ||
+                'Nationwide insured courier transit with tamper-evident security packing across Pakistan.'}
             </p>
           </div>
         </div>

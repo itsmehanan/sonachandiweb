@@ -1,6 +1,6 @@
 import React from 'react';
-import { ShoppingBag, MessageCircle, AlertCircle } from 'lucide-react';
-import { Product } from '../data/store';
+import { ShoppingBag, MessageCircle, Sparkles } from 'lucide-react';
+import { Product, getSettings } from '../data/store';
 import {
   BullionRates,
   calculateProductPrice,
@@ -21,6 +21,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onSelect,
   onAddToCart,
 }) => {
+  const settings = getSettings();
   // Check if rate is missing/unavailable for this metal
   const isRateMissing =
     product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0;
@@ -33,9 +34,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleAskOnWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     const note = isRateMissing
-      ? 'Please quote the current live rate for this piece on WhatsApp.'
+      ? 'Please quote the current live bullion rate for this piece on WhatsApp.'
       : 'I noticed this item is currently made to order or reserved. Please share production time.';
-    const url = getWhatsAppProductInquiryUrl(product, rates, note);
+    const url = getWhatsAppProductInquiryUrl(product, rates, note, settings.whatsappNumber);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -50,17 +51,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       onClick={() => onSelect(product)}
       className="group bg-white border border-[#E2D8C9] rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-[#C9A54B]/50"
     >
-      {/* Product Image */}
-      <div className="relative aspect-4/3 w-full bg-[#F3EFEA] overflow-hidden">
-        <img
-          src={product.images[0] || '/src/assets/images/jewel_gold_bridal_necklace_1793522998312.jpg'}
-          alt={product.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          referrerPolicy="no-referrer"
-          loading="lazy"
-        />
+      {/* Product Image or Neutral Placeholder */}
+      <div className="relative aspect-4/3 w-full bg-[#F3EFEA] overflow-hidden flex items-center justify-center">
+        {product.images && product.images[0] ? (
+          <img
+            src={product.images[0]}
+            alt={product.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 text-[#C9A54B]/70 p-4">
+            <Sparkles className="w-8 h-8 text-[#C9A54B]" />
+            <span className="text-[11px] font-serif text-[#8E6E24] tracking-wider uppercase font-semibold">
+              Sona &amp; Chandi
+            </span>
+          </div>
+        )}
 
-        {/* Quiet status badge */}
+        {/* Status badge */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5">
           {isOutOfStock && (
             <span className="px-2 py-0.5 text-[11px] font-semibold text-[#8E6E24] bg-white/95 backdrop-blur-xs rounded shadow-xs">
@@ -127,7 +137,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleAskOnWhatsApp}
-              className="w-full py-2.5 px-3 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+              className="w-full py-2.5 px-3 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
               <span>Ask on WhatsApp</span>
@@ -136,7 +146,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleAddToCart}
-              className="gold-sheen w-full py-2.5 px-3 bg-[#FAF7F2] hover:bg-[#C9A54B] text-[#8E6E24] hover:text-white border border-[#C9A54B]/40 hover:border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+              className="gold-sheen w-full py-2.5 px-3 bg-[#FAF7F2] hover:bg-[#C9A54B] text-[#8E6E24] hover:text-white border border-[#C9A54B]/40 hover:border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Add to Bag</span>

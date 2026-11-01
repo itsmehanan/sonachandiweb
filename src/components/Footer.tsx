@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle, Shield, Clock, MapPin, Sparkles, Scale, RefreshCw } from 'lucide-react';
+import { MessageCircle, Clock, MapPin, Scale, RefreshCw } from 'lucide-react';
 import { getSettings, getStoreStatus } from '../data/store';
 import { BullionRates, formatPKR } from '../lib/pricing';
 
@@ -24,7 +24,7 @@ export const Footer: React.FC<FooterProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-[#292420]">
-          {/* Column 1: Brand & Logo (Gold & White logo on dark background) */}
+          {/* Column 1: Brand & Logo */}
           <div className="space-y-4">
             <img
               src="/public/assets/aistudio/logo-dark_226850da.png"
@@ -44,7 +44,7 @@ export const Footer: React.FC<FooterProps> = ({
                 className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[#12100E] bg-[#C9A54B] hover:bg-[#D8B74E] rounded-md transition-all shadow-xs"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
-                <span>WhatsApp: +92 310 9412332</span>
+                <span>WhatsApp: +{settings.whatsappNumber}</span>
               </a>
             </div>
           </div>
@@ -58,7 +58,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onNavigate('catalogue', 'bridal_sets')}
-                  className="hover:text-[#C9A54B] transition-colors"
+                  className="hover:text-[#C9A54B] transition-colors cursor-pointer"
                 >
                   Bridal Choker &amp; Rani Haar Sets
                 </button>
@@ -66,7 +66,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onNavigate('catalogue', 'bangles')}
-                  className="hover:text-[#C9A54B] transition-colors"
+                  className="hover:text-[#C9A54B] transition-colors cursor-pointer"
                 >
                   22K Embossed Kara &amp; Bangles
                 </button>
@@ -74,7 +74,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onNavigate('catalogue', 'earrings')}
-                  className="hover:text-[#C9A54B] transition-colors"
+                  className="hover:text-[#C9A54B] transition-colors cursor-pointer"
                 >
                   Traditional Kundan &amp; Polki Jhumkas
                 </button>
@@ -82,7 +82,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onNavigate('catalogue', 'rings')}
-                  className="hover:text-[#C9A54B] transition-colors"
+                  className="hover:text-[#C9A54B] transition-colors cursor-pointer"
                 >
                   Solitaire Bands &amp; Signet Rings
                 </button>
@@ -90,7 +90,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={() => onNavigate('catalogue', 'silver')}
-                  className="hover:text-[#C9A54B] transition-colors"
+                  className="hover:text-[#C9A54B] transition-colors cursor-pointer"
                 >
                   925 Solid Sterling Silver Collection
                 </button>
@@ -98,10 +98,10 @@ export const Footer: React.FC<FooterProps> = ({
             </ul>
           </div>
 
-          {/* Column 3: Showroom Hours & Sarafa Rate */}
+          {/* Column 3: Showroom Hours & Rate */}
           <div className="space-y-3">
             <h4 className="font-serif text-sm font-semibold uppercase tracking-wider text-white">
-              Showroom Hours &amp; Rates
+              Showroom &amp; Rates
             </h4>
             <div className="space-y-2 text-xs text-[#A89F91]">
               <div className="flex items-start gap-2">
@@ -117,11 +117,14 @@ export const Footer: React.FC<FooterProps> = ({
 
               <div className="pt-2 border-t border-[#292420]">
                 <p className="text-[11px] text-[#A89F91]">
-                  Current 24K: <span className="font-mono text-white font-medium">{formatPKR(rates.gold24KPerTola)} / tola</span>
+                  Current 24K:{' '}
+                  <span className="font-mono text-white font-medium">
+                    {rates.gold24KPerTola > 0 ? `${formatPKR(rates.gold24KPerTola)} / tola` : 'Rate unavailable'}
+                  </span>
                 </p>
                 <button
                   onClick={onOpenCalculator}
-                  className="mt-1 text-xs text-[#C9A54B] hover:underline flex items-center gap-1"
+                  className="mt-1 text-xs text-[#C9A54B] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Scale className="w-3 h-3" />
                   <span>Open Bullion Rate Calculator</span>
@@ -130,30 +133,33 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
           </div>
 
-          {/* Column 4: Marked Placeholders & Policies */}
+          {/* Column 4: Location */}
           <div className="space-y-3">
             <h4 className="font-serif text-sm font-semibold uppercase tracking-wider text-white">
-              Boutique Location
+              Showroom Details
             </h4>
             <div className="text-xs text-[#A89F91] space-y-2">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#C9A54B] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-[11px] text-[#C9A54B] font-semibold uppercase tracking-wider">
-                    Storefront Address (Placeholder):
-                  </p>
-                  <p className="font-light text-[#D4CDC3] leading-relaxed">
-                    {settings.addressPlaceholder}
-                  </p>
+                  {settings.address ? (
+                    <p className="font-light text-[#D4CDC3] leading-relaxed">
+                      {settings.address}
+                    </p>
+                  ) : (
+                    <p className="font-light text-[#A89F91] leading-relaxed italic">
+                      Contact us on WhatsApp for showroom location and private consultations.
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="pt-2">
                 <button
                   onClick={() => onNavigate('contact')}
-                  className="text-xs text-[#C9A54B] hover:text-[#D8B74E] underline"
+                  className="text-xs text-[#C9A54B] hover:text-[#D8B74E] underline cursor-pointer"
                 >
-                  View Showroom Pickup Branches &amp; Policies
+                  View Showroom Timings &amp; Policies
                 </button>
               </div>
             </div>
@@ -166,21 +172,21 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="flex items-center gap-4">
             <button
               onClick={() => onNavigate('about')}
-              className="hover:text-white transition-colors"
+              className="hover:text-white transition-colors cursor-pointer"
             >
               Hallmarking Guarantee
             </button>
             <span aria-hidden="true">·</span>
             <button
               onClick={() => onNavigate('contact')}
-              className="hover:text-white transition-colors"
+              className="hover:text-white transition-colors cursor-pointer"
             >
               Store Policies
             </button>
             <span aria-hidden="true">·</span>
             <button
               onClick={onReplayIntro}
-              className="hover:text-[#C9A54B] transition-colors flex items-center gap-1"
+              className="hover:text-[#C9A54B] transition-colors flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className="w-3 h-3" />
               <span>Replay Intro</span>
@@ -188,7 +194,7 @@ export const Footer: React.FC<FooterProps> = ({
             <span aria-hidden="true">·</span>
             <button
               onClick={() => onNavigate('admin')}
-              className="hover:text-[#C9A54B] transition-colors"
+              className="hover:text-[#C9A54B] transition-colors cursor-pointer"
             >
               Staff Portal (/admin)
             </button>

@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
-import { Product, getProducts } from '../data/store';
+import { Product, getProducts, getSettings } from '../data/store';
 import {
   BullionRates,
   calculateProductPrice,
@@ -42,6 +42,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onAddToCart,
   onOpenCalculator,
 }) => {
+  const settings = getSettings();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -71,9 +72,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     const note = isRateMissing
       ? `Rate inquiry for ${product.title} (SKU: ${product.sku}). Please provide live bullion quote.`
       : `Inquiry regarding ${product.title} (SKU: ${product.sku}). Please share availability and current live bullion rate confirmation.`;
-    const url = getWhatsAppProductInquiryUrl(product, rates, note);
+    const url = getWhatsAppProductInquiryUrl(product, rates, note, settings.whatsappNumber);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
+
+  const currentImage = product.images && product.images.length > 0 ? product.images[selectedImageIndex] || product.images[0] : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-12">
@@ -81,7 +84,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#64748B] hover:text-[#1E1B18] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#64748B] hover:text-[#1E1B18] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Catalogue</span>
@@ -101,23 +104,33 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
         {/* Left Column: Gallery with Lightbox (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative aspect-4/3 sm:aspect-1/1 bg-[#F3EFEA] rounded-2xl overflow-hidden border border-[#E2D8C9] shadow-xs group">
-            <img
-              src={product.images[selectedImageIndex] || product.images[0]}
-              alt={product.title}
-              className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 group-hover:scale-102"
-              onClick={() => setLightboxOpen(true)}
-              referrerPolicy="no-referrer"
-            />
+          <div className="relative aspect-4/3 sm:aspect-1/1 bg-[#F3EFEA] rounded-2xl overflow-hidden border border-[#E2D8C9] shadow-xs group flex items-center justify-center">
+            {currentImage ? (
+              <img
+                src={currentImage}
+                alt={product.title}
+                className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 group-hover:scale-102"
+                onClick={() => setLightboxOpen(true)}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3 text-[#C9A54B]/70 p-8 text-center">
+                <Sparkles className="w-12 h-12 text-[#C9A54B]" />
+                <span className="font-serif text-lg text-[#1E1B18]">Sona &amp; Chandi Gold Collection</span>
+                <span className="text-xs text-[#64748B]">Handcrafted Pakistani Fine Jewellery</span>
+              </div>
+            )}
 
             {/* Click to Expand Overlay */}
-            <button
-              onClick={() => setLightboxOpen(true)}
-              className="absolute top-4 right-4 p-2.5 bg-white/90 hover:bg-white text-[#1E1B18] rounded-full shadow-md backdrop-blur-xs transition-all"
-              aria-label="Enlarge image in lightbox"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
+            {currentImage && (
+              <button
+                onClick={() => setLightboxOpen(true)}
+                className="absolute top-4 right-4 p-2.5 bg-white/90 hover:bg-white text-[#1E1B18] rounded-full shadow-md backdrop-blur-xs transition-all cursor-pointer"
+                aria-label="Enlarge image in lightbox"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Purity stamp badge */}
             <div className="absolute bottom-4 left-4 px-3 py-1 bg-white/95 backdrop-blur-xs rounded-md border border-[#E2D8C9] shadow-xs text-xs font-mono font-medium text-[#1E1B18]">
@@ -126,13 +139,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           </div>
 
           {/* Thumbnails */}
-          {product.images.length > 1 && (
+          {product.images && product.images.length > 1 && (
             <div className="flex items-center gap-3 overflow-x-auto pb-2">
               {product.images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedImageIndex(idx)}
-                  className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
+                  className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
                     selectedImageIndex === idx
                       ? 'border-[#C9A54B] shadow-xs scale-102'
                       : 'border-[#E2D8C9] opacity-70 hover:opacity-100'
@@ -246,7 +259,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <div className="flex items-center border border-[#E2D8C9] rounded-lg bg-[#FAF7F2] p-1">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-2.5 py-1 text-sm font-semibold hover:text-[#8E6E24]"
+                      className="px-2.5 py-1 text-sm font-semibold hover:text-[#8E6E24] cursor-pointer"
                     >
                       -
                     </button>
@@ -255,7 +268,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     </span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="px-2.5 py-1 text-sm font-semibold hover:text-[#8E6E24]"
+                      className="px-2.5 py-1 text-sm font-semibold hover:text-[#8E6E24] cursor-pointer"
                     >
                       +
                     </button>
@@ -263,7 +276,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
                   <button
                     onClick={handleAddToCart}
-                    className="gold-sheen flex-1 py-3 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-xs sm:text-sm uppercase tracking-wider rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                    className="gold-sheen flex-1 py-3 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-xs sm:text-sm uppercase tracking-wider rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <ShoppingBag className="w-4 h-4" />
                     <span>Add to Bag</span>
@@ -278,18 +291,22 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
                 <button
                   onClick={handleAskOnWhatsApp}
-                  className="w-full py-2.5 px-4 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B]/50 hover:border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-2xs"
+                  className="w-full py-2.5 px-4 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B]/50 hover:border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4 text-emerald-600" />
                   <span>Instant WhatsApp Inquiry</span>
                 </button>
               </div>
             ) : (
-              /* Out-of-Stock: Add to Cart is disabled and replaced by "Ask on WhatsApp" */
+              /* Out-of-Stock or Missing Rate: Add to Cart is disabled and replaced by "Ask on WhatsApp" */
               <div className="space-y-3 pt-2">
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-amber-700" />
-                  <span>This piece is currently made to order or reserved.</span>
+                  <span>
+                    {isRateMissing
+                      ? 'Live bullion rate unavailable for this metal. Inquire on WhatsApp for live quote.'
+                      : 'This piece is currently made to order or reserved.'}
+                  </span>
                 </div>
 
                 <button
@@ -302,7 +319,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
                 <button
                   onClick={handleAskOnWhatsApp}
-                  className="gold-sheen w-full py-3.5 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white text-xs sm:text-sm font-semibold uppercase tracking-wider rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
+                  className="gold-sheen w-full py-3.5 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white text-xs sm:text-sm font-semibold uppercase tracking-wider rounded-lg transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>Ask on WhatsApp</span>
@@ -320,15 +337,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <div className="flex items-start gap-2.5">
                 <Truck className="w-4 h-4 text-[#8E6E24] shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-medium text-[#1E1B18]">Courier Delivery:</span> Insured
-                  doorstep delivery across Karachi, Lahore, Islamabad &amp; nationwide with sealed tamper-evident packaging.
+                  <span className="font-medium text-[#1E1B18]">Courier Delivery:</span>{' '}
+                  {settings.deliveryText || 'Insured transit across Pakistan with tamper-evident security packing.'}
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 <Store className="w-4 h-4 text-[#8E6E24] shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-medium text-[#1E1B18]">Store Pickup:</span> Collect in person
-                  at our showroom in Liberty Market, Lahore or Sarafa Bazaar, Karachi.
+                  <span className="font-medium text-[#1E1B18]">Store Pickup:</span>{' '}
+                  {settings.address ? settings.address : 'Contact us on WhatsApp to arrange private showroom appointment.'}
                 </div>
               </div>
             </div>
@@ -348,7 +365,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               Artisan Notes
             </h4>
             <p className="text-[#64748B] font-light leading-relaxed">
-              {product.fullDescription}
+              {product.fullDescription || 'Exquisite fine jewellery piece handcrafted with traditional Pakistani goldsmithing heritage.'}
             </p>
           </div>
 
@@ -399,7 +416,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </h3>
             <button
               onClick={onBack}
-              className="text-xs font-semibold text-[#8E6E24] hover:text-[#1E1B18]"
+              className="text-xs font-semibold text-[#8E6E24] hover:text-[#1E1B18] cursor-pointer"
             >
               View Entire Collection
             </button>
@@ -420,14 +437,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       )}
 
       {/* Lightbox Modal */}
-      <LightboxModal
-        isOpen={lightboxOpen}
-        onClose={() => setLightboxOpen(false)}
-        images={product.images}
-        currentIndex={selectedImageIndex}
-        onSelectIndex={setSelectedImageIndex}
-        title={product.title}
-      />
+      {product.images && product.images.length > 0 && (
+        <LightboxModal
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          images={product.images}
+          currentIndex={selectedImageIndex}
+          onSelectIndex={setSelectedImageIndex}
+          title={product.title}
+        />
+      )}
     </div>
   );
 };

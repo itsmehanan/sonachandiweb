@@ -30,11 +30,14 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isRateMissing = metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0;
+
   // Perform price calculation strictly using pricing.ts functions
-  const perGramMetal =
-    metal === 'gold'
+  const perGramMetal = !isRateMissing
+    ? metal === 'gold'
       ? getGoldPerGramForKarat(goldKarat, rates.gold24KPerTola)
-      : getSilverPerGram(rates.silverRate, rates.silverUnit);
+      : getSilverPerGram(rates.silverRate, rates.silverUnit)
+    : 0;
 
   const baseMetal = (weightGrams || 0) * perGramMetal;
   const makingTotal =
@@ -63,12 +66,12 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
               <h2 id="calc-modal-title" className="font-serif text-lg font-semibold text-[#1E1B18]">
                 Bullion Rate &amp; Price Calculator
               </h2>
-              <p className="text-xs text-[#64748B]">Live Sarafa Association market formulas</p>
+              <p className="text-xs text-[#64748B]">Transparent bullion calculation formulas</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#64748B] hover:text-[#1E1B18] rounded-md transition-colors"
+            className="p-2 text-[#64748B] hover:text-[#1E1B18] rounded-md transition-colors cursor-pointer"
             aria-label="Close calculator"
           >
             <X className="w-5 h-5" />
@@ -86,7 +89,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
               <button
                 type="button"
                 onClick={() => setMetal('gold')}
-                className={`py-2 text-xs font-semibold rounded-md transition-all ${
+                className={`py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                   metal === 'gold'
                     ? 'bg-white text-[#8E6E24] shadow-xs border border-[#C9A54B]/30'
                     : 'text-[#64748B] hover:text-[#1E1B18]'
@@ -97,7 +100,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
               <button
                 type="button"
                 onClick={() => setMetal('silver')}
-                className={`py-2 text-xs font-semibold rounded-md transition-all ${
+                className={`py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                   metal === 'silver'
                     ? 'bg-white text-[#475569] shadow-xs border border-slate-300'
                     : 'text-[#64748B] hover:text-[#1E1B18]'
@@ -120,7 +123,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                     key={k}
                     type="button"
                     onClick={() => setGoldKarat(k)}
-                    className={`py-2 text-xs font-medium rounded-md border transition-all ${
+                    className={`py-2 text-xs font-medium rounded-md border transition-all cursor-pointer ${
                       goldKarat === k
                         ? 'bg-[#C9A54B] text-white border-[#B18D35] shadow-xs font-semibold'
                         : 'bg-white text-[#1E1B18] border-[#E2D8C9] hover:border-[#C9A54B]'
@@ -170,7 +173,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                     setMakingType('per_gram');
                     setMakingAmount(1200);
                   }}
-                  className={`px-2 py-1 rounded transition-colors ${
+                  className={`px-2 py-1 rounded transition-colors cursor-pointer ${
                     makingType === 'per_gram'
                       ? 'bg-[#FAF7F2] text-[#8E6E24] font-semibold border border-[#C9A54B]/30'
                       : 'text-[#64748B]'
@@ -184,7 +187,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                     setMakingType('fixed');
                     setMakingAmount(5000);
                   }}
-                  className={`px-2 py-1 rounded transition-colors ${
+                  className={`px-2 py-1 rounded transition-colors cursor-pointer ${
                     makingType === 'fixed'
                       ? 'bg-[#FAF7F2] text-[#8E6E24] font-semibold border border-[#C9A54B]/30'
                       : 'text-[#64748B]'
@@ -216,13 +219,13 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
             <div className="flex justify-between text-xs text-[#64748B]">
               <span>Current Per Gram Rate:</span>
               <span className="font-mono text-[#1E1B18] font-medium">
-                {formatPKR(perGramMetal)} / g
+                {!isRateMissing ? `${formatPKR(perGramMetal)} / g` : 'Rate unavailable'}
               </span>
             </div>
             <div className="flex justify-between text-xs text-[#64748B]">
               <span>Base Metal Price ({weightGrams}g):</span>
               <span className="font-mono text-[#1E1B18] font-medium">
-                {formatPKR(baseMetal)}
+                {!isRateMissing ? formatPKR(baseMetal) : 'Rate unavailable'}
               </span>
             </div>
             <div className="flex justify-between text-xs text-[#64748B]">
@@ -236,7 +239,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                 Estimated Total:
               </span>
               <span className="font-serif text-xl font-bold text-[#1E1B18]">
-                {formatPKR(grandTotal)}
+                {!isRateMissing ? formatPKR(grandTotal) : 'Rate unavailable'}
               </span>
             </div>
           </div>
@@ -250,7 +253,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
         <div className="px-6 py-3.5 bg-white border-t border-[#E2D8C9] flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-[#C9A54B] hover:bg-[#B18D35] rounded-md transition-all shadow-xs"
+            className="px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-[#C9A54B] hover:bg-[#B18D35] rounded-md transition-all shadow-xs cursor-pointer"
           >
             Done
           </button>

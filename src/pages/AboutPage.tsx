@@ -1,7 +1,7 @@
 import React from 'react';
-import { ShieldCheck, Scale, Award, HeartHandshake, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Scale, Award, HeartHandshake, CheckCircle2 } from 'lucide-react';
 import { getSettings } from '../data/store';
-import { BullionRates, formatPKR, TOLA_IN_GRAMS } from '../lib/pricing';
+import { BullionRates } from '../lib/pricing';
 
 interface AboutPageProps {
   rates: BullionRates;
@@ -39,16 +39,15 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             Generational Artistry
           </span>
           <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal leading-snug">
-            The Hands of Lahore &amp; Karachi Karigars
+            Traditional Goldsmithing Heritage
           </h2>
           <p className="text-xs sm:text-sm text-[#64748B] font-light leading-relaxed">
             Every bridal choker, hammered kara, and traditional jhumka in our collection is forged
-            by generational masters whose lineages have adorned subcontinental aristocracy since the
-            Mughal era.
+            by generational masters whose lineages have adorned Pakistani bridal culture.
           </p>
           <p className="text-xs sm:text-sm text-[#64748B] font-light leading-relaxed">
             We preserve traditional techniques—from delicate <i>filigree wire lace</i> and <i>kundan jadai</i> to
-            modern computerized diamond faceting—ensuring our pieces withstand the test of time while retaining
+            modern diamond faceting—ensuring our pieces withstand the test of time while retaining
             their resplendent luster.
           </p>
 
@@ -63,14 +62,14 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-[#C9A54B]" />
-              <span>Sarafa Certified Pricing</span>
+              <span>Laser Hallmarked Purity</span>
             </div>
           </div>
         </div>
 
         <div className="relative aspect-4/3 rounded-xl overflow-hidden shadow-lg border border-[#E2D8C9] bg-[#FAF7F2]">
           <img
-            src="/src/assets/images/jewel_gold_bridal_necklace_1793522998312.jpg"
+            src="/public/assets/aistudio/intro-poster_d8a114e6.jpg"
             alt="Handcrafted Pakistani gold bridal jewellery"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -151,13 +150,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
             onClick={onNavigateToCatalogue}
-            className="gold-sheen w-full sm:w-auto px-8 py-3.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-xs sm:text-sm uppercase tracking-wider rounded-lg transition-all shadow-md"
+            className="gold-sheen w-full sm:w-auto px-8 py-3.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-xs sm:text-sm uppercase tracking-wider rounded-lg transition-all shadow-md cursor-pointer"
           >
             Browse Catalogue
           </button>
           <button
             onClick={onOpenCalculator}
-            className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B] font-semibold text-xs sm:text-sm uppercase tracking-wider rounded-lg transition-all shadow-2xs"
+            className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B] font-semibold text-xs sm:text-sm uppercase tracking-wider rounded-lg transition-all shadow-2xs cursor-pointer"
           >
             Open Rate Calculator
           </button>

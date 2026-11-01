@@ -1,0 +1,34 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper to check verified Google staff authentication
+    function isStaffProductManager() {
+      return request.auth != null &&
+             request.auth.token.email_verified == true &&
+             (
+               request.auth.token.email == 'bengamers494@gmail.com' ||
+               firestore.get(/databases/(default)/documents/staff/$(request.auth.token.email)).data.role in ['owner', 'product_manager']
+             );
+    }
+
+    // Validation for image uploads: Must be valid image MIME type and under 2MB (2,097,152 bytes)
+    function isValidProductImage() {
+      return request.resource.size < 2 * 1024 * 1024 &&
+             request.resource.contentType.matches('image/.*');
+    }
+
+    // Product Images storage path: products/{productId}/{fileName}
+    match /products/{productId}/{fileName} {
+      // Public read access so storefront visitors can view jewelry images without signing in
+      allow read: if true;
+      // Only authorized staff (owner or product_manager) with verified emails can upload new images under 2MB
+      allow create: if isStaffProductManager() && isValidProductImage();
+      // Only authorized staff (owner or product_manager) can update existing product images under 2MB
+      allow update: if isStaffProductManager() && isValidProductImage();
+      // Only authorized staff (owner or product_manager) can delete product images from storage
+      allow delete: if isStaffProductManager();
+    }
+  }
+}

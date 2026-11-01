@@ -8,7 +8,6 @@ import {
   Truck,
   Store,
   Info,
-  ShieldCheck,
   Scale,
   Sparkles,
 } from 'lucide-react';
@@ -58,7 +57,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [city, setCity] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [pickupLocation, setPickupLocation] = useState(
-    settings.pickupBranches[0]?.name || 'Flagship Showroom - Liberty Market, Lahore'
+    settings.address || 'Showroom Pickup (Arranged via WhatsApp)'
   );
   const [orderNotes, setOrderNotes] = useState('');
 
@@ -83,9 +82,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   const handleWhatsAppOrder = () => {
-    const url = getWhatsAppOrderUrl(summary, fulfillment);
+    // Generate WhatsApp link using configured settings.whatsappNumber
+    const url = getWhatsAppOrderUrl(summary, fulfillment, settings.whatsappNumber);
 
-    // Save an enquiry with rate snapshot to Firestore, opening WhatsApp even if saving fails. Never say order was sent.
+    // Save enquiry with rate snapshot to Firestore in background. Never state order was sent.
     logWhatsAppEnquiry({
       customerName: customerName.trim() || undefined,
       customerPhone: customerPhone.trim() || undefined,
@@ -102,7 +102,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       })),
     }).catch(() => {});
 
-    // Open WhatsApp immediately
+    // Open WhatsApp URL directly
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -135,7 +135,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-[#64748B] hover:text-[#1E1B18] rounded-md transition-colors"
+              className="p-2 text-[#64748B] hover:text-[#1E1B18] rounded-md transition-colors cursor-pointer"
               aria-label="Close bag"
             >
               <X className="w-5 h-5" />
@@ -160,7 +160,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     onClose();
                     onNavigateToCatalogue();
                   }}
-                  className="px-6 py-2.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-xs uppercase tracking-wider rounded-md transition-all shadow-xs"
+                  className="px-6 py-2.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-xs uppercase tracking-wider rounded-md transition-all shadow-xs cursor-pointer"
                 >
                   Explore Catalogue
                 </button>
@@ -188,14 +188,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                               onClose();
                             }
                           }}
-                          className="w-20 h-20 bg-[#FAF7F2] rounded-lg overflow-hidden shrink-0 border border-[#E2D8C9] group"
+                          className="w-20 h-20 bg-[#FAF7F2] rounded-lg overflow-hidden shrink-0 border border-[#E2D8C9] group flex items-center justify-center cursor-pointer"
                         >
-                          <img
-                            src={fullProduct?.images[0] || '/public/assets/aistudio/intro-poster_d8a114e6.jpg'}
-                            alt={product.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            referrerPolicy="no-referrer"
-                          />
+                          {fullProduct?.images && fullProduct.images[0] ? (
+                            <img
+                              src={fullProduct.images[0]}
+                              alt={product.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Sparkles className="w-6 h-6 text-[#C9A54B]" />
+                          )}
                         </button>
 
                         {/* Details */}
@@ -215,14 +219,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                               </h4>
                               <button
                                 onClick={() => onRemoveItem(product.id)}
-                                className="text-[#94A3B8] hover:text-rose-600 transition-colors p-1"
+                                className="text-[#94A3B8] hover:text-rose-600 transition-colors p-1 cursor-pointer"
                                 title="Remove item"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
 
-                            {/* Clean unboxed metadata */}
+                            {/* Clean metadata */}
                             <div className="flex items-center gap-1.5 text-[11px] text-[#64748B] mt-0.5">
                               <span className="font-mono text-[#1E1B18] font-medium">{product.sku}</span>
                               <span aria-hidden="true">·</span>
@@ -241,7 +245,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             <div className="flex items-center border border-[#E2D8C9] rounded-md bg-[#FAF7F2]">
                               <button
                                 onClick={() => onUpdateQuantity(product.id, -1)}
-                                className="p-1 hover:text-[#8E6E24] text-[#64748B] transition-colors"
+                                className="p-1 hover:text-[#8E6E24] text-[#64748B] transition-colors cursor-pointer"
                                 aria-label="Decrease quantity"
                               >
                                 <Minus className="w-3.5 h-3.5" />
@@ -251,7 +255,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                               </span>
                               <button
                                 onClick={() => onUpdateQuantity(product.id, 1)}
-                                className="p-1 hover:text-[#8E6E24] text-[#64748B] transition-colors"
+                                className="p-1 hover:text-[#8E6E24] text-[#64748B] transition-colors cursor-pointer"
                                 aria-label="Increase quantity"
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -285,7 +289,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => setFulfillmentMethod('courier')}
-                      className={`flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all ${
+                      className={`flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                         fulfillmentMethod === 'courier'
                           ? 'bg-[#FAF7F2] text-[#8E6E24] border-[#C9A54B] shadow-2xs'
                           : 'bg-white text-[#64748B] border-[#E2D8C9] hover:border-[#CBD5E1]'
@@ -297,7 +301,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => setFulfillmentMethod('pickup')}
-                      className={`flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all ${
+                      className={`flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                         fulfillmentMethod === 'pickup'
                           ? 'bg-[#FAF7F2] text-[#8E6E24] border-[#C9A54B] shadow-2xs'
                           : 'bg-white text-[#64748B] border-[#E2D8C9] hover:border-[#CBD5E1]'
@@ -347,25 +351,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     ) : (
                       <div>
                         <label className="block text-[11px] text-[#64748B] mb-1">
-                          Select Showroom Branch for Pickup:
+                          Showroom Location for Pickup:
                         </label>
                         <select
                           value={pickupLocation}
                           onChange={(e) => setPickupLocation(e.target.value)}
                           className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18] outline-none focus:border-[#C9A54B]"
                         >
-                          {settings.pickupBranches.map((branch) => (
-                            <option key={branch.name} value={branch.name}>
-                              {branch.name} ({branch.city})
+                          {settings.address ? (
+                            <option value={settings.address}>{settings.address}</option>
+                          ) : (
+                            <option value="Main Showroom (Contact on WhatsApp for appointment)">
+                              Main Showroom (Contact on WhatsApp for appointment)
                             </option>
-                          ))}
+                          )}
                         </select>
                       </div>
                     )}
 
                     <input
                       type="text"
-                      placeholder="Special notes or ring size requirement (optional)"
+                      placeholder="Special notes or sizing request (optional)"
                       value={orderNotes}
                       onChange={(e) => setOrderNotes(e.target.value)}
                       className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18] placeholder-[#94A3B8] outline-none focus:border-[#C9A54B]"
@@ -415,7 +421,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <button
                 type="button"
                 onClick={handleWhatsAppOrder}
-                className="gold-sheen w-full py-3.5 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm tracking-wide rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2.5"
+                className="gold-sheen w-full py-3.5 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm tracking-wide rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <MessageCircle className="w-5 h-5" />
                 <span>Order on WhatsApp</span>
@@ -426,7 +432,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <button
                   type="button"
                   onClick={onClearCart}
-                  className="hover:text-rose-600 transition-colors"
+                  className="hover:text-rose-600 transition-colors cursor-pointer"
                 >
                   Clear Bag
                 </button>

@@ -12,7 +12,8 @@ import {
   limit,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db, auth, OperationType, handleFirestoreError } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, auth, storage, OperationType, handleFirestoreError } from './firebase';
 import { BullionRates } from './pricing';
 
 export type StaffRole = 'owner' | 'rate_manager' | 'product_manager' | 'support' | 'viewer';
@@ -53,6 +54,8 @@ export interface StoreSettingsDoc {
   address?: string;
   deliveryText?: string;
   lastHistoryId?: string;
+  lastGoldHistoryId?: string;
+  lastSilverHistoryId?: string;
 }
 
 export interface RateHistoryItem {
@@ -97,7 +100,7 @@ export async function getStaffRecord(email: string): Promise<StaffMember | null>
     if (docSnap.exists()) {
       return { email: normalizedEmail, ...(docSnap.data() as Omit<StaffMember, 'email'>) };
     }
-    // Hardcoded initial super owner check
+    // Initial super owner check
     if (normalizedEmail === 'bengamers494@gmail.com') {
       return {
         email: normalizedEmail,
@@ -145,7 +148,10 @@ export async function deleteStaffMember(email: string): Promise<void> {
 
 /**
  * Bullion Rates with Atomic RateHistory Batched Write
- * Enforces rule: "every rate change must be saved in the SAME batched write as a rateHistory document"
+ * Enforces rule: "every rate change must be saved in the same batch as NEW rateHistory documents.
+ * One history doc per changed metal: metal 'gold' or 'silver', oldValue, newValue, unit,
+ * changedBy == request.auth.uid, changedAt == request.time.
+ * Rules must check the history newValue equals the new settings value for that metal."
  */
 export async function updateBullionRates(
   newGold24k: number,
@@ -158,20 +164,31 @@ export async function updateBullionRates(
 
   try {
     const batch = writeBatch(db);
-    const historyRef = doc(collection(db, 'rateHistory'));
+    const goldHistoryRef = doc(collection(db, 'rateHistory'));
+    const silverHistoryRef = doc(collection(db, 'rateHistory'));
     const nowIso = new Date().toISOString();
 
-    // 1. Record rateHistory
-    batch.set(historyRef, {
-      metal: 'both',
+    // 1. Record Gold rateHistory
+    batch.set(goldHistoryRef, {
+      metal: 'gold',
       oldValue: oldRates ? oldRates.gold24KPerTola : 0,
       newValue: newGold24k,
       unit: 'tola',
       changedBy: user.uid,
-      changedAt: nowIso,
+      changedAt: serverTimestamp(),
     });
 
-    // 2. Update settings/store with matching lastHistoryId
+    // 2. Record Silver rateHistory
+    batch.set(silverHistoryRef, {
+      metal: 'silver',
+      oldValue: oldRates ? oldRates.silverRate : 0,
+      newValue: newSilverRate,
+      unit: silverUnit,
+      changedBy: user.uid,
+      changedAt: serverTimestamp(),
+    });
+
+    // 3. Update settings/store with matching ids
     const settingsRef = doc(db, 'settings', 'store');
     batch.set(
       settingsRef,
@@ -180,7 +197,9 @@ export async function updateBullionRates(
         silverRate: newSilverRate,
         silverUnit,
         ratesUpdatedAt: nowIso,
-        lastHistoryId: historyRef.id,
+        lastGoldHistoryId: goldHistoryRef.id,
+        lastSilverHistoryId: silverHistoryRef.id,
+        lastHistoryId: goldHistoryRef.id,
       },
       { merge: true }
     );
@@ -191,14 +210,88 @@ export async function updateBullionRates(
   }
 }
 
+/**
+ * Fetch Store Settings Doc for Admin
+ */
+export async function fetchStoreSettingsAdmin(): Promise<StoreSettingsDoc | null> {
+  try {
+    const docSnap = await getDoc(doc(db, 'settings', 'store'));
+    if (docSnap.exists()) {
+      return docSnap.data() as StoreSettingsDoc;
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, 'settings/store');
+  }
+}
+
+/**
+ * Update General Store Settings (e.g. whatsappNumber, address, hoursText, deliveryText)
+ */
+export async function updateStoreSettingsInfo(updates: {
+  whatsappNumber?: string;
+  hoursText?: string;
+  address?: string;
+  deliveryText?: string;
+}): Promise<void> {
+  try {
+    await setDoc(doc(db, 'settings', 'store'), updates, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, 'settings/store');
+  }
+}
+
 export async function fetchRateHistory(): Promise<RateHistoryItem[]> {
   try {
     const q = query(collection(db, 'rateHistory'), orderBy('changedAt', 'desc'), limit(50));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<RateHistoryItem, 'id'>) }));
+    return snap.docs.map((d) => {
+      const data = d.data();
+      let changedAtStr = '';
+      if (data.changedAt?.toDate) {
+        changedAtStr = data.changedAt.toDate().toISOString();
+      } else if (typeof data.changedAt === 'string') {
+        changedAtStr = data.changedAt;
+      }
+      return {
+        id: d.id,
+        metal: data.metal,
+        oldValue: data.oldValue,
+        newValue: data.newValue,
+        unit: data.unit,
+        changedBy: data.changedBy,
+        changedAt: changedAtStr || new Date().toISOString(),
+      };
+    });
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'rateHistory');
   }
+}
+
+/**
+ * Image Upload to Firebase Storage
+ * Uploads to products/{productId}/{filename}
+ * Enforces < 2MB limit and image MIME type
+ */
+export async function uploadProductImage(productId: string, file: File): Promise<string> {
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error('Image size exceeds 2MB limit. Please compress or resize.');
+  }
+  if (!file.type.startsWith('image/')) {
+    throw new Error('File must be a valid image (JPEG, PNG, WEBP, etc.)');
+  }
+
+  const cleanProductId = productId ? productId.replace(/[^a-zA-Z0-9_-]/g, '_') : 'temp';
+  const fileExt = file.name.split('.').pop() || 'jpg';
+  const safeFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+  const imageRef = ref(storage, `products/${cleanProductId}/${safeFileName}`);
+
+  const snapshot = await uploadBytes(imageRef, file, {
+    contentType: file.type,
+  });
+
+  const downloadUrl = await getDownloadURL(snapshot.ref);
+  return downloadUrl;
 }
 
 /**
@@ -236,9 +329,7 @@ export async function saveProduct(product: Partial<AdminProduct> & { sku: string
     stock: Math.floor(Number(product.stock)),
     status: product.status || 'active',
     featured: Boolean(product.featured),
-    images: Array.isArray(product.images) && product.images.length > 0
-      ? product.images
-      : ['/src/assets/images/jewel_gold_bridal_necklace_1793522998312.jpg'],
+    images: Array.isArray(product.images) ? product.images.slice(0, 10) : [],
     updatedAt: nowIso,
   };
 
@@ -303,58 +394,5 @@ export async function updateEnquiryStatus(
     await updateDoc(doc(db, 'enquiries', enquiryId), updateData);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `enquiries/${enquiryId}`);
-  }
-}
-
-/**
- * Initial Seeding Check
- * Seeds ownerBengamers, settings/store, and sample products if collection is fresh
- */
-export async function seedInitialFirestoreData(): Promise<void> {
-  try {
-    // 1. Seed Owner
-    const ownerEmail = 'bengamers494@gmail.com';
-    await setDoc(
-      doc(db, 'staff', ownerEmail),
-      {
-        role: 'owner',
-        name: 'Head Goldsmith & Owner',
-        addedAt: new Date().toISOString(),
-      },
-      { merge: true }
-    );
-
-    // 2. Check settings/store
-    const settingsSnap = await getDoc(doc(db, 'settings', 'store'));
-    if (!settingsSnap.exists()) {
-      const historyRef = doc(collection(db, 'rateHistory'));
-      const nowIso = new Date().toISOString();
-      const batch = writeBatch(db);
-
-      batch.set(historyRef, {
-        metal: 'both',
-        oldValue: 0,
-        newValue: 284500,
-        unit: 'tola',
-        changedBy: 'system-init',
-        changedAt: nowIso,
-      });
-
-      batch.set(doc(db, 'settings', 'store'), {
-        gold24kPerTola: 284500,
-        silverRate: 3420,
-        silverUnit: 'tola',
-        ratesUpdatedAt: nowIso,
-        whatsappNumber: '923109412332',
-        hoursText: 'Monday to Saturday: 9:00 AM – 9:00 PM PKT | Sunday: Closed',
-        address: '[Placeholder Address: Suite 4-B, Gold Souk, Liberty Market, Gulberg III, Lahore, Pakistan]',
-        deliveryText: 'Insured nationwide courier transit with sealed tamper-evident security packing.',
-        lastHistoryId: historyRef.id,
-      });
-
-      await batch.commit();
-    }
-  } catch (err) {
-    console.warn('Initial seeding note:', err);
   }
 }

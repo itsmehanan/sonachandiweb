@@ -1,7 +1,7 @@
 import React from 'react';
-import { ArrowRight, Sparkles, Shield, Award, Scale, CheckCircle2, ChevronRight } from 'lucide-react';
+import { ArrowRight, Sparkles, Scale, CheckCircle2, ChevronRight, Gem, Crown, Shield } from 'lucide-react';
 import { Product, getFeaturedProducts, getSettings } from '../data/store';
-import { BullionRates, formatPKR, gramsToTola } from '../lib/pricing';
+import { BullionRates, formatPKR } from '../lib/pricing';
 import { ProductCard } from '../components/ProductCard';
 
 interface HomePageProps {
@@ -44,21 +44,21 @@ export const HomePage: React.FC<HomePageProps> = ({
 
               <p className="text-sm sm:text-base text-[#64748B] font-light max-w-xl mx-auto lg:mx-0 leading-relaxed">
                 Handcrafted Pakistani bridal chokers, engraved 22K karas, and solid 925 sterling
-                silver. Transparent bullion pricing updated with Sarafa market rates.
+                silver. Transparent bullion pricing updated with real-time bullion benchmark rates.
               </p>
 
               {/* Action Buttons */}
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <button
                   onClick={() => onNavigateToCatalogue()}
-                  className="gold-sheen w-full sm:w-auto px-8 py-3.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm tracking-wide rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  className="gold-sheen w-full sm:w-auto px-8 py-3.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm tracking-wide rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Explore All Jewellery</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={onOpenCalculator}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B]/40 hover:border-[#C9A54B] font-semibold text-sm tracking-wide rounded-lg transition-all flex items-center justify-center gap-2 shadow-2xs"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B]/40 hover:border-[#C9A54B] font-semibold text-sm tracking-wide rounded-lg transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
                 >
                   <Scale className="w-4 h-4" />
                   <span>Check Today’s Rate</span>
@@ -121,7 +121,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
           <button
             onClick={() => onNavigateToCatalogue()}
-            className="text-xs font-semibold text-[#8E6E24] hover:text-[#1E1B18] flex items-center gap-1 mt-2 sm:mt-0"
+            className="text-xs font-semibold text-[#8E6E24] hover:text-[#1E1B18] flex items-center gap-1 mt-2 sm:mt-0 cursor-pointer"
           >
             <span>View All Catalogue</span>
             <ChevronRight className="w-4 h-4" />
@@ -134,53 +134,42 @@ export const HomePage: React.FC<HomePageProps> = ({
               label: 'Bridal Sets',
               filter: 'bridal_sets',
               sub: 'Chokers & Haars',
-              img: '/src/assets/images/jewel_gold_bridal_necklace_1793522998312.jpg',
             },
             {
               label: 'Bangles & Karas',
               filter: 'bangles',
               sub: '22K Embossed',
-              img: '/src/assets/images/jewel_gold_kara_bangles_1793522999291.jpg',
             },
             {
               label: 'Jhumkas & Balis',
               filter: 'earrings',
               sub: '21K Kundan',
-              img: '/src/assets/images/jewel_gold_jhumkas_earrings_1793522999181.jpg',
             },
             {
               label: 'Necklaces',
               filter: 'necklaces',
               sub: 'Haars & Chains',
-              img: '/src/assets/images/jewel_gold_bridal_necklace_1793522998312.jpg',
             },
             {
               label: 'Gold Rings',
               filter: 'rings',
               sub: 'Solitaire & Bands',
-              img: '/public/assets/aistudio/intro-poster_d8a114e6.jpg',
             },
             {
               label: '925 Silver',
               filter: 'silver',
               sub: 'Pure Sterling',
-              img: '/src/assets/images/jewel_silver_choker_set_1793522999430.jpg',
             },
           ].map((cat) => (
             <button
               key={cat.label}
               onClick={() => onNavigateToCatalogue(cat.filter)}
-              className="group text-left bg-white border border-[#E2D8C9] rounded-xl overflow-hidden hover:border-[#C9A54B] hover:shadow-md transition-all flex flex-col"
+              className="group text-left bg-white border border-[#E2D8C9] rounded-xl overflow-hidden hover:border-[#C9A54B] hover:shadow-md transition-all flex flex-col p-4 space-y-3 cursor-pointer"
             >
-              <div className="aspect-1/1 w-full bg-[#F3EFEA] overflow-hidden">
-                <img
-                  src={cat.img}
-                  alt={cat.label}
-                  className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="w-12 h-12 rounded-lg bg-[#FAF7F2] border border-[#C9A54B]/30 flex items-center justify-center text-[#8E6E24] group-hover:bg-[#C9A54B] group-hover:text-white transition-colors">
+                <Sparkles className="w-6 h-6" />
               </div>
-              <div className="p-3">
+              <div>
                 <h4 className="font-serif text-sm font-semibold text-[#1E1B18] group-hover:text-[#8E6E24] transition-colors">
                   {cat.label}
                 </h4>
@@ -192,44 +181,46 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* Featured Jewellery Showcase */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col sm:flex-row items-baseline justify-between mb-8 pb-3 border-b border-[#E2D8C9]">
-          <div>
-            <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal">
-              Signature Bridal &amp; Fine Pieces
-            </h2>
-            <p className="text-xs text-[#64748B] mt-1">
-              Hand-finished designs with real-time bullion rate estimates
-            </p>
+      {featured.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-baseline justify-between mb-8 pb-3 border-b border-[#E2D8C9]">
+            <div>
+              <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal">
+                Signature Bridal &amp; Fine Pieces
+              </h2>
+              <p className="text-xs text-[#64748B] mt-1">
+                Hand-finished designs with real-time bullion rate estimates
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateToCatalogue()}
+              className="text-xs font-semibold text-[#8E6E24] hover:text-[#1E1B18] flex items-center gap-1 mt-2 sm:mt-0 cursor-pointer"
+            >
+              <span>Browse Full Collection ({featured.length} featured)</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => onNavigateToCatalogue()}
-            className="text-xs font-semibold text-[#8E6E24] hover:text-[#1E1B18] flex items-center gap-1 mt-2 sm:mt-0"
-          >
-            <span>Browse Full Collection ({featured.length} featured)</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featured.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              rates={rates}
-              onSelect={onSelectProduct}
-              onAddToCart={onAddToCart}
-            />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featured.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                rates={rates}
+                onSelect={onSelectProduct}
+                onAddToCart={onAddToCart}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Karat Purity Guide & Bullion Transparency */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="bg-white border border-[#E2D8C9] rounded-2xl p-6 sm:p-10 shadow-xs">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <span className="text-xs uppercase tracking-widest text-[#8E6E24] font-semibold">
-              The Sarafa Purity Standard
+              The Bullion Purity Standard
             </span>
             <h3 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] mt-2 font-normal">
               Understanding Gold &amp; Silver Purity
@@ -245,7 +236,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <span className="text-xs font-mono font-bold text-[#8E6E24]">24K (99.9% Purity)</span>
               <h4 className="font-serif text-lg font-semibold text-[#1E1B18]">Pure Bullion</h4>
               <p className="text-xs text-[#64748B] font-light leading-relaxed">
-                Raw investment gold bar and tola coin standard. Used as the benchmark baseline for all Sarafa calculations.
+                Raw investment gold bar and tola coin standard. Used as the benchmark baseline for all bullion calculations.
               </p>
             </div>
 
@@ -294,7 +285,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="gold-sheen px-8 py-3.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm tracking-wide rounded-lg transition-all shadow-md shrink-0 flex items-center gap-2"
+            className="gold-sheen px-8 py-3.5 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm tracking-wide rounded-lg transition-all shadow-md shrink-0 flex items-center gap-2 cursor-pointer"
           >
             <span>Chat on WhatsApp</span>
             <ArrowRight className="w-4 h-4" />

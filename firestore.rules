@@ -3,14 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny catch-all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // Helper functions
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
     function isSuperOwner() {
@@ -43,90 +38,120 @@ service cloud.firestore {
       return isSignedIn() && (isOwner() || getStaffRole() == 'support');
     }
 
+    function isViewer() {
+      return isSignedIn() && (isOwner() || getStaffRole() == 'viewer');
+    }
+
     function isStaff() {
       return isSignedIn() && (isOwner() || getStaffRole() != 'none');
     }
 
+    function isEnquiryViewer() {
+      return isSignedIn() && (isOwner() || getStaffRole() in ['owner', 'support', 'viewer']);
+    }
+
     // Validation for Product documents
     function isValidProduct(data) {
-      return data.sku is string && data.sku.size() > 0 &&
-             data.name is string && data.name.size() > 0 &&
+      return data.sku is string && data.sku.size() > 0 && data.sku.size() <= 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 3000)) &&
              data.metal in ['gold', 'silver'] &&
-             data.category is string &&
+             data.category is string && data.category.size() <= 50 &&
              data.weightG is number && data.weightG > 0 &&
              data.makingType in ['fixed', 'perGram'] &&
              data.makingValue is number && data.makingValue >= 0 &&
              data.stock is int && data.stock >= 0 &&
              data.status in ['draft', 'active', 'archived'] &&
+             (!('images' in data) || (data.images is list && data.images.size() <= 10)) &&
              (data.metal != 'gold' || data.karat in [18, 21, 22, 24]);
     }
 
     // Validation for Store Settings & Rates
     function isValidSettings(data) {
-      return data.gold24kPerTola is number && data.gold24kPerTola > 0 &&
-             data.silverRate is number && data.silverRate > 0 &&
+      return data.gold24kPerTola is number && data.gold24kPerTola >= 0 &&
+             data.silverRate is number && data.silverRate >= 0 &&
              data.silverUnit in ['tola', 'gram'];
     }
 
-    // Validation for Enquiries
-    function isValidEnquiry(data) {
-      return data.fulfilment in ['courier', 'pickup'] &&
-             data.status in ['new', 'contacted', 'awaiting_customer', 'confirmed', 'completed', 'cancelled'] &&
+    // Atomic Batch Audit Check for Bullion Rate Changes
+    function hasValidRateAudit() {
+      let goldId = request.resource.data.lastGoldHistoryId;
+      let silverId = request.resource.data.lastSilverHistoryId;
+      return goldId is string && silverId is string &&
+        !exists(/databases/$(database)/documents/rateHistory/$(goldId)) &&
+        existsAfter(/databases/$(database)/documents/rateHistory/$(goldId)) &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(goldId)).data.newValue == request.resource.data.gold24kPerTola &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(goldId)).data.metal == 'gold' &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(goldId)).data.changedBy == request.auth.uid &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(goldId)).data.changedAt == request.time &&
+        !exists(/databases/$(database)/documents/rateHistory/$(silverId)) &&
+        existsAfter(/databases/$(database)/documents/rateHistory/$(silverId)) &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(silverId)).data.newValue == request.resource.data.silverRate &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(silverId)).data.metal == 'silver' &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(silverId)).data.changedBy == request.auth.uid &&
+        getAfter(/databases/$(database)/documents/rateHistory/$(silverId)).data.changedAt == request.time;
+    }
+
+    // Validation for Enquiries creation by public
+    function isValidEnquiryCreate(data) {
+      return data.keys().hasOnly(['customerName', 'customerPhone', 'fulfilment', 'status', 'notes', 'rateSnapshot', 'estimatedTotal', 'items', 'createdAt']) &&
+             data.status == 'new' &&
+             data.fulfilment in ['courier', 'pickup'] &&
+             (!('customerName' in data) || (data.customerName is string && data.customerName.size() <= 100)) &&
+             (!('customerPhone' in data) || (data.customerPhone is string && data.customerPhone.size() <= 50)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
              data.estimatedTotal is number && data.estimatedTotal >= 0 &&
-             data.items is list && data.items.size() > 0;
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 50;
     }
 
     // 1. PRODUCTS COLLECTION
-    // Public may read only products with status 'active'.
-    // Staff may read all products.
-    // Only owner and product_manager write products.
     match /products/{productId} {
       allow get, list: if (resource.data.status == 'active') || isStaff();
       allow create: if isProductManager() && isValidProduct(request.resource.data);
       allow update: if isProductManager() && isValidProduct(request.resource.data);
-      allow delete: if isProductManager();
+      allow delete: if isOwner();
     }
 
     // 2. SETTINGS COLLECTION (settings/store)
-    // Public may read settings/store.
-    // Only owner and rate_manager write rates.
-    // Every rate change must be saved in the SAME batched write as a rateHistory document.
     match /settings/{settingId} {
-      allow get, list: if settingId == 'store' || isStaff();
-      allow create, update: if isRateManager() &&
-                               isValidSettings(request.resource.data) &&
-                               (request.resource.data.lastHistoryId is string &&
-                                existsAfter(/databases/$(database)/documents/rateHistory/$(request.resource.data.lastHistoryId)));
+      allow get: if settingId == 'store';
+      allow list: if isStaff();
+      allow create: if isOwner() && isValidSettings(request.resource.data);
+      allow update: if isValidSettings(request.resource.data) && (
+                       (isOwner() && (!('lastGoldHistoryId' in request.resource.data) || hasValidRateAudit())) ||
+                       (isRateManager() &&
+                        hasValidRateAudit() &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gold24kPerTola', 'silverRate', 'silverUnit', 'ratesUpdatedAt', 'lastHistoryId', 'lastGoldHistoryId', 'lastSilverHistoryId']))
+                     );
       allow delete: if false;
     }
 
     // 3. RATE HISTORY COLLECTION
-    // Read-only for staff.
-    // Created only in the same batch by rate managers or owners.
     match /rateHistory/{historyId} {
       allow get, list: if isStaff();
       allow create: if isRateManager() &&
-                       request.resource.data.metal is string &&
-                       request.resource.data.newValue is number && request.resource.data.newValue > 0 &&
-                       request.resource.data.changedBy == request.auth.uid;
+                       !exists(/databases/$(database)/documents/rateHistory/$(historyId)) &&
+                       request.resource.data.metal in ['gold', 'silver'] &&
+                       request.resource.data.newValue is number && request.resource.data.newValue >= 0 &&
+                       request.resource.data.oldValue is number && request.resource.data.oldValue >= 0 &&
+                       request.resource.data.unit in ['tola', 'gram'] &&
+                       request.resource.data.changedBy == request.auth.uid &&
+                       request.resource.data.changedAt == request.time;
       allow update, delete: if false;
     }
 
     // 4. ENQUIRIES COLLECTION
-    // Public may create an enquiry, but never read, update, or delete one.
-    // Only owner and support may read or update status and notes.
     match /enquiries/{enquiryId} {
-      allow create: if isValidEnquiry(request.resource.data);
-      allow get, list: if isSupport() || isStaff();
+      allow create: if isValidEnquiryCreate(request.resource.data);
+      allow get, list: if isEnquiryViewer();
       allow update: if isSupport() &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'notes', 'updatedAt']);
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'notes', 'updatedAt']) &&
+                       request.resource.data.status in ['new', 'contacted', 'awaiting_customer', 'confirmed', 'completed', 'cancelled'] &&
+                       (!('notes' in request.resource.data) || (request.resource.data.notes is string && request.resource.data.notes.size() <= 1000));
       allow delete: if isOwner();
     }
 
     // 5. STAFF COLLECTION
-    // Document id = email address.
-    // Authenticated user may read their own staff record to verify their assigned role.
-    // Owner can read all staff records and add, update, or remove staff.
     match /staff/{email} {
       allow get: if isSignedIn() && (request.auth.token.email == email || isOwner());
       allow list: if isOwner();

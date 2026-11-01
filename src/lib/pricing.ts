@@ -337,10 +337,12 @@ export function buildWhatsAppOrderMessage(
 
 export function getWhatsAppOrderUrl(
   cartSummary: CartSummaryPricing,
-  fulfillment: FulfillmentOptions
+  fulfillment: FulfillmentOptions,
+  whatsappNumber?: string
 ): string {
   const message = buildWhatsAppOrderMessage(cartSummary, fulfillment);
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const targetNumber = (whatsappNumber && whatsappNumber.replace(/\D/g, '')) || WHATSAPP_NUMBER;
+  return `https://wa.me/${targetNumber}?text=${encodeURIComponent(message)}`;
 }
 
 /**
@@ -349,7 +351,8 @@ export function getWhatsAppOrderUrl(
 export function getWhatsAppProductInquiryUrl(
   product: PricingProductInput,
   rates: BullionRates,
-  note?: string
+  note?: string,
+  whatsappNumber?: string
 ): string {
   const breakdown = calculateProductPrice(product, rates);
   const tolaInfo = gramsToTola(product.weightGrams);
@@ -370,7 +373,8 @@ export function getWhatsAppProductInquiryUrl(
     .filter(Boolean)
     .join('\n');
 
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const targetNumber = (whatsappNumber && whatsappNumber.replace(/\D/g, '')) || WHATSAPP_NUMBER;
+  return `https://wa.me/${targetNumber}?text=${encodeURIComponent(message)}`;
 }
 
 /**
