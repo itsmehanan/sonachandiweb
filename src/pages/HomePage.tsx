@@ -86,7 +86,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="lg:col-span-5">
               <div className="relative mx-auto max-w-md lg:max-w-none aspect-4/3 sm:aspect-1/1 rounded-2xl overflow-hidden shadow-2xl border border-[#C9A54B]/30 bg-white">
                 <img
-                  src="/public/assets/aistudio/intro-poster_d8a114e6.jpg"
+                  src="/assets/aistudio/intro-poster_d8a114e6.jpg"
                   alt="Pure 24K and 22K Gold Jewellery"
                   className="w-full h-full object-cover scale-102 hover:scale-100 transition-transform duration-700"
                   referrerPolicy="no-referrer"

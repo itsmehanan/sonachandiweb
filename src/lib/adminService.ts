@@ -12,8 +12,7 @@ import {
   limit,
   serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, auth, storage, OperationType, handleFirestoreError } from './firebase';
+import { db, auth, OperationType, handleFirestoreError } from './firebase';
 import { BullionRates } from './pricing';
 
 export type StaffRole = 'owner' | 'rate_manager' | 'product_manager' | 'support' | 'viewer';
@@ -53,6 +52,8 @@ export interface StoreSettingsDoc {
   hoursText?: string;
   address?: string;
   deliveryText?: string;
+  cloudinaryCloudName?: string;
+  cloudinaryUploadPreset?: string;
   lastHistoryId?: string;
   lastGoldHistoryId?: string;
   lastSilverHistoryId?: string;
@@ -233,6 +234,8 @@ export async function updateStoreSettingsInfo(updates: {
   hoursText?: string;
   address?: string;
   deliveryText?: string;
+  cloudinaryCloudName?: string;
+  cloudinaryUploadPreset?: string;
 }): Promise<void> {
   try {
     await setDoc(doc(db, 'settings', 'store'), updates, { merge: true });
@@ -268,31 +271,6 @@ export async function fetchRateHistory(): Promise<RateHistoryItem[]> {
   }
 }
 
-/**
- * Image Upload to Firebase Storage
- * Uploads to products/{productId}/{filename}
- * Enforces < 2MB limit and image MIME type
- */
-export async function uploadProductImage(productId: string, file: File): Promise<string> {
-  if (file.size > 2 * 1024 * 1024) {
-    throw new Error('Image size exceeds 2MB limit. Please compress or resize.');
-  }
-  if (!file.type.startsWith('image/')) {
-    throw new Error('File must be a valid image (JPEG, PNG, WEBP, etc.)');
-  }
-
-  const cleanProductId = productId ? productId.replace(/[^a-zA-Z0-9_-]/g, '_') : 'temp';
-  const fileExt = file.name.split('.').pop() || 'jpg';
-  const safeFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-  const imageRef = ref(storage, `products/${cleanProductId}/${safeFileName}`);
-
-  const snapshot = await uploadBytes(imageRef, file, {
-    contentType: file.type,
-  });
-
-  const downloadUrl = await getDownloadURL(snapshot.ref);
-  return downloadUrl;
-}
 
 /**
  * Products CRUD
@@ -329,7 +307,7 @@ export async function saveProduct(product: Partial<AdminProduct> & { sku: string
     stock: Math.floor(Number(product.stock)),
     status: product.status || 'active',
     featured: Boolean(product.featured),
-    images: Array.isArray(product.images) ? product.images.slice(0, 10) : [],
+    images: Array.isArray(product.images) ? product.images.slice(0, 6) : [],
     updatedAt: nowIso,
   };
 

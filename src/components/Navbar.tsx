@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="flex items-center gap-3 text-left focus:outline-hidden group shrink-0"
         >
           <img
-            src="/public/assets/aistudio/logo-light_b9e6ed91.png"
+            src="/assets/aistudio/logo-light_b9e6ed91.png"
             alt="Sona & Chandi Gold Collection"
             className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-102"
             referrerPolicy="no-referrer"

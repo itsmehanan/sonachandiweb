@@ -389,7 +389,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
         <div className="absolute inset-0 flex items-center justify-center p-6 bg-[#F7F1E6]">
           <div className="max-w-md w-full aspect-1/1 rounded-2xl overflow-hidden border border-[#C9A54B]/30 shadow-xl bg-white mb-28">
             <img
-              src="/public/assets/aistudio/intro-poster_d8a114e6.jpg"
+              src="/assets/aistudio/intro-poster_d8a114e6.jpg"
               alt="Sona & Chandi 24K Gold Ring"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -419,7 +419,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
           }`}
         >
           <img
-            src="/public/assets/aistudio/logo-light_b9e6ed91.png"
+            src="/assets/aistudio/logo-light_b9e6ed91.png"
             alt="Sona & Chandi Gold Collection"
             className="h-16 sm:h-20 w-auto object-contain mx-auto mb-4 drop-shadow-xs"
             referrerPolicy="no-referrer"

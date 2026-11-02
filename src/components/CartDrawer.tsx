@@ -194,6 +194,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             <img
                               src={fullProduct.images[0]}
                               alt={product.title}
+                              loading="lazy"
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                               referrerPolicy="no-referrer"
                             />

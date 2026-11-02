@@ -27,7 +27,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Column 1: Brand & Logo */}
           <div className="space-y-4">
             <img
-              src="/public/assets/aistudio/logo-dark_226850da.png"
+              src="/assets/aistudio/logo-dark_226850da.png"
               alt="Sona & Chandi Gold Collection"
               className="h-16 w-auto object-contain"
               referrerPolicy="no-referrer"

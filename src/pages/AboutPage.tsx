@@ -69,7 +69,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
 
         <div className="relative aspect-4/3 rounded-xl overflow-hidden shadow-lg border border-[#E2D8C9] bg-[#FAF7F2]">
           <img
-            src="/public/assets/aistudio/intro-poster_d8a114e6.jpg"
+            src="/assets/aistudio/intro-poster_d8a114e6.jpg"
             alt="Handcrafted Pakistani gold bridal jewellery"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"

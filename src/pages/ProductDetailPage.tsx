@@ -109,6 +109,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <img
                 src={currentImage}
                 alt={product.title}
+                loading="lazy"
                 className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 group-hover:scale-102"
                 onClick={() => setLightboxOpen(true)}
                 referrerPolicy="no-referrer"
@@ -154,6 +155,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <img
                     src={img}
                     alt={`Thumbnail ${idx + 1}`}
+                    loading="lazy"
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />

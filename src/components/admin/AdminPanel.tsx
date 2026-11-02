@@ -28,6 +28,7 @@ import {
   Clock,
   MapPin,
   Truck,
+  AlertTriangle,
 } from 'lucide-react';
 import { auth, googleProvider, signInWithPopup, signOut } from '../../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -50,10 +51,10 @@ import {
   deleteProduct,
   fetchAllEnquiries,
   updateEnquiryStatus,
-  uploadProductImage,
   fetchStoreSettingsAdmin,
   updateStoreSettingsInfo,
 } from '../../lib/adminService';
+import { uploadToCloudinary, ALLOWED_IMAGE_TYPES } from '../../lib/cloudinary';
 import {
   BullionRates,
   get24KGoldPerGram,
@@ -72,6 +73,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [staffRecord, setStaffRecord] = useState<StaffMember | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     'overview' | 'rates' | 'products' | 'inventory' | 'enquiries' | 'rateHistory' | 'staff' | 'settings'
   >('overview');
@@ -93,6 +96,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [productFormError, setProductFormError] = useState<string | null>(null);
   const [productSaving, setProductSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Store Settings state
@@ -101,6 +105,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [inputAddress, setInputAddress] = useState('');
   const [inputHours, setInputHours] = useState('');
   const [inputDelivery, setInputDelivery] = useState('');
+  const [inputCloudinaryCloudName, setInputCloudinaryCloudName] = useState('');
+  const [inputCloudinaryUploadPreset, setInputCloudinaryUploadPreset] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsFeedback, setSettingsFeedback] = useState<string | null>(null);
 
@@ -189,6 +195,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         if (data.gold24kPerTola) setInputGold24k(data.gold24kPerTola);
         if (data.silverRate) setInputSilver(data.silverRate);
         if (data.silverUnit) setInputSilverUnit(data.silverUnit);
+        if (data.cloudinaryCloudName) setInputCloudinaryCloudName(data.cloudinaryCloudName);
+        if (data.cloudinaryUploadPreset) setInputCloudinaryUploadPreset(data.cloudinaryUploadPreset);
       }
     } catch (err) {
       console.error(err);
@@ -241,10 +249,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   };
 
   const handleGoogleSignIn = async () => {
+    if (isSigningIn) return;
+    setIsSigningIn(true);
+    setSignInError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (err) {
-      console.error('Sign-in error:', err);
+    } catch (err: any) {
+      const code = err?.code || '';
+      // Gracefully handle user cancellation/re-click without polluting console.error
+      if (
+        code === 'auth/cancelled-popup-request' ||
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/user-cancelled'
+      ) {
+        // User closed or cancelled the popup
+      } else if (code === 'auth/popup-blocked') {
+        setSignInError('Sign-in popup was blocked by your browser. Please allow popups for this site and retry.');
+      } else {
+        setSignInError(err?.message || 'Failed to sign in with Google. Please try again.');
+      }
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -290,6 +315,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         address: inputAddress.trim(),
         hoursText: inputHours.trim(),
         deliveryText: inputDelivery.trim(),
+        cloudinaryCloudName: inputCloudinaryCloudName.trim(),
+        cloudinaryUploadPreset: inputCloudinaryUploadPreset.trim(),
       });
       setSettingsFeedback('✓ Store settings updated successfully!');
       setTimeout(() => setSettingsFeedback(null), 4000);
@@ -300,36 +327,93 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
     }
   };
 
-  // Multi-File Image Upload to Firebase Storage
+  // Multi-File Image Upload via Cloudinary Unsigned Upload
   const handleImageFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !editingProduct) return;
 
-    setUploadingImage(true);
     setProductFormError(null);
-    try {
-      const prodId = editingProduct.id || 'new_piece';
-      const existingImages = [...(editingProduct.images || [])];
-      const newUrls: string[] = [];
+    setUploadProgressText(null);
 
+    const existingImages = [...(editingProduct.images || [])];
+    if (existingImages.length >= 6) {
+      setProductFormError('Maximum 6 images allowed per product piece. Please remove an image first.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (existingImages.length + files.length > 6) {
+      setProductFormError(
+        `You can add at most ${6 - existingImages.length} more image(s) (maximum 6 images per product piece).`
+      );
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Validate MIME types strictly: JPEG, PNG, WEBP only
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        setProductFormError(
+          `Invalid file format for "${file.name}". Only JPEG, PNG, and WebP images are permitted.`
+        );
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+    }
+
+    // Resolve Cloudinary configuration
+    const cloudName =
+      inputCloudinaryCloudName.trim() ||
+      settingsDoc?.cloudinaryCloudName?.trim() ||
+      (import.meta as any).env?.VITE_CLOUDINARY_CLOUD_NAME ||
+      '';
+    const uploadPreset =
+      inputCloudinaryUploadPreset.trim() ||
+      settingsDoc?.cloudinaryUploadPreset?.trim() ||
+      (import.meta as any).env?.VITE_CLOUDINARY_UPLOAD_PRESET ||
+      '';
+
+    if (!cloudName || !uploadPreset) {
+      setProductFormError(
+        'Cloudinary configuration required. Please enter your Cloudinary Cloud Name and Upload Preset in the Store Configuration tab (or set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET).'
+      );
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setUploadingImage(true);
+    const newUrls: string[] = [];
+
+    try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (existingImages.length + newUrls.length >= 10) {
-          alert('Maximum 10 images allowed per product piece.');
-          break;
+        setUploadProgressText(
+          `Uploading ${i + 1} of ${files.length}: "${file.name}" (resizing to ≤1600px & uploading)...`
+        );
+
+        const secureUrl = await uploadToCloudinary(file, {
+          cloudName,
+          uploadPreset,
+        });
+
+        if (!secureUrl) {
+          throw new Error(`Cloudinary did not return a secure URL for ${file.name}`);
         }
-        const url = await uploadProductImage(prodId, file);
-        newUrls.push(url);
+        newUrls.push(secureUrl);
       }
 
       setEditingProduct({
         ...editingProduct,
-        images: [...existingImages, ...newUrls],
+        images: [...existingImages, ...newUrls].slice(0, 6),
       });
+      setUploadProgressText(null);
     } catch (err: any) {
-      setProductFormError(`Image upload error: ${err.message}`);
+      // Show clear red error message and do NOT silently save
+      setProductFormError(`Image upload failed: ${err.message || 'Unknown network error'}`);
     } finally {
       setUploadingImage(false);
+      setUploadProgressText(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -340,10 +424,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
     setEditingProduct({ ...editingProduct, images: updated });
   };
 
-  const handleMoveImage = (index: number, direction: 'up' | 'down') => {
+  const handleMoveImage = (index: number, direction: 'left' | 'right' | 'up' | 'down') => {
     if (!editingProduct || !editingProduct.images) return;
     const list = [...editingProduct.images];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const targetIndex = direction === 'left' || direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= list.length) return;
     const temp = list[index];
     list[index] = list[targetIndex];
@@ -355,6 +439,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const handleSaveProduct = async () => {
     if (!editingProduct) return;
     setProductFormError(null);
+
+    if (uploadingImage) {
+      setProductFormError('Please wait for image uploads to complete before saving.');
+      return;
+    }
 
     if (!editingProduct.sku || !editingProduct.name) {
       setProductFormError('SKU and Product Title are required');
@@ -448,7 +537,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2] p-4">
         <div className="w-full max-w-md bg-white border border-[#E2D8C9] rounded-2xl p-8 shadow-xl text-center space-y-6">
           <img
-            src="/public/assets/aistudio/logo-light_b9e6ed91.png"
+            src="/assets/aistudio/logo-light_b9e6ed91.png"
             alt="Sona & Chandi Gold Collection"
             className="h-16 w-auto mx-auto object-contain"
           />
@@ -462,11 +551,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
 
           <button
             onClick={handleGoogleSignIn}
-            className="gold-sheen w-full py-3.5 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm rounded-lg transition-all shadow-md flex items-center justify-center gap-3 cursor-pointer"
+            disabled={isSigningIn}
+            className="gold-sheen w-full py-3.5 px-4 bg-[#C9A54B] hover:bg-[#B18D35] disabled:opacity-60 text-white font-medium text-sm rounded-lg transition-all shadow-md flex items-center justify-center gap-3 cursor-pointer"
           >
-            <LogIn className="w-4 h-4" />
-            <span>Sign In with Google</span>
+            {isSigningIn ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Connecting to Google...</span>
+              </>
+            ) : (
+              <>
+                <LogIn className="w-4 h-4" />
+                <span>Sign In with Google</span>
+              </>
+            )}
           </button>
+
+          {signInError && (
+            <div className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-lg text-xs text-left flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{signInError}</span>
+            </div>
+          )}
 
           <div className="pt-2">
             <button
@@ -532,7 +638,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
             </button>
             <div className="flex items-center gap-2.5">
               <img
-                src="/public/assets/aistudio/logo-light_b9e6ed91.png"
+                src="/assets/aistudio/logo-light_b9e6ed91.png"
                 alt="Sona & Chandi"
                 className="h-8 w-auto object-contain"
               />
@@ -1030,8 +1136,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                     </div>
 
                     {productFormError && (
-                      <div className="p-3 bg-rose-50 text-rose-800 border border-rose-200 rounded-lg">
-                        {productFormError}
+                      <div className="p-3.5 bg-red-50 text-red-800 border-2 border-red-300 rounded-xl flex items-start gap-2.5 font-medium shadow-xs">
+                        <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold block text-red-900">Upload / Action Error</span>
+                          <span>{productFormError}</span>
+                        </div>
                       </div>
                     )}
 
@@ -1186,15 +1296,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       </div>
                     </div>
 
-                    {/* Multi-Image Firebase Storage Upload Section */}
+                    {/* Multi-Image Cloudinary Unsigned Upload Section */}
                     <div className="space-y-3 pt-2 border-t border-[#E2D8C9]">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
                           <label className="block font-semibold text-[#1E1B18]">
-                            Product Gallery Images ({editingProduct.images?.length || 0}/10)
+                            Product Gallery Images ({editingProduct.images?.length || 0}/6)
                           </label>
                           <p className="text-[11px] text-[#64748B]">
-                            Upload photos to Firebase Storage. First image is the Main Cover photo. Max 2MB per file.
+                            Choose up to 6 images (JPEG, PNG, WebP). Resized to max 1600px. First image is the Main Cover.
                           </p>
                         </div>
                         <div>
@@ -1202,40 +1312,74 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                             type="file"
                             ref={fileInputRef}
                             multiple
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp"
                             onChange={handleImageFilesSelected}
                             className="hidden"
                           />
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={uploadingImage || (editingProduct.images?.length || 0) >= 10}
+                            disabled={uploadingImage || (editingProduct.images?.length || 0) >= 6}
                             className="px-3 py-1.5 bg-[#FAF7F2] hover:bg-[#F3EFEA] border border-[#E2D8C9] text-[#8E6E24] font-semibold rounded-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                           >
                             <Upload className="w-3.5 h-3.5" />
-                            <span>{uploadingImage ? 'Uploading to Storage...' : 'Upload Images'}</span>
+                            <span>
+                              {uploadingImage
+                                ? 'Uploading to Cloudinary...'
+                                : (editingProduct.images?.length || 0) >= 6
+                                ? 'Max 6 Images Reached'
+                                : 'Upload Images'}
+                            </span>
                           </button>
                         </div>
                       </div>
 
+                      {/* Progress state */}
+                      {uploadingImage && (
+                        <div className="p-3 bg-amber-50/90 border border-[#C9A54B]/40 rounded-lg flex items-center gap-2.5 text-[#8E6E24]">
+                          <RefreshCw className="w-4 h-4 animate-spin text-[#C9A54B] shrink-0" />
+                          <span className="font-medium text-xs">
+                            {uploadProgressText || 'Uploading image to Cloudinary (resizing to max 1600px)...'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Warning if piece has no images */}
+                      {(!editingProduct.images || editingProduct.images.length === 0) && (
+                        <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 flex items-start gap-2 text-xs">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-semibold block">Warning: No product images uploaded</span>
+                            <span>This product piece currently has no photos. Storefront customers will see a neutral brand placeholder until images are added.</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Image Preview Strip */}
                       <div className="space-y-2">
                         {editingProduct.images && editingProduct.images.length > 0 ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                             {editingProduct.images.map((imgUrl, index) => (
                               <div
                                 key={index}
-                                className="relative group border border-[#E2D8C9] rounded-lg overflow-hidden bg-[#FAF7F2] p-1 space-y-1.5"
+                                className={`relative group border rounded-lg overflow-hidden bg-[#FAF7F2] p-1 space-y-1.5 ${
+                                  index === 0 ? 'border-[#C9A54B] shadow-xs ring-1 ring-[#C9A54B]' : 'border-[#E2D8C9]'
+                                }`}
                               >
                                 <div className="h-24 w-full rounded overflow-hidden relative">
                                   <img
                                     src={imgUrl}
                                     alt={`Product view ${index + 1}`}
+                                    loading="lazy"
                                     className="w-full h-full object-cover"
                                   />
-                                  {index === 0 && (
-                                    <span className="absolute top-1 left-1 bg-[#1E1B18] text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
+                                  {index === 0 ? (
+                                    <span className="absolute top-1 left-1 bg-[#8E6E24] text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shadow-xs">
                                       Main Cover
+                                    </span>
+                                  ) : (
+                                    <span className="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-medium px-1.5 py-0.5 rounded">
+                                      #{index + 1}
                                     </span>
                                   )}
                                 </div>
@@ -1244,16 +1388,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                                     <button
                                       type="button"
                                       disabled={index === 0}
-                                      onClick={() => handleMoveImage(index, 'up')}
+                                      onClick={() => handleMoveImage(index, 'left')}
                                       className="p-1 text-[#64748B] hover:text-[#1E1B18] disabled:opacity-30 cursor-pointer"
-                                      title="Move Left / Priority"
+                                      title="Move Left / Make Main"
                                     >
                                       <ArrowUp className="w-3 h-3 -rotate-90" />
                                     </button>
                                     <button
                                       type="button"
                                       disabled={index === (editingProduct.images?.length || 0) - 1}
-                                      onClick={() => handleMoveImage(index, 'down')}
+                                      onClick={() => handleMoveImage(index, 'right')}
                                       className="p-1 text-[#64748B] hover:text-[#1E1B18] disabled:opacity-30 cursor-pointer"
                                       title="Move Right"
                                     >
@@ -1275,7 +1419,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                         ) : (
                           <div className="py-6 border border-dashed border-[#E2D8C9] rounded-lg text-center bg-[#FAF7F2]/50 text-[#64748B]">
                             <ImageIcon className="w-6 h-6 mx-auto text-[#CBD5E1] mb-1" />
-                            <p>No photos uploaded yet. Click "Upload Images" to select images from your computer.</p>
+                            <p>No photos uploaded yet. Click "Upload Images" to select images (JPEG, PNG, WebP) from your computer.</p>
                           </div>
                         )}
                       </div>
@@ -1576,6 +1720,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       onChange={(e) => setInputDelivery(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
                     />
+                  </div>
+                </div>
+
+                {/* Cloudinary Integration Settings */}
+                <div className="p-4 bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl space-y-3">
+                  <div>
+                    <h4 className="font-serif text-sm font-semibold text-[#1E1B18]">Cloudinary Unsigned Upload Configuration</h4>
+                    <p className="text-[11px] text-[#64748B]">
+                      Used for client-side direct uploads of catalogue photos (auto-resized to max 1600px).
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-[#64748B] mb-1">Cloudinary Cloud Name</label>
+                      <div className="relative">
+                        <ImageIcon className="w-4 h-4 absolute left-3 top-2.5 text-[#8E6E24]" />
+                        <input
+                          type="text"
+                          value={inputCloudinaryCloudName}
+                          placeholder="e.g. dxyz12345"
+                          onChange={(e) => setInputCloudinaryCloudName(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-white border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                        />
+                      </div>
+                      <span className="text-[10px] text-[#64748B] mt-0.5 block">Also checks VITE_CLOUDINARY_CLOUD_NAME</span>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-[#64748B] mb-1">Upload Preset (Unsigned)</label>
+                      <div className="relative">
+                        <Upload className="w-4 h-4 absolute left-3 top-2.5 text-[#8E6E24]" />
+                        <input
+                          type="text"
+                          value={inputCloudinaryUploadPreset}
+                          placeholder="e.g. sonachandi_preset"
+                          onChange={(e) => setInputCloudinaryUploadPreset(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-white border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                        />
+                      </div>
+                      <span className="text-[10px] text-[#64748B] mt-0.5 block">Also checks VITE_CLOUDINARY_UPLOAD_PRESET</span>
+                    </div>
                   </div>
                 </div>
 
