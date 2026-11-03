@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getSettings, getStoreStatus } from '../data/store';
 import { ESTIMATE_DISCLAIMER } from '../lib/pricing';
+import { WhatsAppButton } from '../components/WhatsAppButton';
 
 export const ContactPage: React.FC = () => {
   const settings = getSettings();
@@ -91,15 +92,12 @@ export const ContactPage: React.FC = () => {
           </div>
 
           <div className="space-y-3 pt-2">
-            <a
+            <WhatsAppButton
               href={`https://wa.me/${settings.whatsappNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gold-sheen w-full py-3 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center justify-center gap-2"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Open WhatsApp: +{settings.whatsappNumber}</span>
-            </a>
+              label={`Chat on WhatsApp: +${settings.whatsappNumber}`}
+              fullWidth
+              size="lg"
+            />
 
             <div className="p-2.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-xs text-[#64748B]">
               <span className="font-semibold text-[#1E1B18] block">Instant Inquiry Support:</span>
@@ -131,15 +129,15 @@ export const ContactPage: React.FC = () => {
             )}
           </div>
 
-          <div className="pt-1">
-            <a
-              href={`https://wa.me/${settings.whatsappNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-medium text-[#8E6E24] hover:underline"
-            >
-              Book an appointment on WhatsApp →
-            </a>
+          <div className="pt-2">
+            <WhatsAppButton
+              href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(
+                'Assalam-o-Alaikum, I would like to book a private showroom appointment.'
+              )}`}
+              label="Book Appointment on WhatsApp"
+              size="sm"
+              fullWidth
+            />
           </div>
         </div>
       </div>

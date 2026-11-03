@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { ShoppingBag, Menu, X, Phone, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShoppingBag, Menu, X, Sparkles, Scale } from 'lucide-react';
+import { BullionRates, formatPKR } from '../lib/pricing';
 
 interface NavbarProps {
   currentView: string;
   onNavigate: (view: string, filter?: string) => void;
   cartCount: number;
   onOpenCart: () => void;
+  rates?: BullionRates;
+  onOpenCalculator?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -13,156 +16,379 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   cartCount,
   onOpenCart,
+  rates,
+  onOpenCalculator,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isAnimatingBag, setIsAnimatingBag] = useState(false);
+  const prevCountRef = useRef(cartCount);
+
+  // Shrink header slightly on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Trigger bounce & shine sweep when items are added to bag
+  useEffect(() => {
+    if (cartCount > prevCountRef.current) {
+      setIsAnimatingBag(true);
+      const timer = setTimeout(() => setIsAnimatingBag(false), 800);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = cartCount;
+  }, [cartCount]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const handleNav = (view: string, filter?: string) => {
     onNavigate(view, filter);
     setMobileMenuOpen(false);
   };
 
-  return (
-    <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E2D8C9] transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between gap-8">
-        {/* Zone 1: Brand Wordmark & Logo (Single text/logo element) */}
-        <button
-          onClick={() => handleNav('home')}
-          className="flex items-center gap-3 text-left focus:outline-hidden group shrink-0"
-        >
-          <img
-            src="/assets/aistudio/logo-light_b9e6ed91.png"
-            alt="Sona & Chandi Gold Collection"
-            className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-102"
-            referrerPolicy="no-referrer"
-          />
-          <div className="hidden min-[420px]:block">
-            <span className="font-serif text-base sm:text-lg font-semibold tracking-tight text-[#1E1B18] block leading-tight">
-              Sona &amp; Chandi
-            </span>
-            <span className="text-[10px] tracking-widest uppercase text-[#8E6E24] font-medium block">
-              Gold Collection
-            </span>
-          </div>
-        </button>
+  const hasGoldRate = rates && rates.gold24KPerTola > 0;
+  const hasSilverRate = rates && rates.silverRate > 0;
 
-        {/* Zone 2: 4-5 Clean Nav Links (Single line text links) */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#475569]">
+  const isNavActive = (view: string, filter?: string) => {
+    if (view === currentView && !filter) return true;
+    return false;
+  };
+
+  return (
+    <>
+      <header
+        className={`sticky top-0 z-40 bg-[#FAF7F2]/85 backdrop-blur-md border-b border-[#C9A54B]/30 transition-all duration-300 ease-out ${
+          isScrolled ? 'shadow-xs' : ''
+        }`}
+      >
+        <div
+          className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 md:gap-8 transition-all duration-300 ease-out ${
+            isScrolled ? 'h-16 sm:h-18' : 'h-20 sm:h-22'
+          }`}
+        >
+          {/* Zone 1: Logo Left */}
           <button
             onClick={() => handleNav('home')}
-            className={`whitespace-nowrap transition-colors hover:text-[#1E1B18] ${
-              currentView === 'home' ? 'text-[#8E6E24] font-semibold border-b-2 border-[#C9A54B] pb-1' : ''
-            }`}
+            className="flex items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded-lg outline-hidden group shrink-0 cursor-pointer"
+            aria-label="Sona & Chandi Gold Collection Home"
           >
-            Home
-          </button>
-          <button
-            onClick={() => handleNav('catalogue')}
-            className={`whitespace-nowrap transition-colors hover:text-[#1E1B18] ${
-              currentView === 'catalogue' ? 'text-[#8E6E24] font-semibold border-b-2 border-[#C9A54B] pb-1' : ''
-            }`}
-          >
-            Catalogue
-          </button>
-          <button
-            onClick={() => handleNav('catalogue', 'gold')}
-            className="whitespace-nowrap transition-colors hover:text-[#8E6E24]"
-          >
-            Gold
-          </button>
-          <button
-            onClick={() => handleNav('catalogue', 'silver')}
-            className="whitespace-nowrap transition-colors hover:text-[#8E6E24]"
-          >
-            Silver
-          </button>
-          <button
-            onClick={() => handleNav('about')}
-            className={`whitespace-nowrap transition-colors hover:text-[#1E1B18] ${
-              currentView === 'about' ? 'text-[#8E6E24] font-semibold border-b-2 border-[#C9A54B] pb-1' : ''
-            }`}
-          >
-            About
-          </button>
-          <button
-            onClick={() => handleNav('contact')}
-            className={`whitespace-nowrap transition-colors hover:text-[#1E1B18] ${
-              currentView === 'contact' ? 'text-[#8E6E24] font-semibold border-b-2 border-[#C9A54B] pb-1' : ''
-            }`}
-          >
-            Contact
-          </button>
-        </nav>
-
-        {/* Zone 3: 1 Primary Action (Cart Drawer trigger + Mobile Toggle) */}
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={onOpenCart}
-            aria-label={`Open shopping cart with ${cartCount} items`}
-            className="relative flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 text-xs font-semibold text-[#1E1B18] bg-white hover:bg-[#FAF7F2] border border-[#C9A54B]/40 hover:border-[#C9A54B] rounded-lg transition-all shadow-xs focus:ring-2 focus:ring-[#C9A54B]/30"
-          >
-            <ShoppingBag className="w-4 h-4 sm:mr-2 text-[#8E6E24]" />
-            <span className="hidden sm:inline">Bag / Inquiry</span>
-            {cartCount > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold text-white bg-[#C9A54B] rounded-full tabular-nums">
-                {cartCount}
+            <img
+              src="/assets/aistudio/logo-light_b9e6ed91.png"
+              alt="Sona & Chandi Gold Collection"
+              className={`w-auto object-contain transition-all duration-300 ease-out group-hover:scale-102 ${
+                isScrolled ? 'h-9 sm:h-10' : 'h-11 sm:h-12'
+              }`}
+              referrerPolicy="no-referrer"
+            />
+            <div className="hidden min-[440px]:block">
+              <span className="font-serif text-base sm:text-lg font-semibold tracking-tight text-[#1E1B18] block leading-tight">
+                Sona &amp; Chandi
               </span>
-            )}
+              <span className="text-[10px] tracking-widest uppercase text-[#8E6E24] font-medium block">
+                Gold Collection
+              </span>
+            </div>
           </button>
 
-          {/* Mobile hamburger menu */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[#1E1B18] hover:text-[#8E6E24] transition-colors"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[#FAF7F2] border-b border-[#E2D8C9] px-6 py-5 space-y-4 animate-fade-in shadow-lg">
-          <nav className="flex flex-col space-y-3 text-sm font-medium">
+          {/* Zone 2: Nav Centre with Sliding Gold Underline */}
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-[#475569]">
             <button
               onClick={() => handleNav('home')}
-              className="text-left py-1.5 text-[#1E1B18] hover:text-[#8E6E24]"
+              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                isNavActive('home') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+              }`}
             >
-              Home
+              <span>Home</span>
+              <span
+                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                  isNavActive('home') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                }`}
+              />
             </button>
+
             <button
               onClick={() => handleNav('catalogue')}
-              className="text-left py-1.5 text-[#1E1B18] hover:text-[#8E6E24]"
+              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                isNavActive('catalogue') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+              }`}
             >
-              All Jewellery Catalogue
+              <span>Catalogue</span>
+              <span
+                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                  isNavActive('catalogue') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                }`}
+              />
             </button>
+
             <button
               onClick={() => handleNav('catalogue', 'gold')}
-              className="text-left py-1.5 pl-3 text-[#8E6E24]"
+              className="relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer text-[#475569] hover:text-[#8E6E24] focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden"
             >
-              — 24K, 22K, 21K &amp; 18K Gold
+              <span>Gold</span>
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center scale-x-0 group-hover:scale-x-100" />
             </button>
+
             <button
               onClick={() => handleNav('catalogue', 'silver')}
-              className="text-left py-1.5 pl-3 text-[#475569]"
+              className="relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer text-[#475569] hover:text-[#8E6E24] focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden"
             >
-              — 925 Pure Sterling Silver
+              <span>Silver</span>
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center scale-x-0 group-hover:scale-x-100" />
             </button>
+
             <button
               onClick={() => handleNav('about')}
-              className="text-left py-1.5 text-[#1E1B18] hover:text-[#8E6E24]"
+              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                isNavActive('about') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+              }`}
             >
-              About Heritage &amp; Hallmarking
+              <span>About</span>
+              <span
+                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                  isNavActive('about') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                }`}
+              />
             </button>
+
             <button
               onClick={() => handleNav('contact')}
-              className="text-left py-1.5 text-[#1E1B18] hover:text-[#8E6E24]"
+              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                isNavActive('contact') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+              }`}
             >
-              Contact &amp; Showroom Timings
+              <span>Contact</span>
+              <span
+                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                  isNavActive('contact') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                }`}
+              />
             </button>
           </nav>
+
+          {/* Zone 3: Live Rate Chip + Gold Bag Button + Mobile Hamburger */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+            {/* Live Gold/Silver Rate Chip */}
+            {rates && (
+              <button
+                type="button"
+                onClick={onOpenCalculator}
+                title="View live bullion rates & calculator"
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-white/90 hover:bg-white border border-[#C9A54B]/40 hover:border-[#C9A54B] rounded-full text-xs text-[#1E1B18] shadow-2xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
+              >
+                <span className="flex items-center gap-1 font-medium text-[#8E6E24]">
+                  <Sparkles className="w-3.5 h-3.5 text-[#C9A54B]" />
+                  <span className="font-semibold text-[11px] uppercase tracking-wide">24K:</span>
+                </span>
+                <span className="font-mono text-[11px] font-bold text-[#1E1B18]">
+                  {hasGoldRate ? formatPKR(rates.gold24KPerTola) : 'Rate unavailable'}
+                </span>
+                {hasSilverRate && (
+                  <>
+                    <span className="text-[#CBD5E1]" aria-hidden="true">·</span>
+                    <span className="hidden xl:inline text-[11px] font-medium text-[#64748B]">
+                      Ag: <span className="font-mono font-semibold text-[#1E1B18]">{formatPKR(rates.silverRate)}</span>
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Bag Button: Gold gradient circle/pill with bag icon, count badge, bounce & shine sweep */}
+            <button
+              onClick={onOpenCart}
+              aria-label={`Open jewellery bag with ${cartCount} items`}
+              className={`relative flex items-center justify-center gap-2 px-4 py-2 sm:px-4.5 sm:py-2.5 text-xs font-semibold text-white rounded-full bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.97] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer overflow-hidden focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden ${
+                isAnimatingBag ? 'bag-shine-active' : ''
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4 text-white shrink-0" />
+              <span className="hidden min-[480px]:inline tracking-wide">Bag / Inquiry</span>
+
+              {cartCount > 0 ? (
+                <span
+                  className={`ml-0.5 px-1.5 py-0.2 text-[10px] font-bold text-[#8E6E24] bg-white rounded-full tabular-nums shadow-xs ${
+                    isAnimatingBag ? 'badge-bounce' : ''
+                  }`}
+                >
+                  {cartCount}
+                </span>
+              ) : (
+                <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-white/60" />
+              )}
+            </button>
+
+            {/* Mobile Hamburger Button with min 44px touch target */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden min-w-[44px] min-h-[44px] p-2 flex items-center justify-center text-[#1E1B18] hover:text-[#8E6E24] rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden cursor-pointer"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Slide-In Panel & Scrim */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" aria-modal="true" role="dialog">
+          {/* Backdrop Scrim */}
+          <div
+            className="fixed inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Slide-In Drawer */}
+          <aside className="fixed inset-y-0 right-0 w-full max-w-xs bg-[#FAF7F2] border-l border-[#C9A54B]/30 shadow-2xl z-10 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div>
+              {/* Drawer Header */}
+              <div className="p-4 sm:p-5 flex items-center justify-between border-b border-[#E2D8C9]">
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src="/assets/aistudio/logo-light_b9e6ed91.png"
+                    alt="Sona & Chandi"
+                    className="h-9 w-auto object-contain"
+                  />
+                  <div>
+                    <span className="font-serif text-sm font-bold text-[#1E1B18] block leading-tight">
+                      Sona &amp; Chandi
+                    </span>
+                    <span className="text-[9px] uppercase tracking-wider text-[#8E6E24] font-medium block">
+                      Gold Collection
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-[#1E1B18] hover:text-[#8E6E24] hover:bg-[#F3EFEA] flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-[#C9A54B] outline-hidden cursor-pointer"
+                  aria-label="Close menu"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Mobile Rate Chip */}
+              {rates && (
+                <div className="p-4 bg-white/70 border-b border-[#E2D8C9]">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-[#8E6E24] font-semibold uppercase tracking-wider text-[11px] flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-[#C9A54B]" />
+                      24K Gold Rate / Tola
+                    </span>
+                    <span className="font-mono font-bold text-[#1E1B18]">
+                      {hasGoldRate ? formatPKR(rates.gold24KPerTola) : 'Unavailable'}
+                    </span>
+                  </div>
+                  {onOpenCalculator && (
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenCalculator();
+                      }}
+                      className="w-full mt-2 py-2 px-3 text-center text-xs font-semibold text-[#8E6E24] bg-[#FAF7F2] hover:bg-white border border-[#C9A54B]/40 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Scale className="w-3.5 h-3.5" />
+                      <span>Open Bullion Calculator</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation Links with large tap targets >= 44px */}
+              <nav className="p-4 space-y-1">
+                <button
+                  onClick={() => handleNav('home')}
+                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                    currentView === 'home'
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                      : 'text-[#1E1B18] hover:bg-white/80'
+                  }`}
+                >
+                  Home
+                </button>
+
+                <button
+                  onClick={() => handleNav('catalogue')}
+                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                    currentView === 'catalogue'
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                      : 'text-[#1E1B18] hover:bg-white/80'
+                  }`}
+                >
+                  All Jewellery Catalogue
+                </button>
+
+                <div className="pl-3 py-1 space-y-1">
+                  <button
+                    onClick={() => handleNav('catalogue', 'gold')}
+                    className="w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium text-[#8E6E24] hover:bg-white/80 rounded-lg flex items-center transition-colors cursor-pointer"
+                  >
+                    — 24K, 22K, 21K &amp; 18K Gold
+                  </button>
+                  <button
+                    onClick={() => handleNav('catalogue', 'silver')}
+                    className="w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium text-[#475569] hover:bg-white/80 rounded-lg flex items-center transition-colors cursor-pointer"
+                  >
+                    — 925 Pure Sterling Silver
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => handleNav('about')}
+                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                    currentView === 'about'
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                      : 'text-[#1E1B18] hover:bg-white/80'
+                  }`}
+                >
+                  About Heritage &amp; Hallmarking
+                </button>
+
+                <button
+                  onClick={() => handleNav('contact')}
+                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                    currentView === 'contact'
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                      : 'text-[#1E1B18] hover:bg-white/80'
+                  }`}
+                >
+                  Contact &amp; Showroom Timings
+                </button>
+              </nav>
+            </div>
+
+            {/* Bottom Drawer Action */}
+            <div className="p-4 border-t border-[#E2D8C9] space-y-2">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenCart();
+                }}
+                className="w-full min-h-[46px] py-3 px-4 bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] text-white font-semibold text-xs tracking-wider uppercase rounded-lg shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4 text-white" />
+                <span>View Bag &amp; Inquiry ({cartCount})</span>
+              </button>
+            </div>
+          </aside>
         </div>
       )}
-    </header>
+    </>
   );
 };

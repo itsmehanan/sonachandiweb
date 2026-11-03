@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, MessageCircle, Sparkles } from 'lucide-react';
+import { ShoppingBag, Sparkles } from 'lucide-react';
 import { Product, getSettings } from '../data/store';
 import {
   BullionRates,
@@ -7,6 +7,7 @@ import {
   gramsToTola,
   getWhatsAppProductInquiryUrl,
 } from '../lib/pricing';
+import { WhatsAppButton } from './WhatsAppButton';
 
 interface ProductCardProps {
   product: Product;
@@ -49,15 +50,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <article
       onClick={() => onSelect(product)}
-      className="group bg-white border border-[#E2D8C9] rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-[#C9A54B]/50"
+      className="group bg-white/95 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl overflow-hidden flex flex-col justify-between cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_-6px_rgba(201,165,75,0.22)] hover:border-[#C9A54B]/60 focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:outline-none"
     >
-      {/* Product Image or Neutral Placeholder */}
-      <div className="relative aspect-4/3 w-full bg-[#F3EFEA] overflow-hidden flex items-center justify-center">
+      {/* Product Image: strict 4:5 aspect ratio with gentle hover zoom */}
+      <div className="relative aspect-[4/5] w-full bg-[#F3EFEA] overflow-hidden flex items-center justify-center">
         {product.images && product.images[0] ? (
           <img
             src={product.images[0]}
             alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             referrerPolicy="no-referrer"
             loading="lazy"
           />
@@ -70,22 +71,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         )}
 
-        {/* Status badge */}
+        {/* Status badges */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5">
-          {isOutOfStock && (
-            <span className="px-2 py-0.5 text-[11px] font-semibold text-[#8E6E24] bg-white/95 backdrop-blur-xs rounded shadow-xs">
+          {isOutOfStock ? (
+            /* Muted out-of-stock badge */
+            <span className="px-2.5 py-1 text-[11px] font-medium text-[#64748B] bg-white/95 backdrop-blur-xs border border-[#E2D8C9] rounded-md shadow-2xs">
               Made to Order
             </span>
-          )}
-          {product.featured && !isOutOfStock && (
-            <span className="px-2 py-0.5 text-[11px] font-semibold text-[#1E1B18] bg-white/90 backdrop-blur-xs rounded shadow-xs">
+          ) : product.featured ? (
+            <span className="px-2.5 py-1 text-[11px] font-semibold text-[#1E1B18] bg-white/95 backdrop-blur-xs border border-[#E2D8C9] rounded-md shadow-2xs">
               Featured
             </span>
-          )}
+          ) : null}
         </div>
 
-        {/* Karat purity watermark */}
-        <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 text-[10px] font-mono font-medium text-[#1E1B18] bg-white/90 backdrop-blur-xs rounded border border-[#E2D8C9]">
+        {/* Karat purity clearly styled watermark */}
+        <div className="absolute bottom-3 right-3 px-2.5 py-1 text-xs font-mono font-semibold text-[#8E6E24] bg-white/95 backdrop-blur-xs rounded-lg border border-[#C9A54B]/40 shadow-xs tracking-wider">
           {breakdown.karatLabel} {breakdown.metal === 'gold' ? 'AU' : 'AG'}
         </div>
       </div>
@@ -114,7 +115,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="mt-4 pt-3 border-t border-[#F3EFEA]">
           <div className="flex items-baseline justify-between mb-3">
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[#64748B] block">
+              <span className="text-[10px] uppercase tracking-wider text-[#64748B] block font-medium">
                 Estimated Price
               </span>
               {isRateMissing ? (
@@ -122,33 +123,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   Rate unavailable
                 </span>
               ) : (
-                <span className="font-serif text-lg sm:text-xl font-bold text-[#1E1B18] tabular-nums">
+                <span className="font-serif text-xl sm:text-2xl font-bold text-[#1E1B18] tabular-nums tracking-tight">
                   {breakdown.formattedEstimate}
                 </span>
               )}
             </div>
-            <span className="text-[11px] text-[#8E6E24] font-medium">
+            <span className="text-xs text-[#8E6E24] font-medium">
               ~{tolaInfo.formattedTola}
             </span>
           </div>
 
-          {/* Action button: Rate unavailable or Out of stock means Add to Cart is disabled and Ask on WhatsApp is shown */}
+          {/* Action button: Rate unavailable or Out of stock means Add to Cart is disabled and Ask on WhatsApp is shown in green */}
           {isRateMissing || isOutOfStock ? (
-            <button
-              type="button"
+            <WhatsAppButton
               onClick={handleAskOnWhatsApp}
-              className="w-full py-2.5 px-3 bg-white hover:bg-[#FAF7F2] text-[#8E6E24] border border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-            >
-              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Ask on WhatsApp</span>
-            </button>
+              label="Ask on WhatsApp"
+              size="sm"
+              fullWidth
+            />
           ) : (
             <button
               type="button"
               onClick={handleAddToCart}
-              className="gold-sheen w-full py-2.5 px-3 bg-[#FAF7F2] hover:bg-[#C9A54B] text-[#8E6E24] hover:text-white border border-[#C9A54B]/40 hover:border-[#C9A54B] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+              className="btn-inquiry w-full min-h-[44px] py-2.5 px-3 text-xs font-semibold uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
             >
-              <ShoppingBag className="w-3.5 h-3.5" />
+              <ShoppingBag className="w-4 h-4" />
               <span>Add to Bag</span>
             </button>
           )}

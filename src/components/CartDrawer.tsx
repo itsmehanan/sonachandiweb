@@ -21,6 +21,7 @@ import {
   formatPKR,
 } from '../lib/pricing';
 import { Product, getSettings, logWhatsAppEnquiry } from '../data/store';
+import { WhatsAppButton } from './WhatsAppButton';
 
 export interface CartItem {
   product: Product;
@@ -419,14 +420,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           {/* Drawer Footer Actions */}
           {items.length > 0 && (
             <div className="p-5 bg-white border-t border-[#E2D8C9] space-y-3">
-              <button
-                type="button"
+              <WhatsAppButton
                 onClick={handleWhatsAppOrder}
-                className="gold-sheen w-full py-3.5 px-4 bg-[#C9A54B] hover:bg-[#B18D35] text-white font-medium text-sm tracking-wide rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 cursor-pointer"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span>Order on WhatsApp</span>
-              </button>
+                label="Order on WhatsApp"
+                size="lg"
+                fullWidth
+              />
 
               <div className="flex items-center justify-between text-[11px] text-[#64748B] px-1">
                 <span>No online payment required</span>

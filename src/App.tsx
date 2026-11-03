@@ -11,6 +11,7 @@ import { CartDrawer, CartItem } from './components/CartDrawer';
 import { RateCalculatorModal } from './components/RateCalculatorModal';
 import { Footer } from './components/Footer';
 import { AdminPanel } from './components/admin/AdminPanel';
+import { AnimatedGoldBackground } from './components/AnimatedGoldBackground';
 
 import { HomePage } from './pages/HomePage';
 import { CataloguePage } from './pages/CataloguePage';
@@ -197,30 +198,36 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2] text-[#1E1B18] font-sans">
-      {/* Brand Intro overlay (once per session, with skip button) */}
-      {showBrandIntro && (
-        <BrandIntro
-          onComplete={() => setShowBrandIntro(false)}
+    <div className="min-h-screen flex flex-col bg-transparent text-[#1E1B18] font-sans relative">
+      {/* Animated Liquid Gold & Silver Background (storefront only, 50% opacity via CSS var) */}
+      <AnimatedGoldBackground />
+
+      <div className="relative z-10 flex flex-col flex-1">
+        {/* Brand Intro overlay (once per session, with skip button) */}
+        {showBrandIntro && (
+          <BrandIntro
+            onComplete={() => setShowBrandIntro(false)}
+          />
+        )}
+
+        {/* Live Bullion Rate Strip */}
+        <LiveRateStrip
+          rates={rates}
+          onOpenCalculator={() => setCalculatorOpen(true)}
         />
-      )}
 
-      {/* Live Bullion Rate Strip */}
-      <LiveRateStrip
-        rates={rates}
-        onOpenCalculator={() => setCalculatorOpen(true)}
-      />
+        {/* Top Bar Navigation Contract with sticky glass header & live rate chip */}
+        <Navbar
+          currentView={currentView}
+          onNavigate={handleNavigate}
+          cartCount={cartTotalCount}
+          onOpenCart={() => setCartDrawerOpen(true)}
+          rates={rates}
+          onOpenCalculator={() => setCalculatorOpen(true)}
+        />
 
-      {/* Top Bar Navigation Contract */}
-      <Navbar
-        currentView={currentView}
-        onNavigate={handleNavigate}
-        cartCount={cartTotalCount}
-        onOpenCart={() => setCartDrawerOpen(true)}
-      />
-
-      {/* Main Content Router */}
-      <main className="flex-1">
+        {/* Main Content Router */}
+        <main className="flex-1">
         {currentView === 'home' && (
           <HomePage
             rates={rates}
@@ -289,6 +296,7 @@ export default function App() {
         onOpenCalculator={() => setCalculatorOpen(true)}
         onReplayIntro={handleReplayIntro}
       />
+      </div>
     </div>
   );
 }

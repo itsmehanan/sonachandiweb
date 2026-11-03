@@ -15,7 +15,7 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
   const gold22KGram = hasGoldRate ? getGoldPerGramForKarat('22K', rates.gold24KPerTola) : 0;
 
   return (
-    <div className="bg-[#FAF7F2] border-b border-[#E2D8C9] text-xs py-2 px-4 select-none">
+    <div className="bg-[#FAF7F2]/90 backdrop-blur-xs border-b border-[#E2D8C9] text-xs py-2 px-4 select-none">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
         {/* Left: Bullion Rates Ticker */}
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1 text-[#1E1B18]">

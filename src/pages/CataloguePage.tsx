@@ -143,7 +143,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
       </div>
 
       {/* Primary Category Quick Switcher (Clean Segmented Tabs) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         {[
           { id: 'all', label: 'All Pieces' },
           { id: 'bridal_sets', label: 'Bridal Sets' },
@@ -151,131 +151,132 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           { id: 'bangles', label: 'Bangles & Karas' },
           { id: 'earrings', label: 'Earrings & Jhumkas' },
           { id: 'rings', label: 'Rings' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setSelectedCategory(tab.id)}
-            className={`px-4 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
-              selectedCategory === tab.id
-                ? 'bg-[#1E1B18] text-white shadow-xs font-semibold'
-                : 'bg-white text-[#64748B] hover:text-[#1E1B18] border border-[#E2D8C9]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        ].map((tab) => {
+          const isSelected = selectedCategory === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSelectedCategory(tab.id)}
+              className={`px-4 py-2 text-xs font-medium rounded-xl whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-1 focus-visible:outline-none transition-all ${
+                isSelected ? 'btn-filter-gold' : 'btn-filter-ivory'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter & Sort Bar */}
-      <div className="bg-white border border-[#E2D8C9] rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-        {/* Metal Toggle */}
-        <div className="flex items-center gap-1 bg-[#F3EFEA] p-1 rounded-lg">
+      <div className="bg-white/95 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
+        {/* Top Row: Metal Tabs & Availability & Sort */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Metal Tabs: Selected is Gold gradient, Unselected is Ivory */}
+          <div className="flex items-center gap-1.5 bg-[#F6F2EA] p-1 rounded-xl border border-[#E2D8C9]/80">
+            {[
+              { id: 'all', label: 'All Metals' },
+              { id: 'gold', label: 'Gold (Sona)' },
+              { id: 'silver', label: 'Silver (Chandi)' },
+            ].map((metal) => {
+              const isSelected = selectedMetal === metal.id;
+              return (
+                <button
+                  key={metal.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedMetal(metal.id);
+                    setSelectedKarat('all');
+                  }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-1 focus-visible:outline-none transition-all ${
+                    isSelected ? 'btn-filter-gold' : 'btn-filter-ivory'
+                  }`}
+                >
+                  {metal.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Availability Toggle Button */}
           <button
             type="button"
-            onClick={() => {
-              setSelectedMetal('all');
-              setSelectedKarat('all');
-            }}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              selectedMetal === 'all'
-                ? 'bg-white text-[#1E1B18] shadow-2xs font-semibold'
-                : 'text-[#64748B] hover:text-[#1E1B18]'
+            onClick={() => setInStockOnly(!inStockOnly)}
+            className={`px-3.5 py-1.5 text-xs font-medium rounded-xl flex items-center gap-1.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-1 focus-visible:outline-none transition-all ${
+              inStockOnly ? 'btn-filter-gold' : 'btn-filter-ivory'
             }`}
           >
-            All Metals
+            <span
+              className={`w-2 h-2 rounded-full ${
+                inStockOnly ? 'bg-[#1E1B18]' : 'bg-[#C9A54B]'
+              }`}
+            />
+            <span>In Stock Ready to Ship</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedMetal('gold');
-              setSelectedKarat('all');
-            }}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              selectedMetal === 'gold'
-                ? 'bg-[#C9A54B] text-white shadow-2xs font-semibold'
-                : 'text-[#64748B] hover:text-[#1E1B18]'
-            }`}
-          >
-            Gold (Sona)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedMetal('silver');
-              setSelectedKarat('all');
-            }}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              selectedMetal === 'silver'
-                ? 'bg-[#475569] text-white shadow-2xs font-semibold'
-                : 'text-[#64748B] hover:text-[#1E1B18]'
-            }`}
-          >
-            Silver (Chandi)
-          </button>
-        </div>
 
-        {/* Karat Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[#64748B] font-medium hidden sm:inline">Karat:</span>
-          <select
-            value={selectedKarat}
-            onChange={(e) => setSelectedKarat(e.target.value)}
-            className="px-3 py-1.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-xs text-[#1E1B18] outline-none focus:border-[#C9A54B]"
-          >
-            <option value="all">All Karats</option>
-            {selectedMetal !== 'silver' && (
-              <>
-                <option value="24K">24K Pure</option>
-                <option value="22K">22K Royal</option>
-                <option value="21K">21K Traditional</option>
-                <option value="18K">18K Modern</option>
-              </>
-            )}
-            {selectedMetal !== 'gold' && (
-              <option value="925_sterling">925 Sterling Silver</option>
-            )}
-          </select>
-        </div>
-
-        {/* Availability Filter Checkbox */}
-        <label className="flex items-center gap-2 text-xs text-[#1E1B18] cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={inStockOnly}
-            onChange={(e) => setInStockOnly(e.target.checked)}
-            className="rounded border-[#E2D8C9] text-[#C9A54B] focus:ring-[#C9A54B]"
-          />
-          <span className="font-medium">In Stock Ready to Ship</span>
-        </label>
-
-        {/* Sort Dropdown */}
-        <div className="flex items-center gap-2 ml-auto">
-          <span className="text-xs text-[#64748B] font-medium hidden sm:inline">Sort By:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-1.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-xs text-[#1E1B18] outline-none focus:border-[#C9A54B]"
-          >
-            <option value="featured">Featured First</option>
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-            <option value="weight_asc">Weight: Low to High</option>
-            <option value="weight_desc">Weight: High to Low</option>
-            <option value="name">Product Name (A-Z)</option>
-          </select>
-
-          {/* Reset Filters */}
-          {hasActiveFilters && (
-            <button
-              onClick={handleResetFilters}
-              className="p-1.5 text-xs text-[#8E6E24] hover:text-[#1E1B18] flex items-center gap-1 transition-colors"
-              title="Reset all filters"
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs text-[#64748B] font-medium hidden sm:inline">Sort By:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-1 transition-all ${
+                sortBy !== 'featured' ? 'btn-filter-gold' : 'btn-filter-ivory'
+              }`}
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
-          )}
+              <option value="featured">Featured First</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+              <option value="weight_asc">Weight: Low to High</option>
+              <option value="weight_desc">Weight: High to Low</option>
+              <option value="name">Product Name (A-Z)</option>
+            </select>
+
+            {/* Reset Filters */}
+            {hasActiveFilters && (
+              <button
+                onClick={handleResetFilters}
+                className="px-2.5 py-1.5 text-xs text-[#8E6E24] hover:text-[#1E1B18] flex items-center gap-1 rounded-lg border border-[#E2D8C9] hover:border-[#C9A54B] bg-[#FAF7F2] active:scale-[0.97] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:outline-none"
+                title="Reset all filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline font-medium">Reset</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Row: Karat Chips */}
+        <div className="pt-2 border-t border-[#F3EFEA] flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-[#64748B] font-medium mr-1">Karat &amp; Purity:</span>
+          {[
+            { id: 'all', label: 'All Karats' },
+            ...(selectedMetal !== 'silver'
+              ? [
+                  { id: '24K', label: '24K Pure' },
+                  { id: '22K', label: '22K Royal' },
+                  { id: '21K', label: '21K Traditional' },
+                  { id: '18K', label: '18K Modern' },
+                ]
+              : []),
+            ...(selectedMetal !== 'gold'
+              ? [{ id: '925_sterling', label: '925 Sterling Silver' }]
+              : []),
+          ].map((k) => {
+            const isSelected = selectedKarat === k.id;
+            return (
+              <button
+                key={k.id}
+                type="button"
+                onClick={() => setSelectedKarat(k.id)}
+                className={`px-3 py-1 text-xs font-medium rounded-lg whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-1 focus-visible:outline-none transition-all ${
+                  isSelected ? 'btn-filter-gold' : 'btn-filter-ivory'
+                }`}
+              >
+                {k.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
