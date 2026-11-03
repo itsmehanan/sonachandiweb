@@ -4,6 +4,8 @@ import { BullionRates, formatPKR } from '../lib/pricing';
 
 interface NavbarProps {
   currentView: string;
+  currentMetal?: 'all' | 'gold' | 'silver';
+  currentCategory?: string;
   onNavigate: (view: string, filter?: string) => void;
   cartCount: number;
   onOpenCart: () => void;
@@ -13,6 +15,8 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
+  currentMetal = 'all',
+  currentCategory,
   onNavigate,
   cartCount,
   onOpenCart,
@@ -63,10 +67,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   const hasGoldRate = rates && rates.gold24KPerTola > 0;
   const hasSilverRate = rates && rates.silverRate > 0;
 
-  const isNavActive = (view: string, filter?: string) => {
-    if (view === currentView && !filter) return true;
-    return false;
-  };
+  const isHomeActive = currentView === 'home';
+  const isCatalogueActive =
+    currentView === 'catalogue' &&
+    currentMetal === 'all' &&
+    (!currentCategory || currentCategory === 'all');
+  const isGoldActive = currentView === 'catalogue' && currentMetal === 'gold';
+  const isSilverActive = currentView === 'catalogue' && currentMetal === 'silver';
+  const isAboutActive = currentView === 'about';
+  const isContactActive = currentView === 'contact';
 
   return (
     <>
@@ -108,72 +117,90 @@ export const Navbar: React.FC<NavbarProps> = ({
           <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-[#475569]">
             <button
               onClick={() => handleNav('home')}
+              aria-current={isHomeActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isNavActive('home') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isHomeActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
               }`}
             >
               <span>Home</span>
               <span
                 className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isNavActive('home') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  isHomeActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                 }`}
               />
             </button>
 
             <button
               onClick={() => handleNav('catalogue')}
+              aria-current={isCatalogueActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isNavActive('catalogue') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isCatalogueActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
               }`}
             >
               <span>Catalogue</span>
               <span
                 className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isNavActive('catalogue') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  isCatalogueActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                 }`}
               />
             </button>
 
             <button
               onClick={() => handleNav('catalogue', 'gold')}
-              className="relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer text-[#475569] hover:text-[#8E6E24] focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden"
+              aria-current={isGoldActive ? 'page' : undefined}
+              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                isGoldActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+              }`}
             >
               <span>Gold</span>
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center scale-x-0 group-hover:scale-x-100" />
+              <span
+                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                  isGoldActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                }`}
+              />
             </button>
 
             <button
               onClick={() => handleNav('catalogue', 'silver')}
-              className="relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer text-[#475569] hover:text-[#8E6E24] focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden"
+              aria-current={isSilverActive ? 'page' : undefined}
+              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                isSilverActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+              }`}
             >
               <span>Silver</span>
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center scale-x-0 group-hover:scale-x-100" />
+              <span
+                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                  isSilverActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                }`}
+              />
             </button>
 
             <button
               onClick={() => handleNav('about')}
+              aria-current={isAboutActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isNavActive('about') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isAboutActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
               }`}
             >
               <span>About</span>
               <span
                 className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isNavActive('about') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  isAboutActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                 }`}
               />
             </button>
 
             <button
               onClick={() => handleNav('contact')}
+              aria-current={isContactActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isNavActive('contact') ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isContactActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
               }`}
             >
               <span>Contact</span>
               <span
                 className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isNavActive('contact') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  isContactActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                 }`}
               />
             </button>
@@ -314,8 +341,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <nav className="p-4 space-y-1">
                 <button
                   onClick={() => handleNav('home')}
+                  aria-current={isHomeActive ? 'page' : undefined}
                   className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
-                    currentView === 'home'
+                    isHomeActive
                       ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
@@ -325,8 +353,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <button
                   onClick={() => handleNav('catalogue')}
+                  aria-current={isCatalogueActive ? 'page' : undefined}
                   className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
-                    currentView === 'catalogue'
+                    isCatalogueActive
                       ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
@@ -337,13 +366,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="pl-3 py-1 space-y-1">
                   <button
                     onClick={() => handleNav('catalogue', 'gold')}
-                    className="w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium text-[#8E6E24] hover:bg-white/80 rounded-lg flex items-center transition-colors cursor-pointer"
+                    aria-current={isGoldActive ? 'page' : undefined}
+                    className={`w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                      isGoldActive
+                        ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                        : 'text-[#475569] hover:bg-white/80 hover:text-[#8E6E24]'
+                    }`}
                   >
                     — 24K, 22K, 21K &amp; 18K Gold
                   </button>
                   <button
                     onClick={() => handleNav('catalogue', 'silver')}
-                    className="w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium text-[#475569] hover:bg-white/80 rounded-lg flex items-center transition-colors cursor-pointer"
+                    aria-current={isSilverActive ? 'page' : undefined}
+                    className={`w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                      isSilverActive
+                        ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                        : 'text-[#475569] hover:bg-white/80 hover:text-[#8E6E24]'
+                    }`}
                   >
                     — 925 Pure Sterling Silver
                   </button>
@@ -351,8 +390,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <button
                   onClick={() => handleNav('about')}
+                  aria-current={isAboutActive ? 'page' : undefined}
                   className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
-                    currentView === 'about'
+                    isAboutActive
                       ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
@@ -362,8 +402,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <button
                   onClick={() => handleNav('contact')}
+                  aria-current={isContactActive ? 'page' : undefined}
                   className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
-                    currentView === 'contact'
+                    isContactActive
                       ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, SlidersHorizontal, RotateCcw, X } from 'lucide-react';
 import { Product, getProducts, ProductCategory } from '../data/store';
 import { BullionRates, calculateProductPrice, MetalType, GoldKarat, SilverPurity } from '../lib/pricing';
@@ -6,14 +6,22 @@ import { ProductCard } from '../components/ProductCard';
 
 interface CataloguePageProps {
   rates: BullionRates;
-  initialFilter?: string;
+  metal: 'all' | 'gold' | 'silver';
+  onMetalChange: (metal: 'all' | 'gold' | 'silver') => void;
+  category?: string;
+  onCategoryChange: (category: string | undefined) => void;
+  resetNonce?: number;
   onSelectProduct: (product: Product) => void;
   onAddToCart: (product: Product) => void;
 }
 
 export const CataloguePage: React.FC<CataloguePageProps> = ({
   rates,
-  initialFilter,
+  metal,
+  onMetalChange,
+  category,
+  onCategoryChange,
+  resetNonce,
   onSelectProduct,
   onAddToCart,
 }) => {
@@ -21,18 +29,25 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMetal, setSelectedMetal] = useState<string>(
-    initialFilter === 'gold' ? 'gold' : initialFilter === 'silver' ? 'silver' : 'all'
-  );
-  const [selectedCategory, setSelectedCategory] = useState<string>(
-    ['rings', 'necklaces', 'bangles', 'earrings', 'bridal_sets'].includes(initialFilter || '')
-      ? initialFilter!
-      : 'all'
-  );
   const [selectedKarat, setSelectedKarat] = useState<string>('all');
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('featured');
-  const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
+
+  const activeCategory = category || 'all';
+
+  // Clear secondary filters when resetNonce changes (e.g. navbar click)
+  useEffect(() => {
+    if (resetNonce !== undefined && resetNonce > 0) {
+      setSearchQuery('');
+      setSelectedKarat('all');
+      setInStockOnly(false);
+    }
+  }, [resetNonce]);
+
+  // Reset karat filter when metal changes
+  useEffect(() => {
+    setSelectedKarat('all');
+  }, [metal]);
 
   // Compute Prices & Filter Products
   const filteredProducts = useMemo(() => {
@@ -48,12 +63,12 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
         }
 
         // Metal filter
-        if (selectedMetal !== 'all' && product.metal !== selectedMetal) {
+        if (metal !== 'all' && product.metal !== metal) {
           return false;
         }
 
         // Category filter
-        if (selectedCategory !== 'all' && product.category !== selectedCategory) {
+        if (activeCategory !== 'all' && product.category !== activeCategory) {
           return false;
         }
 
@@ -84,8 +99,8 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
   }, [
     allProducts,
     searchQuery,
-    selectedMetal,
-    selectedCategory,
+    metal,
+    activeCategory,
     selectedKarat,
     inStockOnly,
     sortBy,
@@ -94,8 +109,8 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
   const handleResetFilters = () => {
     setSearchQuery('');
-    setSelectedMetal('all');
-    setSelectedCategory('all');
+    onMetalChange('all');
+    onCategoryChange(undefined);
     setSelectedKarat('all');
     setInStockOnly(false);
     setSortBy('featured');
@@ -103,8 +118,8 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
   const hasActiveFilters =
     searchQuery !== '' ||
-    selectedMetal !== 'all' ||
-    selectedCategory !== 'all' ||
+    metal !== 'all' ||
+    activeCategory !== 'all' ||
     selectedKarat !== 'all' ||
     inStockOnly;
 
@@ -152,12 +167,12 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           { id: 'earrings', label: 'Earrings & Jhumkas' },
           { id: 'rings', label: 'Rings' },
         ].map((tab) => {
-          const isSelected = selectedCategory === tab.id;
+          const isSelected = activeCategory === tab.id;
           return (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setSelectedCategory(tab.id)}
+              onClick={() => onCategoryChange(tab.id === 'all' ? undefined : tab.id)}
               className={`px-4 py-2 text-xs font-medium rounded-xl whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-1 focus-visible:outline-none transition-all ${
                 isSelected ? 'btn-filter-gold' : 'btn-filter-ivory'
               }`}
@@ -178,21 +193,21 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
               { id: 'all', label: 'All Metals' },
               { id: 'gold', label: 'Gold (Sona)' },
               { id: 'silver', label: 'Silver (Chandi)' },
-            ].map((metal) => {
-              const isSelected = selectedMetal === metal.id;
+            ].map((m) => {
+              const isSelected = metal === m.id;
               return (
                 <button
-                  key={metal.id}
+                  key={m.id}
                   type="button"
                   onClick={() => {
-                    setSelectedMetal(metal.id);
+                    onMetalChange(m.id as 'all' | 'gold' | 'silver');
                     setSelectedKarat('all');
                   }}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-1 focus-visible:outline-none transition-all ${
                     isSelected ? 'btn-filter-gold' : 'btn-filter-ivory'
                   }`}
                 >
-                  {metal.label}
+                  {m.label}
                 </button>
               );
             })}
@@ -251,7 +266,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           <span className="text-xs text-[#64748B] font-medium mr-1">Karat &amp; Purity:</span>
           {[
             { id: 'all', label: 'All Karats' },
-            ...(selectedMetal !== 'silver'
+            ...(metal !== 'silver'
               ? [
                   { id: '24K', label: '24K Pure' },
                   { id: '22K', label: '22K Royal' },
@@ -259,7 +274,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
                   { id: '18K', label: '18K Modern' },
                 ]
               : []),
-            ...(selectedMetal !== 'gold'
+            ...(metal !== 'gold'
               ? [{ id: '925_sterling', label: '925 Sterling Silver' }]
               : []),
           ].map((k) => {

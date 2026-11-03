@@ -32,7 +32,9 @@ export default function App() {
     return 'home';
   });
 
-  const [catalogueFilter, setCatalogueFilter] = useState<string | undefined>(undefined);
+  const [catalogueMetal, setCatalogueMetal] = useState<'all' | 'gold' | 'silver'>('all');
+  const [catalogueCategory, setCatalogueCategory] = useState<string | undefined>(undefined);
+  const [filterResetNonce, setFilterResetNonce] = useState<number>(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Cart state
@@ -106,12 +108,25 @@ export default function App() {
 
   // Handlers
   const handleNavigate = (view: string, filter?: string) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Check if clicking already active button:
+    if (view === 'home' && currentView === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (view === 'about' && currentView === 'about') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (view === 'contact' && currentView === 'contact') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (view === 'admin') {
       if (typeof window !== 'undefined') {
         window.history.pushState({}, '', '/admin');
       }
       setCurrentView('admin');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -121,11 +136,50 @@ export default function App() {
 
     if (view === 'product_detail') {
       setCurrentView('product_detail');
-    } else {
-      setSelectedProduct(null);
-      setCatalogueFilter(filter);
-      setCurrentView(view as any);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
+
+    if (view === 'catalogue') {
+      if (filter === 'gold') {
+        if (currentView === 'catalogue' && catalogueMetal === 'gold' && !catalogueCategory) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        setCatalogueMetal('gold');
+        setCatalogueCategory(undefined);
+        setFilterResetNonce((n) => n + 1);
+      } else if (filter === 'silver') {
+        if (currentView === 'catalogue' && catalogueMetal === 'silver' && !catalogueCategory) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        setCatalogueMetal('silver');
+        setCatalogueCategory(undefined);
+        setFilterResetNonce((n) => n + 1);
+      } else if (!filter || filter === 'all') {
+        if (currentView === 'catalogue' && catalogueMetal === 'all' && !catalogueCategory) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        setCatalogueMetal('all');
+        setCatalogueCategory(undefined);
+        setFilterResetNonce((n) => n + 1);
+      } else {
+        // Footer / Home category links set category and reset metal to all
+        setCatalogueCategory(filter);
+        setCatalogueMetal('all');
+        setFilterResetNonce((n) => n + 1);
+      }
+      setSelectedProduct(null);
+      setCurrentView('catalogue');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setSelectedProduct(null);
+    setCurrentView(view as any);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSelectProduct = (product: Product) => {
@@ -219,6 +273,8 @@ export default function App() {
         {/* Top Bar Navigation Contract with sticky glass header & live rate chip */}
         <Navbar
           currentView={currentView}
+          currentMetal={catalogueMetal}
+          currentCategory={catalogueCategory}
           onNavigate={handleNavigate}
           cartCount={cartTotalCount}
           onOpenCart={() => setCartDrawerOpen(true)}
@@ -241,7 +297,11 @@ export default function App() {
         {currentView === 'catalogue' && (
           <CataloguePage
             rates={rates}
-            initialFilter={catalogueFilter}
+            metal={catalogueMetal}
+            onMetalChange={setCatalogueMetal}
+            category={catalogueCategory}
+            onCategoryChange={setCatalogueCategory}
+            resetNonce={filterResetNonce}
             onSelectProduct={handleSelectProduct}
             onAddToCart={(p) => handleAddToCart(p, 1)}
           />
