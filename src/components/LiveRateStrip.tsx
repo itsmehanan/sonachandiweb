@@ -1,7 +1,7 @@
 import React from 'react';
-import { Calculator } from 'lucide-react';
-import { BullionRates, formatPKR, getGoldPerGramForKarat } from '../lib/pricing';
-import { getStoreStatus } from '../data/store';
+import { Sparkles } from 'lucide-react';
+import { BullionRates, formatPKR } from '../lib/pricing';
+import { getSettings, getStoreStatus } from '../data/store';
 
 interface LiveRateStripProps {
   rates: BullionRates;
@@ -9,86 +9,90 @@ interface LiveRateStripProps {
 }
 
 export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalculator }) => {
+  const settings = getSettings();
   const storeStatus = getStoreStatus();
-  const hasGoldRate = rates.gold24KPerTola > 0;
-  const hasSilverRate = rates.silverRate > 0;
-  const gold22KGram = hasGoldRate ? getGoldPerGramForKarat('22K', rates.gold24KPerTola) : 0;
+
+  const hasWhatsapp = Boolean(settings.whatsappNumber && settings.whatsappNumber.trim());
+  const hasHours = Boolean(settings.storeHoursDescription && settings.storeHoursDescription.trim());
+
+  // Build items array so dividers only appear between visible pieces
+  const leftItems: React.ReactNode[] = [];
+
+  if (hasWhatsapp) {
+    leftItems.push(
+      <span key="whatsapp" className="inline-flex items-center gap-1">
+        <span className="text-[#A89F91]">Order on WhatsApp:</span>{' '}
+        <a
+          href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#E8CF8A] hover:text-white transition-colors font-medium underline-offset-2 hover:underline"
+        >
+          {settings.whatsappNumber}
+        </a>
+      </span>
+    );
+  }
+
+  if (hasHours) {
+    leftItems.push(
+      <span key="hours" className="text-[#D6CBB8]">
+        {settings.storeHoursDescription}
+      </span>
+    );
+  }
+
+  // Open / Closed badge calculated from hours
+  leftItems.push(
+    <span
+      key="status-badge"
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-[#201A15] border border-[#C9A54B]/30"
+      title={storeStatus.subtext}
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${
+          storeStatus.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+        }`}
+        aria-hidden="true"
+      />
+      <span className={storeStatus.isOpen ? 'text-emerald-300' : 'text-amber-200'}>
+        {storeStatus.isOpen ? 'Open now' : 'Closed'}
+      </span>
+    </span>
+  );
 
   return (
-    <div className="bg-[#FAF7F2]/90 backdrop-blur-xs border-b border-[#E2D8C9] text-xs py-2 px-4 select-none">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
-        {/* Left: Bullion Rates Ticker */}
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1 text-[#1E1B18]">
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="text-[#8E6E24] uppercase tracking-wider font-semibold text-[11px]">
-              24K Gold / Tola:
-            </span>
-            <span className="font-mono font-bold text-[#1E1B18]">
-              {hasGoldRate ? formatPKR(rates.gold24KPerTola) : 'Rate unavailable'}
-            </span>
-          </div>
-
-          <span className="text-[#CBD5E1] hidden sm:inline" aria-hidden="true">
-            ·
-          </span>
-
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="text-[#8E6E24] uppercase tracking-wider font-semibold text-[11px]">
-              22K / Gram:
-            </span>
-            <span className="font-mono text-[#1E1B18]">
-              {hasGoldRate ? formatPKR(gold22KGram) : 'Rate unavailable'}
-            </span>
-          </div>
-
-          <span className="text-[#CBD5E1] hidden sm:inline" aria-hidden="true">
-            ·
-          </span>
-
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="text-[#64748B] uppercase tracking-wider font-semibold text-[11px]">
-              Silver ({rates.silverUnit === 'per_tola' ? 'Tola' : 'Gram'}):
-            </span>
-            <span className="font-mono text-[#1E1B18]">
-              {hasSilverRate ? formatPKR(rates.silverRate) : 'Rate unavailable'}
-            </span>
-          </div>
-
-          {rates.lastUpdated ? (
-            <>
-              <span className="text-[#CBD5E1] hidden lg:inline" aria-hidden="true">
-                ·
-              </span>
-              <span className="text-[11px] text-[#64748B] hidden lg:inline">
-                {rates.lastUpdated}
-              </span>
-            </>
-          ) : null}
+    <div className="bg-[#12100E] border-b border-[#29221B] text-[#C9A54B] text-[11px] sm:text-xs py-1.5 px-4 select-none transition-colors">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-4">
+        {/* Left: WhatsApp, Hours, and Open/Closed status */}
+        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1">
+          {leftItems.map((item, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && (
+                <span className="text-[#3E342B] select-none" aria-hidden="true">
+                  |
+                </span>
+              )}
+              {item}
+            </React.Fragment>
+          ))}
         </div>
 
-        {/* Right: Store Hours Status + Calculator trigger */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Store Hours Indicator */}
-          <div
-            className="flex items-center gap-1.5 text-[11px] text-[#64748B] bg-white border border-[#E2D8C9] px-2.5 py-0.5 rounded-full"
-            title={`${storeStatus.statusLabel} - ${storeStatus.subtext}`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                storeStatus.isOpen ? 'bg-emerald-500' : 'bg-amber-500'
-              }`}
-            />
-            <span className="font-medium text-[#1E1B18]">{storeStatus.statusLabel}</span>
-            <span className="hidden sm:inline text-[#94A3B8]">({storeStatus.currentTimePkt})</span>
-          </div>
-
-          {/* Quick Rate Calculator Trigger */}
+        {/* Right: Live Rates Trigger opening Price Estimator */}
+        <div className="shrink-0 flex items-center">
           <button
+            type="button"
             onClick={onOpenCalculator}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#8E6E24] hover:text-[#1E1B18] bg-white hover:bg-[#FAF7F2] border border-[#C9A54B]/40 hover:border-[#C9A54B] rounded transition-all shadow-2xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-[#E8CF8A] hover:text-white transition-colors cursor-pointer group focus-visible:ring-1 focus-visible:ring-[#C9A54B] outline-hidden rounded px-1.5 py-0.5"
+            title="Open Price Estimator & Live Bullion Rates"
           >
-            <Calculator className="w-3.5 h-3.5" />
-            <span>Rate Calculator</span>
+            <Sparkles className="w-3.5 h-3.5 text-[#C9A54B] group-hover:scale-110 transition-transform" />
+            <span className="font-medium underline-offset-2 group-hover:underline">Live Rates</span>
+            {rates.gold24KPerTola > 0 && (
+              <span className="font-mono text-[11px] font-bold text-[#E8CF8A]/90 hidden md:inline">
+                (24K: {formatPKR(rates.gold24KPerTola)})
+              </span>
+            )}
           </button>
         </div>
       </div>

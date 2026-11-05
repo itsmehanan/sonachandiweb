@@ -1,32 +1,71 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Menu, X, Sparkles, Scale } from 'lucide-react';
+import {
+  ShoppingBag,
+  Menu,
+  X,
+  Search,
+  Scale,
+  ChevronDown,
+  Sparkles,
+  ArrowRight,
+  Clock,
+} from 'lucide-react';
 import { BullionRates, formatPKR } from '../lib/pricing';
+import { getSettings, getStoreStatus, Product } from '../data/store';
+import { WhatsAppButton } from './WhatsAppButton';
+import { SearchOverlay } from './SearchOverlay';
+
+export interface NavigateOptions {
+  metal?: 'all' | 'gold' | 'silver';
+  category?: string;
+  karat?: string;
+  sort?: string;
+  search?: string;
+}
 
 interface NavbarProps {
   currentView: string;
   currentMetal?: 'all' | 'gold' | 'silver';
   currentCategory?: string;
-  onNavigate: (view: string, filter?: string) => void;
+  currentKarat?: string;
+  currentSort?: string;
+  onNavigate: (view: string, filterOrOptions?: string | NavigateOptions) => void;
   cartCount: number;
   onOpenCart: () => void;
   rates?: BullionRates;
   onOpenCalculator?: () => void;
+  onSelectProduct?: (product: Product) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   currentMetal = 'all',
   currentCategory,
+  currentKarat = 'all',
+  currentSort = 'featured',
   onNavigate,
   cartCount,
   onOpenCart,
-  rates,
+  rates = { gold24KPerTola: 0, silverRate: 0, silverUnit: 'per_tola', lastUpdated: '' },
   onOpenCalculator,
+  onSelectProduct,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAnimatingBag, setIsAnimatingBag] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Desktop Dropdown State: 'gold' | 'silver' | null
+  const [activeDropdown, setActiveDropdown] = useState<'gold' | 'silver' | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevCountRef = useRef(cartCount);
+
+  // Mobile Accordion State
+  const [mobileGoldOpen, setMobileGoldOpen] = useState(false);
+  const [mobileSilverOpen, setMobileSilverOpen] = useState(false);
+
+  const settings = getSettings();
+  const storeStatus = getStoreStatus();
 
   // Shrink header slightly on scroll
   useEffect(() => {
@@ -59,23 +98,107 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [mobileMenuOpen]);
 
-  const handleNav = (view: string, filter?: string) => {
-    onNavigate(view, filter);
-    setMobileMenuOpen(false);
+  // Close dropdown on outside click or Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveDropdown(null);
+      }
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-dropdown-container]')) {
+        setActiveDropdown(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  // 120ms hover delay handlers for desktop mega-menu
+  const handleMouseEnter = (dropdown: 'gold' | 'silver') => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(dropdown);
+    }, 120);
   };
 
-  const hasGoldRate = rates && rates.gold24KPerTola > 0;
-  const hasSilverRate = rates && rates.silverRate > 0;
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 120);
+  };
 
+  const handleToggleClick = (dropdown: 'gold' | 'silver') => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setActiveDropdown((prev) => (prev === dropdown ? null : dropdown));
+  };
+
+  const handleNav = (view: string, options?: string | NavigateOptions) => {
+    setActiveDropdown(null);
+    setMobileMenuOpen(false);
+    onNavigate(view, options);
+  };
+
+  const handleSearchSubmit = (query: string) => {
+    setSearchOpen(false);
+    onNavigate('catalogue', { search: query, metal: 'all', category: undefined, karat: 'all' });
+  };
+
+  const handleSelectProductFromSearch = (product: Product) => {
+    setSearchOpen(false);
+    if (onSelectProduct) {
+      onSelectProduct(product);
+    } else {
+      onNavigate('product_detail');
+    }
+  };
+
+  // Nav item active check rules
   const isHomeActive = currentView === 'home';
-  const isCatalogueActive =
-    currentView === 'catalogue' &&
-    currentMetal === 'all' &&
-    (!currentCategory || currentCategory === 'all');
+  const isNewArrivalsActive = currentView === 'catalogue' && currentSort === 'newest';
   const isGoldActive = currentView === 'catalogue' && currentMetal === 'gold';
   const isSilverActive = currentView === 'catalogue' && currentMetal === 'silver';
+  const isBridalActive = currentView === 'catalogue' && currentCategory === 'bridal_sets';
   const isAboutActive = currentView === 'about';
   const isContactActive = currentView === 'contact';
+
+  const shopGoldCategories = [
+    { label: 'All Gold', category: undefined },
+    { label: 'Rings', category: 'rings' },
+    { label: 'Necklaces', category: 'necklaces' },
+    { label: 'Bangles', category: 'bangles' },
+    { label: 'Earrings', category: 'earrings' },
+    { label: 'Bridal Sets', category: 'bridal_sets' },
+  ];
+
+  const goldPurities = [
+    { label: '24K Gold', sub: '99.9% Pure Bullion', karat: '24K' },
+    { label: '22K Gold', sub: '91.6% Fine Jewellery', karat: '22K' },
+    { label: '21K Gold', sub: '87.5% Traditional', karat: '21K' },
+    { label: '18K Gold', sub: '75.0% Contemporary', karat: '18K' },
+  ];
+
+  const shopSilverCategories = [
+    { label: 'All Silver', category: undefined },
+    { label: 'Rings', category: 'rings' },
+    { label: 'Necklaces', category: 'necklaces' },
+    { label: 'Bangles', category: 'bangles' },
+    { label: 'Earrings', category: 'earrings' },
+    { label: 'Bridal Sets', category: 'bridal_sets' },
+  ];
+
+  const whatsappHref = settings.whatsappNumber
+    ? `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+        'Hello Sona & Chandi Gold Collection, I would like to inquire about your jewellery.'
+      )}`
+    : undefined;
 
   return (
     <>
@@ -85,11 +208,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         }`}
       >
         <div
-          className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 md:gap-8 transition-all duration-300 ease-out ${
+          className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-3 md:gap-6 transition-all duration-300 ease-out ${
             isScrolled ? 'h-16 sm:h-18' : 'h-20 sm:h-22'
           }`}
         >
-          {/* Zone 1: Logo Left */}
+          {/* Zone 1: Logo Left (larger on desktop) */}
           <button
             onClick={() => handleNav('home')}
             className="flex items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded-lg outline-hidden group shrink-0 cursor-pointer"
@@ -99,22 +222,26 @@ export const Navbar: React.FC<NavbarProps> = ({
               src="/assets/aistudio/logo-light_b9e6ed91.png"
               alt="Sona & Chandi Gold Collection"
               className={`w-auto object-contain transition-all duration-300 ease-out group-hover:scale-102 ${
-                isScrolled ? 'h-9 sm:h-10' : 'h-11 sm:h-12'
+                isScrolled ? 'h-10 sm:h-12 lg:h-13' : 'h-12 sm:h-14 lg:h-16'
               }`}
               referrerPolicy="no-referrer"
             />
-            <div className="hidden min-[440px]:block">
-              <span className="font-serif text-base sm:text-lg font-semibold tracking-tight text-[#1E1B18] block leading-tight">
+            <div className="hidden min-[480px]:block">
+              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-[#1E1B18] block leading-tight">
                 Sona &amp; Chandi
               </span>
-              <span className="text-[10px] tracking-widest uppercase text-[#8E6E24] font-medium block">
+              <span className="text-[10px] sm:text-[11px] tracking-widest uppercase text-[#8E6E24] font-medium block">
                 Gold Collection
               </span>
             </div>
           </button>
 
-          {/* Zone 2: Nav Centre with Sliding Gold Underline */}
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-[#475569]">
+          {/* Zone 2: Nav Centre */}
+          <nav
+            data-dropdown-container
+            className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-medium text-[#475569]"
+          >
+            {/* 1. Home */}
             <button
               onClick={() => handleNav('home')}
               aria-current={isHomeActive ? 'page' : undefined}
@@ -130,51 +257,316 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             </button>
 
+            {/* 2. New Arrivals (catalogue sorted newest first) */}
             <button
-              onClick={() => handleNav('catalogue')}
-              aria-current={isCatalogueActive ? 'page' : undefined}
+              onClick={() =>
+                handleNav('catalogue', {
+                  sort: 'newest',
+                  metal: 'all',
+                  category: undefined,
+                  karat: 'all',
+                })
+              }
+              aria-current={isNewArrivalsActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isCatalogueActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isNewArrivalsActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
               }`}
             >
-              <span>Catalogue</span>
+              <span>New Arrivals</span>
               <span
                 className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isCatalogueActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  isNewArrivalsActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                 }`}
               />
             </button>
 
+            {/* 3. Gold (Dropdown mega-menu) */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleMouseEnter('gold')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button
+                type="button"
+                onClick={() => handleToggleClick('gold')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleToggleClick('gold');
+                  }
+                }}
+                aria-expanded={activeDropdown === 'gold'}
+                aria-haspopup="true"
+                aria-current={isGoldActive ? 'page' : undefined}
+                className={`relative py-2.5 flex items-center gap-1 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                  isGoldActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                }`}
+              >
+                <span>Gold</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#C9A54B] transition-transform duration-200 ${
+                    activeDropdown === 'gold' ? 'rotate-180' : ''
+                  }`}
+                />
+                <span
+                  className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                    isGoldActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  }`}
+                />
+              </button>
+
+              {/* Gold Mega-Menu Panel */}
+              {activeDropdown === 'gold' && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                  style={{ width: '420px' }}
+                >
+                  <div className="bg-[#FAF7F2] border border-[#C9A54B]/35 rounded-2xl shadow-xl p-5 backdrop-blur-md">
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Column 1: Shop Gold */}
+                      <div>
+                        <span className="font-serif text-xs font-bold uppercase tracking-wider text-[#8E6E24] block pb-2.5 mb-2 border-b border-[#E2D8C9]">
+                          Shop Gold
+                        </span>
+                        <div className="space-y-1">
+                          {shopGoldCategories.map((item) => (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={() =>
+                                handleNav('catalogue', {
+                                  metal: 'gold',
+                                  category: item.category,
+                                  karat: 'all',
+                                  sort: 'featured',
+                                  search: '',
+                                })
+                              }
+                              className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-[#1E1B18] hover:text-[#8E6E24] hover:bg-[#F3EFEA] rounded-lg transition-colors flex items-center justify-between cursor-pointer focus-visible:ring-1 focus-visible:ring-[#C9A54B] outline-hidden"
+                            >
+                              <span>{item.label}</span>
+                              <ArrowRight className="w-3 h-3 text-[#C9A54B] opacity-0 group-hover:opacity-100" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Column 2: By Purity */}
+                      <div>
+                        <span className="font-serif text-xs font-bold uppercase tracking-wider text-[#8E6E24] block pb-2.5 mb-2 border-b border-[#E2D8C9]">
+                          By Purity
+                        </span>
+                        <div className="space-y-1">
+                          {goldPurities.map((purity) => (
+                            <button
+                              key={purity.karat}
+                              type="button"
+                              onClick={() =>
+                                handleNav('catalogue', {
+                                  metal: 'gold',
+                                  karat: purity.karat,
+                                  category: undefined,
+                                  sort: 'featured',
+                                  search: '',
+                                })
+                              }
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#F3EFEA] transition-colors cursor-pointer focus-visible:ring-1 focus-visible:ring-[#C9A54B] outline-hidden group"
+                            >
+                              <div className="font-semibold text-xs text-[#1E1B18] group-hover:text-[#8E6E24]">
+                                {purity.label}
+                              </div>
+                              <div className="text-[10px] text-[#64748B]">{purity.sub}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Quick Link */}
+                    <div className="mt-4 pt-3 border-t border-[#E2D8C9] flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-[#64748B]">Hallmarked &amp; Verified</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleNav('catalogue', {
+                            metal: 'gold',
+                            category: undefined,
+                            karat: 'all',
+                            sort: 'featured',
+                          })
+                        }
+                        className="text-[#8E6E24] hover:text-[#1E1B18] font-semibold text-xs flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View All Gold Collection</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Silver (Dropdown mega-menu) */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleMouseEnter('silver')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button
+                type="button"
+                onClick={() => handleToggleClick('silver')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleToggleClick('silver');
+                  }
+                }}
+                aria-expanded={activeDropdown === 'silver'}
+                aria-haspopup="true"
+                aria-current={isSilverActive ? 'page' : undefined}
+                className={`relative py-2.5 flex items-center gap-1 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
+                  isSilverActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                }`}
+              >
+                <span>Silver</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#C9A54B] transition-transform duration-200 ${
+                    activeDropdown === 'silver' ? 'rotate-180' : ''
+                  }`}
+                />
+                <span
+                  className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
+                    isSilverActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  }`}
+                />
+              </button>
+
+              {/* Silver Mega-Menu Panel */}
+              {activeDropdown === 'silver' && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                  style={{ width: '400px' }}
+                >
+                  <div className="bg-[#FAF7F2] border border-[#C9A54B]/35 rounded-2xl shadow-xl p-5 backdrop-blur-md">
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Column 1: Shop Silver */}
+                      <div>
+                        <span className="font-serif text-xs font-bold uppercase tracking-wider text-[#8E6E24] block pb-2.5 mb-2 border-b border-[#E2D8C9]">
+                          Shop Silver
+                        </span>
+                        <div className="space-y-1">
+                          {shopSilverCategories.map((item) => (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={() =>
+                                handleNav('catalogue', {
+                                  metal: 'silver',
+                                  category: item.category,
+                                  karat: 'all',
+                                  sort: 'featured',
+                                  search: '',
+                                })
+                              }
+                              className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-[#1E1B18] hover:text-[#8E6E24] hover:bg-[#F3EFEA] rounded-lg transition-colors flex items-center justify-between cursor-pointer focus-visible:ring-1 focus-visible:ring-[#C9A54B] outline-hidden"
+                            >
+                              <span>{item.label}</span>
+                              <ArrowRight className="w-3 h-3 text-[#C9A54B] opacity-0 group-hover:opacity-100" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Column 2: By Purity */}
+                      <div>
+                        <span className="font-serif text-xs font-bold uppercase tracking-wider text-[#8E6E24] block pb-2.5 mb-2 border-b border-[#E2D8C9]">
+                          By Purity
+                        </span>
+                        <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleNav('catalogue', {
+                                metal: 'silver',
+                                karat: '925',
+                                category: undefined,
+                                sort: 'featured',
+                                search: '',
+                              })
+                            }
+                            className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-[#F3EFEA] transition-colors cursor-pointer focus-visible:ring-1 focus-visible:ring-[#C9A54B] outline-hidden group"
+                          >
+                            <div className="font-semibold text-xs text-[#1E1B18] group-hover:text-[#8E6E24]">
+                              925 Pure Sterling Silver
+                            </div>
+                            <div className="text-[10px] text-[#64748B]">
+                              92.5% Pure with Anti-Tarnish Finish
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Quick Link */}
+                    <div className="mt-4 pt-3 border-t border-[#E2D8C9] flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-[#64748B]">Authentic 925 Stamp</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleNav('catalogue', {
+                            metal: 'silver',
+                            category: undefined,
+                            karat: 'all',
+                            sort: 'featured',
+                          })
+                        }
+                        className="text-[#8E6E24] hover:text-[#1E1B18] font-semibold text-xs flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View All Silver Collection</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Bridal Sets */}
             <button
-              onClick={() => handleNav('catalogue', 'gold')}
-              aria-current={isGoldActive ? 'page' : undefined}
+              onClick={() =>
+                handleNav('catalogue', {
+                  category: 'bridal_sets',
+                  metal: 'all',
+                  karat: 'all',
+                  sort: 'featured',
+                })
+              }
+              aria-current={isBridalActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isGoldActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isBridalActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
               }`}
             >
-              <span>Gold</span>
+              <span>Bridal Sets</span>
               <span
                 className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isGoldActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  isBridalActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                 }`}
               />
             </button>
 
-            <button
-              onClick={() => handleNav('catalogue', 'silver')}
-              aria-current={isSilverActive ? 'page' : undefined}
-              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isSilverActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
-              }`}
-            >
-              <span>Silver</span>
-              <span
-                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isSilverActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-                }`}
-              />
-            </button>
+            {/* 6. Rates (opens Price Estimator) */}
+            {onOpenCalculator && (
+              <button
+                type="button"
+                onClick={onOpenCalculator}
+                className="relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden hover:text-[#1E1B18]"
+              >
+                <span>Rates</span>
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center scale-x-0 group-hover:scale-x-100" />
+              </button>
+            )}
 
+            {/* 7. About */}
             <button
               onClick={() => handleNav('about')}
               aria-current={isAboutActive ? 'page' : undefined}
@@ -190,6 +582,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             </button>
 
+            {/* 8. Contact */}
             <button
               onClick={() => handleNav('contact')}
               aria-current={isContactActive ? 'page' : undefined}
@@ -206,44 +599,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Zone 3: Live Rate Chip + Gold Bag Button + Mobile Hamburger */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
-            {/* Live Gold/Silver Rate Chip */}
-            {rates && (
+          {/* Zone 3: Icons Right (Search, Rates, Bag, Mobile Hamburger) */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Search Icon Button */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              title="Search jewellery collection (Press / or click)"
+              className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 sm:p-2.5 rounded-full bg-white/80 hover:bg-white text-[#1E1B18] hover:text-[#8E6E24] border border-[#E2D8C9] hover:border-[#C9A54B] transition-all shadow-2xs flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
+              aria-label="Open search"
+            >
+              <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            </button>
+
+            {/* Rates (Calculator) Icon Button */}
+            {onOpenCalculator && (
               <button
                 type="button"
                 onClick={onOpenCalculator}
-                title="View live bullion rates & calculator"
-                className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-white/90 hover:bg-white border border-[#C9A54B]/40 hover:border-[#C9A54B] rounded-full text-xs text-[#1E1B18] shadow-2xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
+                title="Open live bullion rate estimator"
+                className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 sm:p-2.5 rounded-full bg-white/80 hover:bg-white text-[#1E1B18] hover:text-[#8E6E24] border border-[#E2D8C9] hover:border-[#C9A54B] transition-all shadow-2xs flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
+                aria-label="Live bullion rates and price estimator"
               >
-                <span className="flex items-center gap-1 font-medium text-[#8E6E24]">
-                  <Sparkles className="w-3.5 h-3.5 text-[#C9A54B]" />
-                  <span className="font-semibold text-[11px] uppercase tracking-wide">24K:</span>
-                </span>
-                <span className="font-mono text-[11px] font-bold text-[#1E1B18]">
-                  {hasGoldRate ? formatPKR(rates.gold24KPerTola) : 'Rate unavailable'}
-                </span>
-                {hasSilverRate && (
-                  <>
-                    <span className="text-[#CBD5E1]" aria-hidden="true">·</span>
-                    <span className="hidden xl:inline text-[11px] font-medium text-[#64748B]">
-                      Ag: <span className="font-mono font-semibold text-[#1E1B18]">{formatPKR(rates.silverRate)}</span>
-                    </span>
-                  </>
-                )}
+                <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#8E6E24]" />
               </button>
             )}
 
-            {/* Bag Button: Gold gradient circle/pill with bag icon, count badge, bounce & shine sweep */}
+            {/* Bag Button: Gold gradient with shopping bag icon and count badge */}
             <button
               onClick={onOpenCart}
               aria-label={`Open jewellery bag with ${cartCount} items`}
-              className={`relative flex items-center justify-center gap-2 px-4 py-2 sm:px-4.5 sm:py-2.5 text-xs font-semibold text-white rounded-full bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.97] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer overflow-hidden focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden ${
+              className={`relative flex items-center justify-center gap-2 px-3.5 py-2 sm:px-4.5 sm:py-2.5 text-xs font-semibold text-white rounded-full bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.97] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer overflow-hidden focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden min-h-[40px] sm:min-h-[44px] ${
                 isAnimatingBag ? 'bag-shine-active' : ''
               }`}
             >
               <ShoppingBag className="w-4 h-4 text-white shrink-0" />
-              <span className="hidden min-[480px]:inline tracking-wide">Bag / Inquiry</span>
+              <span className="hidden md:inline tracking-wide">Bag</span>
 
               {cartCount > 0 ? (
                 <span
@@ -262,7 +653,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden min-w-[44px] min-h-[44px] p-2 flex items-center justify-center text-[#1E1B18] hover:text-[#8E6E24] rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden cursor-pointer"
-              aria-label="Open menu"
+              aria-label="Open mobile navigation menu"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -270,18 +661,27 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Mobile Slide-In Panel & Scrim */}
+      {/* Full-Width Search Overlay */}
+      <SearchOverlay
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSearchSubmit={handleSearchSubmit}
+        onSelectProduct={handleSelectProductFromSearch}
+        rates={rates}
+      />
+
+      {/* Mobile Full-Height Slide-In Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" aria-modal="true" role="dialog">
           {/* Backdrop Scrim */}
           <div
-            className="fixed inset-0 bg-black/45 backdrop-blur-xs transition-opacity duration-300"
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
 
           {/* Slide-In Drawer */}
-          <aside className="fixed inset-y-0 right-0 w-full max-w-xs bg-[#FAF7F2] border-l border-[#C9A54B]/30 shadow-2xl z-10 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
+          <aside className="fixed inset-y-0 right-0 w-full max-w-sm bg-[#FAF7F2] border-l border-[#C9A54B]/30 shadow-2xl z-10 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
             <div>
               {/* Drawer Header */}
               <div className="p-4 sm:p-5 flex items-center justify-between border-b border-[#E2D8C9]">
@@ -289,13 +689,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <img
                     src="/assets/aistudio/logo-light_b9e6ed91.png"
                     alt="Sona & Chandi"
-                    className="h-9 w-auto object-contain"
+                    className="h-10 w-auto object-contain"
                   />
                   <div>
-                    <span className="font-serif text-sm font-bold text-[#1E1B18] block leading-tight">
+                    <span className="font-serif text-base font-bold text-[#1E1B18] block leading-tight">
                       Sona &amp; Chandi
                     </span>
-                    <span className="text-[9px] uppercase tracking-wider text-[#8E6E24] font-medium block">
+                    <span className="text-[10px] uppercase tracking-wider text-[#8E6E24] font-medium block">
                       Gold Collection
                     </span>
                   </div>
@@ -310,118 +710,309 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
 
-              {/* Mobile Rate Chip */}
-              {rates && (
-                <div className="p-4 bg-white/70 border-b border-[#E2D8C9]">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-[#8E6E24] font-semibold uppercase tracking-wider text-[11px] flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-[#C9A54B]" />
-                      24K Gold Rate / Tola
-                    </span>
-                    <span className="font-mono font-bold text-[#1E1B18]">
-                      {hasGoldRate ? formatPKR(rates.gold24KPerTola) : 'Unavailable'}
-                    </span>
-                  </div>
-                  {onOpenCalculator && (
-                    <button
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        onOpenCalculator();
-                      }}
-                      className="w-full mt-2 py-2 px-3 text-center text-xs font-semibold text-[#8E6E24] bg-[#FAF7F2] hover:bg-white border border-[#C9A54B]/40 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Scale className="w-3.5 h-3.5" />
-                      <span>Open Bullion Calculator</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Navigation Links with large tap targets >= 44px */}
+              {/* Navigation Items with Accordions */}
               <nav className="p-4 space-y-1">
+                {/* Home */}
                 <button
                   onClick={() => handleNav('home')}
                   aria-current={isHomeActive ? 'page' : undefined}
-                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                  className={`w-full min-h-[46px] px-4 py-2.5 text-left text-sm font-medium rounded-xl flex items-center transition-colors cursor-pointer ${
                     isHomeActive
-                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-4 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
                 >
                   Home
                 </button>
 
+                {/* New Arrivals */}
                 <button
-                  onClick={() => handleNav('catalogue')}
-                  aria-current={isCatalogueActive ? 'page' : undefined}
-                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
-                    isCatalogueActive
-                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                  onClick={() =>
+                    handleNav('catalogue', {
+                      sort: 'newest',
+                      metal: 'all',
+                      category: undefined,
+                      karat: 'all',
+                    })
+                  }
+                  aria-current={isNewArrivalsActive ? 'page' : undefined}
+                  className={`w-full min-h-[46px] px-4 py-2.5 text-left text-sm font-medium rounded-xl flex items-center justify-between transition-colors cursor-pointer ${
+                    isNewArrivalsActive
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-4 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
                 >
-                  All Jewellery Catalogue
+                  <span>New Arrivals</span>
+                  <span className="text-[10px] uppercase tracking-wider bg-[#FAF7F2] text-[#8E6E24] px-2 py-0.5 rounded border border-[#C9A54B]/30 font-semibold">
+                    New
+                  </span>
                 </button>
 
-                <div className="pl-3 py-1 space-y-1">
+                {/* Gold Accordion */}
+                <div className="border border-[#E2D8C9]/80 rounded-xl overflow-hidden bg-white/60">
                   <button
-                    onClick={() => handleNav('catalogue', 'gold')}
-                    aria-current={isGoldActive ? 'page' : undefined}
-                    className={`w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
-                      isGoldActive
-                        ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
-                        : 'text-[#475569] hover:bg-white/80 hover:text-[#8E6E24]'
-                    }`}
+                    type="button"
+                    onClick={() => setMobileGoldOpen((prev) => !prev)}
+                    className="w-full min-h-[48px] px-4 py-3 flex items-center justify-between text-left text-sm font-semibold text-[#1E1B18] hover:bg-white transition-colors cursor-pointer"
                   >
-                    — 24K, 22K, 21K &amp; 18K Gold
+                    <span className="flex items-center gap-2 text-[#8E6E24]">
+                      <Sparkles className="w-4 h-4 text-[#C9A54B]" />
+                      <span>Gold Jewellery</span>
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+                        mobileGoldOpen ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
-                  <button
-                    onClick={() => handleNav('catalogue', 'silver')}
-                    aria-current={isSilverActive ? 'page' : undefined}
-                    className={`w-full min-h-[44px] px-4 py-2.5 text-left text-xs font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
-                      isSilverActive
-                        ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
-                        : 'text-[#475569] hover:bg-white/80 hover:text-[#8E6E24]'
-                    }`}
-                  >
-                    — 925 Pure Sterling Silver
-                  </button>
+
+                  {mobileGoldOpen && (
+                    <div className="px-4 pb-4 pt-1 space-y-3 bg-white/40 border-t border-[#E2D8C9]/60">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#8E6E24] block mb-1">
+                          Categories
+                        </span>
+                        <div className="space-y-0.5">
+                          {shopGoldCategories.map((item) => (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={() =>
+                                handleNav('catalogue', {
+                                  metal: 'gold',
+                                  category: item.category,
+                                  karat: 'all',
+                                  sort: 'featured',
+                                })
+                              }
+                              className="w-full min-h-[42px] px-3 py-2 text-left text-xs font-medium text-[#1E1B18] hover:text-[#8E6E24] hover:bg-[#FAF7F2] rounded-lg transition-colors flex items-center justify-between cursor-pointer"
+                            >
+                              <span>{item.label}</span>
+                              <ArrowRight className="w-3 h-3 text-[#C9A54B]" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#E2D8C9]/60">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#8E6E24] block mb-1">
+                          Filter by Purity
+                        </span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {goldPurities.map((p) => (
+                            <button
+                              key={p.karat}
+                              type="button"
+                              onClick={() =>
+                                handleNav('catalogue', {
+                                  metal: 'gold',
+                                  karat: p.karat,
+                                  category: undefined,
+                                  sort: 'featured',
+                                })
+                              }
+                              className="min-h-[42px] p-2 text-left bg-[#FAF7F2] hover:bg-white border border-[#E2D8C9] rounded-lg transition-colors cursor-pointer"
+                            >
+                              <div className="text-xs font-bold text-[#8E6E24]">{p.label}</div>
+                              <div className="text-[9px] text-[#64748B]">{p.sub}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
+                {/* Silver Accordion */}
+                <div className="border border-[#E2D8C9]/80 rounded-xl overflow-hidden bg-white/60">
+                  <button
+                    type="button"
+                    onClick={() => setMobileSilverOpen((prev) => !prev)}
+                    className="w-full min-h-[48px] px-4 py-3 flex items-center justify-between text-left text-sm font-semibold text-[#1E1B18] hover:bg-white transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-[#475569]">
+                      <Sparkles className="w-4 h-4 text-[#94A3B8]" />
+                      <span>Silver Jewellery</span>
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#475569] transition-transform duration-200 ${
+                        mobileSilverOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {mobileSilverOpen && (
+                    <div className="px-4 pb-4 pt-1 space-y-3 bg-white/40 border-t border-[#E2D8C9]/60">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#475569] block mb-1">
+                          Categories
+                        </span>
+                        <div className="space-y-0.5">
+                          {shopSilverCategories.map((item) => (
+                            <button
+                              key={item.label}
+                              type="button"
+                              onClick={() =>
+                                handleNav('catalogue', {
+                                  metal: 'silver',
+                                  category: item.category,
+                                  karat: 'all',
+                                  sort: 'featured',
+                                })
+                              }
+                              className="w-full min-h-[42px] px-3 py-2 text-left text-xs font-medium text-[#1E1B18] hover:text-[#8E6E24] hover:bg-[#FAF7F2] rounded-lg transition-colors flex items-center justify-between cursor-pointer"
+                            >
+                              <span>{item.label}</span>
+                              <ArrowRight className="w-3 h-3 text-[#C9A54B]" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#E2D8C9]/60">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#475569] block mb-1">
+                          Purity
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleNav('catalogue', {
+                              metal: 'silver',
+                              karat: '925',
+                              category: undefined,
+                              sort: 'featured',
+                            })
+                          }
+                          className="w-full min-h-[42px] p-2.5 text-left bg-[#FAF7F2] hover:bg-white border border-[#E2D8C9] rounded-lg transition-colors cursor-pointer"
+                        >
+                          <div className="text-xs font-bold text-[#1E1B18]">
+                            925 Pure Sterling Silver
+                          </div>
+                          <div className="text-[10px] text-[#64748B]">
+                            92.5% pure silver with hallmark stamp
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bridal Sets */}
+                <button
+                  onClick={() =>
+                    handleNav('catalogue', {
+                      category: 'bridal_sets',
+                      metal: 'all',
+                      karat: 'all',
+                      sort: 'featured',
+                    })
+                  }
+                  aria-current={isBridalActive ? 'page' : undefined}
+                  className={`w-full min-h-[46px] px-4 py-2.5 text-left text-sm font-medium rounded-xl flex items-center transition-colors cursor-pointer ${
+                    isBridalActive
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-4 border-[#C9A54B] shadow-2xs'
+                      : 'text-[#1E1B18] hover:bg-white/80'
+                  }`}
+                >
+                  Bridal Sets
+                </button>
+
+                {/* Rates (Price Estimator) */}
+                {onOpenCalculator && (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenCalculator();
+                    }}
+                    className="w-full min-h-[46px] px-4 py-2.5 text-left text-sm font-medium rounded-xl flex items-center gap-2 text-[#8E6E24] hover:bg-white/80 transition-colors cursor-pointer"
+                  >
+                    <Scale className="w-4 h-4 text-[#C9A54B]" />
+                    <span>Live Rates &amp; Price Estimator</span>
+                  </button>
+                )}
+
+                {/* About */}
                 <button
                   onClick={() => handleNav('about')}
                   aria-current={isAboutActive ? 'page' : undefined}
-                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                  className={`w-full min-h-[46px] px-4 py-2.5 text-left text-sm font-medium rounded-xl flex items-center transition-colors cursor-pointer ${
                     isAboutActive
-                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-4 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
                 >
                   About Heritage &amp; Hallmarking
                 </button>
 
+                {/* Contact */}
                 <button
                   onClick={() => handleNav('contact')}
                   aria-current={isContactActive ? 'page' : undefined}
-                  className={`w-full min-h-[48px] px-4 py-3 text-left text-sm font-medium rounded-lg flex items-center transition-colors cursor-pointer ${
+                  className={`w-full min-h-[46px] px-4 py-2.5 text-left text-sm font-medium rounded-xl flex items-center transition-colors cursor-pointer ${
                     isContactActive
-                      ? 'bg-white text-[#8E6E24] font-semibold border-l-3 border-[#C9A54B] shadow-2xs'
+                      ? 'bg-white text-[#8E6E24] font-semibold border-l-4 border-[#C9A54B] shadow-2xs'
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
                 >
                   Contact &amp; Showroom Timings
                 </button>
               </nav>
+
+              {/* Store Hours & Open/Closed Status Section */}
+              <div className="mx-4 p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[#1E1B18] flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#8E6E24]" />
+                    <span>Store Timings</span>
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                      storeStatus.isOpen
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        storeStatus.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                      }`}
+                    />
+                    <span>{storeStatus.isOpen ? 'Open now' : 'Closed'}</span>
+                  </span>
+                </div>
+                {settings.storeHoursDescription && (
+                  <p className="text-[11px] text-[#64748B] leading-relaxed">
+                    {settings.storeHoursDescription}
+                  </p>
+                )}
+                {rates && rates.gold24KPerTola > 0 && (
+                  <div className="pt-2 border-t border-[#E2D8C9] flex items-center justify-between text-[11px]">
+                    <span className="text-[#8E6E24] font-medium">24K Gold Rate / Tola:</span>
+                    <span className="font-mono font-bold text-[#1E1B18]">
+                      {formatPKR(rates.gold24KPerTola)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Bottom Drawer Action */}
-            <div className="p-4 border-t border-[#E2D8C9] space-y-2">
+            {/* Bottom Actions: Bag & Green WhatsAppButton */}
+            <div className="p-4 border-t border-[#E2D8C9] space-y-2.5 bg-[#FAF7F2]">
+              {whatsappHref && (
+                <WhatsAppButton
+                  href={whatsappHref}
+                  label="Order on WhatsApp"
+                  fullWidth
+                  size="md"
+                />
+              )}
+
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   onOpenCart();
                 }}
-                className="w-full min-h-[46px] py-3 px-4 bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] text-white font-semibold text-xs tracking-wider uppercase rounded-lg shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full min-h-[46px] py-3 px-4 bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] text-white font-semibold text-xs tracking-wider uppercase rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer hover:brightness-105 active:scale-[0.98] transition-all"
               >
                 <ShoppingBag className="w-4 h-4 text-white" />
                 <span>View Bag &amp; Inquiry ({cartCount})</span>

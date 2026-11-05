@@ -1,21 +1,17 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
   ShoppingBag,
   Truck,
   Store,
-  ShieldCheck,
   Scale,
   Maximize2,
-  Info,
-  AlertCircle,
   Sparkles,
-  Gem,
-  Award,
-  Layers,
+  ChevronDown,
   Clock,
-  HeartHandshake,
+  ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import { Product, getProducts, getSettings } from '../data/store';
 import {
@@ -39,6 +35,24 @@ interface ProductDetailPageProps {
   onOpenCalculator: () => void;
 }
 
+function getPurityWithPercentage(karat: string, metal: string): string {
+  if (metal === 'silver' || karat === '925_sterling' || karat === '925') {
+    return '925 Sterling Silver (92.5% Pure)';
+  }
+  switch (karat) {
+    case '24K':
+      return '24K Solid Gold (99.9% Pure)';
+    case '22K':
+      return '22K Fine Jewellery (91.6% Pure)';
+    case '21K':
+      return '21K Traditional Gold (87.5% Pure)';
+    case '18K':
+      return '18K Contemporary Gold (75.0% Pure)';
+    default:
+      return `${karat} Gold`;
+  }
+}
+
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   product,
   rates,
@@ -53,7 +67,47 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [addedToast, setAddedToast] = useState(false);
 
-  // Pricing math computed strictly via pricing.ts
+  // Tabs under gallery
+  const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'pricing' | 'delivery'>('desc');
+  // Mobile accordion states
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
+    desc: true,
+    specs: false,
+    pricing: false,
+    delivery: false,
+  });
+
+  const toggleAccordion = (key: string) => {
+    setOpenAccordions((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const mainCtaRef = useRef<HTMLDivElement | null>(null);
+  const [isPastCta, setIsPastCta] = useState(false);
+
+  // Reset image index when product changes
+  useEffect(() => {
+    setSelectedImageIndex(0);
+    setQuantity(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [product.id]);
+
+  // Mobile sticky bottom bar visibility observer
+  useEffect(() => {
+    const ctaEl = mainCtaRef.current;
+    if (!ctaEl) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsPastCta(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(ctaEl);
+    return () => observer.disconnect();
+  }, []);
+
   const isRateMissing =
     product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0;
   const isOutOfStock = (product.stock !== undefined && product.stock <= 0) || !product.inStock;
@@ -61,555 +115,790 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const breakdown = calculateProductPrice(product, rates);
   const tolaInfo = gramsToTola(product.weightGrams);
 
-  // Related products in same category or metal
-  const relatedProducts = getProducts()
-    .filter((p) => p.id !== product.id && (p.category === product.category || p.metal === product.metal))
-    .slice(0, 4);
+  const images = product.images && product.images.length > 0 ? product.images : [];
+  const currentImage = images[selectedImageIndex] || images[0] || null;
+
+  const metalLabel = product.metal === 'gold' ? `${product.karat} Gold` : '925 Silver';
+  const categoryLabel = product.category.replace('_', ' ');
+
+  // Related products: 4 cards from same category (exclude current product)
+  const relatedProducts = useMemo(() => {
+    const all = getProducts().filter((p) => p.id !== product.id);
+    const sameCat = all.filter((p) => p.category === product.category);
+    const otherCat = all.filter((p) => p.category !== product.category);
+    return [...sameCat, ...otherCat].slice(0, 4);
+  }, [product.id, product.category]);
 
   const handleAddToCart = () => {
     if (isOutOfStock || isRateMissing) return;
     onAddToCart(product, quantity);
     setAddedToast(true);
-    setTimeout(() => setAddedToast(false), 3000);
+    setTimeout(() => setAddedToast(false), 2500);
   };
 
-  const handleAskOnWhatsApp = () => {
-    const note = isRateMissing
-      ? `Rate inquiry for ${product.title} (SKU: ${product.sku}). Please provide live bullion quote.`
-      : `Inquiry regarding ${product.title} (SKU: ${product.sku}). Please share availability and current live bullion rate confirmation.`;
-    const url = getWhatsAppProductInquiryUrl(product, rates, note, settings.whatsappNumber);
-    window.open(url, '_blank', 'noopener,noreferrer');
+  // WhatsApp order inquiry url
+  const orderOnWhatsAppMessage = `Hello Sona & Chandi Gold Collection, I would like to order:
+• Piece: ${product.title}
+• SKU: ${product.sku}
+• Metal & Purity: ${metalLabel}
+• Weight: ${product.weightGrams}g (~${tolaInfo.formattedTola})
+• Quantity: ${quantity}
+• Estimated Total: ${breakdown.formattedEstimate}
+
+Please confirm today's live rate and availability.`;
+
+  const orderOnWhatsAppUrl = settings.whatsappNumber
+    ? `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+        orderOnWhatsAppMessage
+      )}`
+    : undefined;
+
+  const handleOpenPricingTab = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setActiveTab('pricing');
+    setOpenAccordions((prev) => ({ ...prev, pricing: true }));
+    tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-
-  const currentImage =
-    product.images && product.images.length > 0
-      ? product.images[selectedImageIndex] || product.images[0]
-      : null;
-
-  // Build authentic spec list based only on product's actual data
-  const specList = [
-    {
-      icon: <Gem className="w-4 h-4 text-[#C9A54B]" />,
-      label: 'Purity & Karat',
-      value: product.specs.purity || `${product.karat} Pure`,
-      sub: 'Benchmark bullion hallmarking',
-    },
-    {
-      icon: <Scale className="w-4 h-4 text-[#C9A54B]" />,
-      label: 'Gross Weight',
-      value: `${product.weightGrams}g (~${tolaInfo.formattedTola})`,
-      sub: `${tolaInfo.traditional} (1 tola = 11.6638g)`,
-    },
-    {
-      icon: <ShieldCheck className="w-4 h-4 text-[#C9A54B]" />,
-      label: 'Hallmark Stamp',
-      value: product.specs.hallmarkStamp || 'Laser Inscribed',
-      sub: 'Laser hallmarked authenticity',
-    },
-    {
-      icon: <Sparkles className="w-4 h-4 text-[#C9A54B]" />,
-      label: 'Making Charge Structure',
-      value:
-        product.makingCharge.type === 'fixed'
-          ? `Fixed Fee: ${formatPKR(product.makingCharge.amount)}`
-          : `Per Gram: Rs. ${product.makingCharge.amount} / gram`,
-      sub: 'Transparent itemized fee; zero wastage surcharges',
-    },
-    {
-      icon: <Clock className="w-4 h-4 text-[#C9A54B]" />,
-      label: 'Availability',
-      value: product.inStock ? 'In Stock (Ready to Ship)' : 'Made to Order / Reserved',
-      sub: product.stock > 0 ? `${product.stock} pieces in stock` : 'Crafted upon confirmation',
-    },
-    ...(product.specs.craftsmanship
-      ? [
-          {
-            icon: <Award className="w-4 h-4 text-[#C9A54B]" />,
-            label: 'Crafting Technique',
-            value: product.specs.craftsmanship,
-            sub: 'Traditional Pakistani artistry',
-          },
-        ]
-      : []),
-    ...(product.specs.dimensionsOrSize
-      ? [
-          {
-            icon: <Layers className="w-4 h-4 text-[#C9A54B]" />,
-            label: 'Dimensions / Sizing',
-            value: product.specs.dimensionsOrSize,
-            sub: 'Adjustable fittings confirmed on WhatsApp',
-          },
-        ]
-      : []),
-  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-12">
-      {/* Top Bar: Back Button & Quiet Breadcrumb */}
+      {/* Toast Notice when item added to bag */}
+      <AnimatePresence>
+        {addedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-24 right-4 sm:right-8 z-50 bg-[#1E1B18] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-[#C9A54B]/40"
+          >
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="text-xs">
+              <span className="font-semibold block">{product.title}</span>
+              <span className="text-[#C9A54B]">Added {quantity} item(s) to bag</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Top Bar: Quiet Back Button & Breadcrumb */}
       <div className="flex items-center justify-between">
         <button
+          type="button"
           onClick={onBack}
           className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#64748B] hover:text-[#1E1B18] transition-colors cursor-pointer active:scale-95"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 text-[#C9A54B]" />
           <span>Back to Catalogue</span>
         </button>
 
         <div className="hidden sm:flex items-center gap-2 text-xs text-[#64748B]">
-          <span>Home</span>
-          <span aria-hidden="true">/</span>
-          <span className="capitalize">{product.category.replace('_', ' ')}</span>
-          <span aria-hidden="true">/</span>
-          <span className="font-mono text-[#1E1B18]">{product.sku}</span>
+          <span className="cursor-pointer hover:text-[#8E6E24]" onClick={onBack}>
+            Home
+          </span>
+          <span aria-hidden="true" className="text-[#C9A54B]/50">/</span>
+          <span className="cursor-pointer hover:text-[#8E6E24] capitalize" onClick={onBack}>
+            {product.metal === 'gold' ? 'Gold' : 'Silver'}
+          </span>
+          <span aria-hidden="true" className="text-[#C9A54B]/50">/</span>
+          <span className="capitalize">{categoryLabel}</span>
+          <span aria-hidden="true" className="text-[#C9A54B]/50">/</span>
+          <span className="font-mono text-[#1E1B18] font-semibold">{product.sku}</span>
         </div>
       </div>
 
-      {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-        {/* Left Column: Image Gallery with Smooth Thumbnails & Gold Ring */}
+      {/* 1. Main Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        {/* Left Column: Gallery (Vertical Thumbnails on Desktop, Horizontal on Mobile) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative aspect-[4/5] sm:aspect-square bg-[#F3EFEA]/80 backdrop-blur-xs rounded-2xl overflow-hidden border border-[#E2D8C9] shadow-sm group flex items-center justify-center">
-            {currentImage ? (
-              <img
-                src={currentImage}
-                alt={product.title}
-                loading="lazy"
-                className="w-full h-full object-cover cursor-zoom-in transition-all duration-500 ease-out group-hover:scale-103"
-                onClick={() => setLightboxOpen(true)}
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-3 text-[#C9A54B]/70 p-8 text-center">
-                <Sparkles className="w-12 h-12 text-[#C9A54B]" />
-                <span className="font-serif text-lg text-[#1E1B18]">Sona &amp; Chandi Gold Collection</span>
-                <span className="text-xs text-[#64748B]">Handcrafted Pakistani Fine Jewellery</span>
-              </div>
-            )}
-
-            {/* Click to Expand Lightbox Trigger */}
-            {currentImage && (
-              <button
-                onClick={() => setLightboxOpen(true)}
-                className="absolute top-4 right-4 p-2.5 bg-white/90 hover:bg-white text-[#1E1B18] rounded-full shadow-md backdrop-blur-xs transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:outline-none"
-                aria-label="Enlarge image in lightbox"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            )}
-
-            {/* Purity Stamp Pill */}
-            <div className="absolute bottom-4 left-4 px-3 py-1 bg-white/95 backdrop-blur-xs rounded-lg border border-[#C9A54B]/40 shadow-xs text-xs font-mono font-semibold text-[#8E6E24]">
-              {product.specs.hallmarkStamp}
-            </div>
-          </div>
-
-          {/* Smooth Thumbnail Selection with Gold Ring */}
-          {product.images && product.images.length > 1 && (
-            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none pt-1">
-              {product.images.map((img, idx) => {
-                const isActive = selectedImageIndex === idx;
-                return (
+          <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start">
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="flex md:flex-col gap-2.5 overflow-x-auto md:overflow-y-auto max-h-[520px] w-full md:w-20 shrink-0 pb-1 scrollbar-none">
+                {images.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setSelectedImageIndex(idx)}
-                    className={`relative w-20 h-24 rounded-xl overflow-hidden transition-all duration-300 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A54B] ${
-                      isActive
-                        ? 'ring-2 ring-[#C9A54B] ring-offset-2 ring-offset-white border border-[#C9A54B] shadow-md scale-105'
-                        : 'border border-[#E2D8C9] opacity-75 hover:opacity-100 hover:border-[#C9A54B]/60'
+                    className={`relative aspect-square w-16 sm:w-18 md:w-full rounded-xl overflow-hidden bg-[#FAF7F2] transition-all cursor-pointer shrink-0 ${
+                      selectedImageIndex === idx
+                        ? 'ring-2 ring-[#C9A54B] ring-offset-2 border border-[#C9A54B]'
+                        : 'border border-[#E2D8C9] hover:border-[#C9A54B]/60 opacity-80 hover:opacity-100'
                     }`}
+                    aria-label={`Select product image ${idx + 1}`}
                   >
                     <img
                       src={img}
                       alt={`${product.title} angle ${idx + 1}`}
+                      className="w-full h-full object-cover"
                       loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-300"
                       referrerPolicy="no-referrer"
                     />
                   </button>
-                );
-              })}
+                ))}
+              </div>
+            )}
+
+            {/* Large Main Image with Hover Zoom and Lightbox Trigger */}
+            <div className="relative aspect-4/5 w-full bg-[#FAF7F2] rounded-2xl overflow-hidden border border-[#E2D8C9] shadow-xs group flex items-center justify-center">
+              {currentImage ? (
+                <>
+                  <img
+                    src={currentImage}
+                    alt={product.title}
+                    loading="eager"
+                    className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 ease-out group-hover:scale-105"
+                    onClick={() => setLightboxOpen(true)}
+                    referrerPolicy="no-referrer"
+                  />
+                  {/* Lightbox Trigger Icon */}
+                  <button
+                    type="button"
+                    onClick={() => setLightboxOpen(true)}
+                    className="absolute top-3.5 right-3.5 p-2 bg-white/90 hover:bg-white text-[#1E1B18] rounded-xl shadow-xs border border-[#E2D8C9] transition-all cursor-pointer opacity-80 hover:opacity-100"
+                    aria-label="View full screen image"
+                  >
+                    <Maximize2 className="w-4 h-4 text-[#8E6E24]" />
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 text-[#C9A54B]/70 p-6">
+                  <Sparkles className="w-10 h-10 text-[#C9A54B]" />
+                  <span className="font-serif text-sm font-semibold tracking-wider uppercase text-[#8E6E24]">
+                    Sona &amp; Chandi
+                  </span>
+                </div>
+              )}
+
+              {/* Badges on Main Image */}
+              <div className="absolute top-3.5 left-3.5 flex flex-col gap-1 items-start">
+                {isOutOfStock ? (
+                  <span className="px-2.5 py-1 text-xs font-medium text-[#64748B] bg-[#FAF7F2]/95 border border-[#E2D8C9] rounded-md shadow-2xs">
+                    Out of Stock
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 text-xs font-bold text-[#1E1B18] bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] rounded-md shadow-xs uppercase tracking-wider">
+                    {metalLabel}
+                  </span>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Right Column: Pricing, Trust Row & Purchase Module */}
+        {/* Right Column: Product Details, Pricing & Actions */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Header & Karat Metadata */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-[#64748B]">
-              <span className="font-mono text-[#1E1B18] font-medium">{product.sku}</span>
-              <span aria-hidden="true">·</span>
-              <span className="font-medium text-[#8E6E24] uppercase tracking-wider">
-                {breakdown.karatLabel} {breakdown.metal}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>{product.inStock ? 'Ready to Ship' : 'Made to Order'}</span>
-            </div>
+            {/* Category (Small Caps) */}
+            <span className="text-[11px] uppercase tracking-widest font-semibold text-[#8E6E24] block">
+              {categoryLabel}
+            </span>
 
-            <h1 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal leading-tight">
+            {/* Product Name (Cormorant Garamond) */}
+            <h1 className="font-serif text-3xl sm:text-4xl text-[#1E1B18] font-normal leading-tight tracking-tight">
               {product.title}
             </h1>
 
-            <p className="text-xs sm:text-sm text-[#64748B] font-light leading-relaxed">
-              {product.shortDescription}
-            </p>
+            {/* SKU & Spec Line */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[#64748B]">
+              <span className="font-mono font-medium text-[#1E1B18] bg-[#FAF7F2] px-2 py-0.5 rounded border border-[#E2D8C9]">
+                SKU: {product.sku}
+              </span>
+              <span className="text-[#CBD5E1]" aria-hidden="true">·</span>
+              <span className="font-medium text-[#8E6E24]">
+                {metalLabel} | {product.weightGrams} g
+              </span>
+            </div>
+
+            {/* Availability Badge */}
+            <div className="pt-2">
+              {isOutOfStock ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#EAE3D6] text-[#64748B] border border-[#E2D8C9]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#94A3B8]" />
+                  <span>Out of stock · Made to order</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>In Stock Ready to Ship</span>
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Estimated Price Card & Transparent Breakdown */}
-          <div className="p-5 bg-white/85 backdrop-blur-md border border-[#E2D8C9] rounded-2xl space-y-4 shadow-xs">
-            <div>
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-[#8E6E24] block mb-1">
-                Calculated Estimate (PKR)
-              </span>
-              <div className="flex items-baseline gap-3">
-                {isRateMissing ? (
-                  <span className="text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded">
-                    Rate unavailable
-                  </span>
-                ) : (
-                  <span className="font-serif text-3xl sm:text-4xl font-bold text-[#1E1B18] tabular-nums">
-                    {breakdown.formattedEstimate}
-                  </span>
-                )}
-                <span className="text-xs text-[#64748B]">
-                  (~{tolaInfo.formattedTola})
+          {/* Price Block: "Estimated price Rs. X" with inline "How is this calculated?" */}
+          <div className="p-5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl space-y-3 shadow-xs">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-[#8E6E24] block">
+              Calculated Metal &amp; Making Value
+            </span>
+
+            <div className="flex flex-wrap items-baseline gap-2.5">
+              <span className="text-xs uppercase text-[#64748B] font-medium">Estimated price:</span>
+              {isRateMissing ? (
+                <span className="text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded">
+                  Rate unavailable
                 </span>
-              </div>
+              ) : (
+                <span className="font-serif text-3xl sm:text-4xl font-bold text-[#1E1B18] tabular-nums tracking-tight">
+                  {breakdown.formattedEstimate}
+                </span>
+              )}
+              <span className="text-xs text-[#8E6E24] font-medium">
+                (~{tolaInfo.formattedTola})
+              </span>
             </div>
 
-            {/* Small Trust Row Near Price (Only Real Verified Statements) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2]/90 border border-[#E2D8C9]/80 text-[11px] text-[#4A4036]">
-                <Scale className="w-4 h-4 text-[#C9A54B] shrink-0" />
-                <span className="font-medium leading-tight">Live Bullion Rate</span>
-              </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2]/90 border border-[#E2D8C9]/80 text-[11px] text-[#4A4036]">
-                <Sparkles className="w-4 h-4 text-[#C9A54B] shrink-0" />
-                <span className="font-medium leading-tight">WhatsApp Support</span>
-              </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2]/90 border border-[#E2D8C9]/80 text-[11px] text-[#4A4036]">
-                <Truck className="w-4 h-4 text-[#C9A54B] shrink-0" />
-                <span className="font-medium leading-tight">Delivery &amp; Pickup</span>
-              </div>
+            {/* Inline "How is this calculated?" link */}
+            <div className="pt-1 flex items-center justify-between text-xs">
+              <a
+                href="#price-breakdown"
+                onClick={handleOpenPricingTab}
+                className="text-[#8E6E24] hover:text-[#1E1B18] font-semibold underline underline-offset-4 cursor-pointer transition-colors"
+              >
+                How is this calculated?
+              </a>
+              <span className="text-[11px] text-[#64748B]">Updated from live rates</span>
             </div>
+          </div>
 
-            {/* Transparent Calculation Breakdown */}
-            {!isRateMissing && (
-              <div className="p-3.5 bg-[#FAF7F2]/90 rounded-xl border border-[#E2D8C9] space-y-2 text-xs">
-                <div className="flex justify-between text-[#64748B]">
-                  <span>Full Gross Weight:</span>
-                  <span className="font-mono text-[#1E1B18] font-medium">
-                    {product.weightGrams}g ({tolaInfo.traditional})
+          {/* Action Zone: Quantity Stepper, Add to Bag & Order on WhatsApp */}
+          <div ref={mainCtaRef} className="space-y-4">
+            {/* Quantity Stepper */}
+            {!isOutOfStock && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-[#64748B] font-medium">Quantity:</span>
+                <div className="flex items-center bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl overflow-hidden shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    className="px-3.5 py-2 text-sm font-semibold text-[#1E1B18] hover:bg-[#F3EFEA] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
+                  <span className="px-4 py-2 text-xs font-mono font-bold text-[#1E1B18]">
+                    {quantity}
                   </span>
-                </div>
-                <div className="flex justify-between text-[#64748B]">
-                  <span>{breakdown.karatLabel} Rate / Gram:</span>
-                  <span className="font-mono text-[#1E1B18] font-medium">
-                    {formatPKR(breakdown.perGramRate)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-[#64748B]">
-                  <span>Base Metal Cost:</span>
-                  <span className="font-mono text-[#1E1B18]">
-                    {formatPKR(breakdown.baseMetalPrice)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-[#64748B]">
-                  <span>
-                    Making Charge ({product.makingCharge.type === 'fixed' ? 'Fixed Fee' : `Rs. ${product.makingCharge.amount}/g`}):
-                  </span>
-                  <span className="font-mono text-[#1E1B18]">
-                    {formatPKR(breakdown.makingChargeTotal)}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-[#E2D8C9] flex justify-between text-[11px] text-[#8E6E24]">
-                  <span>Stone / Wastage Deductions:</span>
-                  <span className="font-medium">Rs. 0 (Full weight policy)</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="px-3.5 py-2 text-sm font-semibold text-[#1E1B18] hover:bg-[#F3EFEA] cursor-pointer transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* MANDATORY EXACT DISCLAIMER LINE */}
-            <div className="p-3 bg-[#F7F0DC]/70 border border-[#C9A54B]/40 rounded-xl flex items-start gap-2 text-xs text-[#8E6E24] leading-relaxed">
-              <Info className="w-4 h-4 shrink-0 mt-0.5" />
-              <p className="font-medium italic">
-                "{ESTIMATE_DISCLAIMER}"
-              </p>
-            </div>
+            {/* Side by Side Buttons: Gold Add to Bag & Green WhatsAppButton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={isOutOfStock || isRateMissing}
+                className={`min-h-[48px] px-5 py-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-white rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all ${
+                  isOutOfStock || isRateMissing
+                    ? 'bg-[#EAE3D6] text-[#94A3B8] cursor-not-allowed border border-[#E2D8C9]'
+                    : 'bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.98] cursor-pointer'
+                }`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>{isOutOfStock ? 'Made to Order' : 'Add to Bag'}</span>
+              </button>
 
-            {/* Actions: Add to Bag or Ask on WhatsApp (Using unified WhatsAppButton) */}
-            {!isOutOfStock && !isRateMissing ? (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center border border-[#E2D8C9] rounded-xl bg-[#FAF7F2] p-1">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-2.5 py-1 text-sm font-semibold hover:text-[#8E6E24] cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="px-3 text-xs font-semibold tabular-nums text-[#1E1B18]">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="px-2.5 py-1 text-sm font-semibold hover:text-[#8E6E24] cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleAddToCart}
-                    className="btn-inquiry flex-1 min-h-[44px] py-3 px-4 font-semibold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>Add to Bag</span>
-                  </button>
-                </div>
-
-                {addedToast && (
-                  <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-2 px-3 text-center animate-fade-in font-medium">
-                    ✓ Added to your inquiry bag. Tap "Bag / Inquiry" to view your list!
-                  </p>
-                )}
-
+              {orderOnWhatsAppUrl && (
                 <WhatsAppButton
-                  onClick={handleAskOnWhatsApp}
-                  label="Ask on WhatsApp"
+                  href={orderOnWhatsAppUrl}
+                  label="Order on WhatsApp"
                   size="md"
                   fullWidth
                 />
-              </div>
-            ) : (
-              /* Out-of-Stock or Missing Rate: Add to Cart disabled, Ask on WhatsApp prominent in green */
-              <div className="space-y-3 pt-2">
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-700" />
-                  <span>
-                    {isRateMissing
-                      ? 'Live bullion rate unavailable for this metal. Inquire on WhatsApp for live quote.'
-                      : 'This piece is currently made to order or reserved.'}
-                  </span>
-                </div>
+              )}
+            </div>
 
-                <button
-                  disabled
-                  className="w-full py-3 px-4 bg-[#F3EFEA] text-[#94A3B8] border border-[#E2D8C9] text-xs font-semibold uppercase tracking-wider rounded-xl cursor-not-allowed opacity-60 flex items-center justify-center gap-2"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Add to Bag (Unavailable)</span>
-                </button>
+            {/* Mandatory Disclaimer */}
+            <p className="text-xs text-[#64748B] leading-relaxed pt-1">
+              {ESTIMATE_DISCLAIMER}
+            </p>
 
-                <WhatsAppButton
-                  onClick={handleAskOnWhatsApp}
-                  label="Ask on WhatsApp"
-                  size="lg"
-                  fullWidth
-                />
+            {/* Small Trust Row with ONLY True Verified Statements */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E2D8C9] text-[11px] text-[#4A4036]">
+                <Scale className="w-4 h-4 text-[#C9A54B] shrink-0" />
+                <span className="font-medium leading-tight">Transparent live-rate pricing</span>
               </div>
-            )}
-          </div>
-
-          {/* Fulfilment Reminder */}
-          <div className="p-4 bg-white/85 backdrop-blur-md border border-[#E2D8C9] rounded-xl space-y-2.5 text-xs">
-            <h4 className="font-semibold text-[#1E1B18] uppercase tracking-wider text-[11px]">
-              Fulfilment Options
-            </h4>
-            <div className="space-y-2 text-[#64748B]">
-              <div className="flex items-start gap-2.5">
-                <Truck className="w-4 h-4 text-[#C9A54B] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-medium text-[#1E1B18]">Courier Delivery:</span>{' '}
-                  {settings.deliveryText || 'Insured transit across Pakistan with tamper-evident security packing.'}
-                </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E2D8C9] text-[11px] text-[#4A4036]">
+                <Sparkles className="w-4 h-4 text-[#C9A54B] shrink-0" />
+                <span className="font-medium leading-tight">Confirmed on WhatsApp</span>
               </div>
-              <div className="flex items-start gap-2.5">
-                <Store className="w-4 h-4 text-[#C9A54B] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-medium text-[#1E1B18]">Store Pickup:</span>{' '}
-                  {settings.address ? settings.address : 'Contact us on WhatsApp to arrange private showroom appointment.'}
-                </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E2D8C9] text-[11px] text-[#4A4036]">
+                <Truck className="w-4 h-4 text-[#C9A54B] shrink-0" />
+                <span className="font-medium leading-tight">Store pickup or courier</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Redesigned Craftsmanship & Specifications: Animated Two-Column Grid with motion */}
-      <section className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-          {/* Card 1: Technical Specifications */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            whileHover={{
-              y: -6,
-              boxShadow: '0 16px 36px -6px rgba(201, 165, 75, 0.28)',
-              borderColor: 'rgba(201, 165, 75, 0.75)',
-            }}
-            className="bg-white/85 backdrop-blur-md border border-[#E2D8C9] rounded-2xl p-6 sm:p-8 space-y-6 transition-colors"
-          >
-            <div>
-              <span className="text-[11px] uppercase tracking-widest text-[#8E6E24] font-semibold block">
-                Official Hallmarking
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal mt-1">
-                Technical Specifications
-              </h2>
-            </div>
-
-            {/* Gold Hairline Divider that draws from left to right */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, ease: 'easeOut', delay: 0.2 }}
-              style={{ originX: 0 }}
-              className="h-0.5 w-full bg-gradient-to-r from-[#C9A54B] via-[#E8CF8A] to-transparent"
-            />
-
-            {/* Spec rows sliding in one after another */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-              {specList.map((spec, index) => (
-                <motion.div
-                  key={spec.label}
-                  initial={{ opacity: 0, x: -16 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.45, delay: index * 0.07 }}
-                  className="p-3.5 rounded-xl bg-[#FAF7F2]/90 border border-[#E2D8C9]/80 flex items-start gap-3 hover:border-[#C9A54B]/50 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-white border border-[#C9A54B]/30 flex items-center justify-center shrink-0 mt-0.5">
-                    {spec.icon}
-                  </div>
-                  <div className="space-y-0.5 min-w-0">
-                    <span className="text-[10px] uppercase tracking-wider text-[#64748B] font-semibold block truncate">
-                      {spec.label}
-                    </span>
-                    <p className="font-serif text-base font-semibold text-[#1E1B18] leading-snug">
-                      {spec.value}
-                    </p>
-                    <p className="text-[11px] text-[#64748B] font-light leading-tight">
-                      {spec.sub}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Card 2: Craftsmanship & Artisan Heritage */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }}
-            whileHover={{
-              y: -6,
-              boxShadow: '0 16px 36px -6px rgba(201, 165, 75, 0.28)',
-              borderColor: 'rgba(201, 165, 75, 0.75)',
-            }}
-            className="bg-white/85 backdrop-blur-md border border-[#E2D8C9] rounded-2xl p-6 sm:p-8 space-y-6 flex flex-col justify-between transition-colors"
-          >
-            <div>
-              <span className="text-[11px] uppercase tracking-widest text-[#8E6E24] font-semibold block">
-                Artisan Heritage
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal mt-1">
-                Craftsmanship &amp; Heritage
-              </h2>
-            </div>
-
-            {/* Gold Hairline Divider that draws from left to right */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, ease: 'easeOut', delay: 0.35 }}
-              style={{ originX: 0 }}
-              className="h-0.5 w-full bg-gradient-to-r from-[#C9A54B] via-[#E8CF8A] to-transparent"
-            />
-
-            <div className="space-y-4 flex-1">
-              <p className="text-xs sm:text-sm text-[#64748B] font-light leading-relaxed">
-                {product.fullDescription ||
-                  'Each ornament in our collection is hand-finished in our Lahore workshops. We uphold strict zero-stone-deduction policies: every milligram is weighed honestly, and every karat ratio is calculated with mathematical precision from the live 24K bullion baseline.'}
-              </p>
-
-              {/* 3 Genuine Feature Blocks */}
-              <div className="space-y-3 pt-2">
-                <motion.div
-                  initial={{ opacity: 0, x: -14 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.45, delay: 0.2 }}
-                  className="p-3 rounded-xl bg-[#FAF7F2]/90 border border-[#E2D8C9]/80 flex items-start gap-3"
-                >
-                  <Scale className="w-4 h-4 text-[#C9A54B] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-xs font-semibold text-[#1E1B18] block">Full Gross Weight Policy</span>
-                    <p className="text-[11px] text-[#64748B]">Weight is never rounded down or artificially reduced</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -14 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.45, delay: 0.3 }}
-                  className="p-3 rounded-xl bg-[#FAF7F2]/90 border border-[#E2D8C9]/80 flex items-start gap-3"
-                >
-                  <ShieldCheck className="w-4 h-4 text-[#C9A54B] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-xs font-semibold text-[#1E1B18] block">Laser Hallmarked Purity</span>
-                    <p className="text-[11px] text-[#64748B]">Official karat purity is laser marked onto every individual piece</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -14 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.45, delay: 0.4 }}
-                  className="p-3 rounded-xl bg-[#FAF7F2]/90 border border-[#E2D8C9]/80 flex items-start gap-3"
-                >
-                  <HeartHandshake className="w-4 h-4 text-[#C9A54B] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-xs font-semibold text-[#1E1B18] block">Direct Consultation</span>
-                    <p className="text-[11px] text-[#64748B]">Master jeweller live rate confirmation before order finalization</p>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
+      {/* 2. Tabs Under the Gallery (Desktop Tabs with Sliding Underline, Mobile Accordions) */}
+      <div ref={tabsRef} id="product-tabs" className="pt-8 border-t border-[#E2D8C9] space-y-6">
+        {/* Desktop Tab Headers with Sliding Gold Underline */}
+        <div className="hidden md:flex items-center gap-8 border-b border-[#E2D8C9] text-sm">
+          {[
+            { id: 'desc', label: 'Description' },
+            { id: 'specs', label: 'Specifications' },
+            { id: 'pricing', label: 'Price Breakdown' },
+            { id: 'delivery', label: 'Delivery & Pickup' },
+          ].map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`relative py-3.5 font-medium transition-colors cursor-pointer outline-hidden ${
+                  isSelected ? 'text-[#8E6E24] font-semibold' : 'text-[#64748B] hover:text-[#1E1B18]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {isSelected && (
+                  <motion.span
+                    layoutId="productTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#C9A54B] rounded-full"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
-      </section>
 
-      {/* Related Products Showcase */}
-      {relatedProducts.length > 0 && (
-        <section className="space-y-6">
-          <div className="flex items-baseline justify-between pb-3 border-b border-[#E2D8C9]">
-            <div>
-              <span className="text-xs uppercase tracking-widest text-[#8E6E24] font-semibold">
-                Curated Suggestions
-              </span>
-              <h3 className="font-serif text-2xl text-[#1E1B18] font-normal mt-0.5">
-                You May Also Admire
-              </h3>
-            </div>
+        {/* Desktop Tab Panels (Cross-Fading) */}
+        <div className="hidden md:block">
+          <AnimatePresence mode="wait">
+            {/* Tab 1: Description */}
+            {activeTab === 'desc' && (
+              <motion.div
+                key="desc"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl p-6 sm:p-8 space-y-4 shadow-2xs"
+              >
+                <h3 className="font-serif text-xl font-bold text-[#1E1B18]">
+                  About This Fine Ornament
+                </h3>
+                <p className="text-sm text-[#475569] leading-relaxed whitespace-pre-line font-light">
+                  {product.fullDescription || product.shortDescription ||
+                    'Each ornament in our collection is hand-finished in our Lahore workshops with careful attention to traditional Pakistani craftsmanship. We uphold strict zero-stone-deduction policies: every milligram is weighed honestly, and every karat ratio is calculated with mathematical precision from the live 24K bullion baseline.'}
+                </p>
+                {product.specs.craftsmanship && (
+                  <div className="pt-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#8E6E24] block mb-1">
+                      Artisan Craftsmanship
+                    </span>
+                    <p className="text-sm text-[#64748B]">
+                      {product.specs.craftsmanship}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Tab 2: Specifications */}
+            {activeTab === 'specs' && (
+              <motion.div
+                key="specs"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xs"
+              >
+                <h3 className="font-serif text-xl font-bold text-[#1E1B18]">
+                  Technical Specifications
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                    <span className="text-[#64748B]">Product SKU:</span>
+                    <span className="font-mono font-bold text-[#1E1B18]">{product.sku}</span>
+                  </div>
+
+                  <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                    <span className="text-[#64748B]">Metal Type:</span>
+                    <span className="font-semibold text-[#1E1B18] capitalize">
+                      {product.metal === 'gold' ? 'Solid Gold (Sona)' : 'Solid Sterling Silver (Chandi)'}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                    <span className="text-[#64748B]">Purity &amp; Karat:</span>
+                    <span className="font-semibold text-[#8E6E24]">
+                      {getPurityWithPercentage(product.karat, product.metal)}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                    <span className="text-[#64748B]">Full Gross Weight:</span>
+                    <span className="font-mono font-bold text-[#1E1B18]">
+                      {product.weightGrams}g ({tolaInfo.traditional})
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                    <span className="text-[#64748B]">Making Charge:</span>
+                    <span className="font-mono font-semibold text-[#1E1B18]">
+                      {product.makingCharge.type === 'per_gram'
+                        ? `Rs. ${formatPKR(product.makingCharge.amount)} / g`
+                        : `Rs. ${formatPKR(product.makingCharge.amount)} fixed per piece`}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                    <span className="text-[#64748B]">Category:</span>
+                    <span className="font-semibold text-[#1E1B18] capitalize">
+                      {categoryLabel}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                    <span className="text-[#64748B]">Availability:</span>
+                    <span className={product.inStock ? 'font-semibold text-emerald-700' : 'text-[#64748B]'}>
+                      {product.inStock ? 'In Stock (Ready for Dispatch)' : 'Made to Order / Reserved'}
+                    </span>
+                  </div>
+
+                  {product.specs.hallmarkStamp && (
+                    <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                      <span className="text-[#64748B]">Hallmark Stamp:</span>
+                      <span className="font-semibold text-[#1E1B18]">
+                        {product.specs.hallmarkStamp}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.specs.craftsmanship && (
+                    <div className="sm:col-span-2 p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
+                      <span className="text-[#64748B]">Craftsmanship:</span>
+                      <span className="font-medium text-[#1E1B18]">
+                        {product.specs.craftsmanship}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Tab 3: Price Breakdown */}
+            {activeTab === 'pricing' && (
+              <motion.div
+                key="pricing"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xs"
+              >
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-[#1E1B18]">
+                    Transparent Price Calculation
+                  </h3>
+                  <p className="text-xs text-[#64748B] mt-0.5">
+                    Calculated live using today's bullion market baseline. No arbitrary markups or hidden fees.
+                  </p>
+                </div>
+
+                <div className="space-y-3 text-xs bg-white/80 p-5 rounded-xl border border-[#E2D8C9]">
+                  {/* Metal Value formula */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#E2D8C9] gap-1">
+                    <div>
+                      <span className="font-semibold text-[#1E1B18] block">
+                        Metal Value (Weight × Today's Per-Gram Rate)
+                      </span>
+                      <span className="text-[11px] text-[#64748B]">
+                        {product.weightGrams}g × {formatPKR(breakdown.perGramRate)}/g ({breakdown.karatLabel})
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-sm text-[#1E1B18]">
+                      {formatPKR(breakdown.baseMetalPrice)}
+                    </span>
+                  </div>
+
+                  {/* Making Charge */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#E2D8C9] gap-1">
+                    <div>
+                      <span className="font-semibold text-[#1E1B18] block">
+                        Making &amp; Crafting Charge ({breakdown.makingChargeType === 'per_gram' ? 'Per Gram' : 'Fixed'})
+                      </span>
+                      <span className="text-[11px] text-[#64748B]">
+                        {breakdown.makingChargeType === 'per_gram'
+                          ? `${product.weightGrams}g × ${formatPKR(product.makingCharge.amount)}/g`
+                          : 'Standard artisan bench fee'}
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-sm text-[#1E1B18]">
+                      {formatPKR(breakdown.makingChargeTotal)}
+                    </span>
+                  </div>
+
+                  {/* Total Estimated Price */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div>
+                      <span className="font-serif font-bold text-base text-[#1E1B18] block">
+                        Total Estimated Price:
+                      </span>
+                      <span className="text-[11px] text-[#8E6E24]">
+                        Matches price displayed above
+                      </span>
+                    </div>
+                    <span className="font-serif text-2xl font-bold text-[#8E6E24] tabular-nums">
+                      {breakdown.formattedEstimate}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-[#64748B]">
+                  <span>Formula: Metal Value + Making Charge</span>
+                  {onOpenCalculator && (
+                    <button
+                      type="button"
+                      onClick={onOpenCalculator}
+                      className="text-[#8E6E24] hover:text-[#1E1B18] font-semibold underline underline-offset-4 cursor-pointer"
+                    >
+                      Open Bullion Price Estimator
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Tab 4: Delivery and Pickup */}
+            {activeTab === 'delivery' && (
+              <motion.div
+                key="delivery"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xs"
+              >
+                <h3 className="font-serif text-xl font-bold text-[#1E1B18]">
+                  Delivery &amp; Showroom Pickup
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {/* Courier Transit */}
+                  <div className="p-4 bg-white/80 border border-[#E2D8C9] rounded-xl space-y-2">
+                    <span className="font-semibold text-sm text-[#1E1B18] flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-[#C9A54B]" />
+                      <span>Insured Courier Delivery</span>
+                    </span>
+                    <p className="text-[#64748B] leading-relaxed">
+                      {settings.deliveryText ||
+                        'Secure, fully insured transit across Pakistan in tamper-evident sealed packaging. Dispatch details and tracking confirmed via WhatsApp.'}
+                    </p>
+                  </div>
+
+                  {/* Showroom Pickup */}
+                  <div className="p-4 bg-white/80 border border-[#E2D8C9] rounded-xl space-y-2">
+                    <span className="font-semibold text-sm text-[#1E1B18] flex items-center gap-2">
+                      <Store className="w-4 h-4 text-[#C9A54B]" />
+                      <span>Showroom Pickup</span>
+                    </span>
+                    <p className="text-[#64748B] leading-relaxed">
+                      {settings.address
+                        ? `${settings.address}. ${settings.storeHoursDescription || ''}`
+                        : 'Contact us on WhatsApp for showroom appointments and private viewing timings.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* WhatsApp Help */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/50 border border-[#E2D8C9] rounded-xl text-xs">
+                  <span className="text-[#64748B]">
+                    Have a special delivery request or need urgent dispatch for a wedding?
+                  </span>
+                  {orderOnWhatsAppUrl && (
+                    <WhatsAppButton
+                      href={orderOnWhatsAppUrl}
+                      label="Contact us on WhatsApp"
+                      size="sm"
+                    />
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Mobile Accordions (Shown on Small Screens Only) */}
+        <div className="md:hidden space-y-3">
+          {/* Accordion 1: Description */}
+          <div className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl overflow-hidden">
             <button
-              onClick={onBack}
-              className="text-xs font-semibold text-[#8E6E24] hover:text-[#1E1B18] cursor-pointer"
+              type="button"
+              onClick={() => toggleAccordion('desc')}
+              className="w-full p-4 flex items-center justify-between text-left text-sm font-bold text-[#1E1B18] cursor-pointer"
             >
-              View Entire Collection
+              <span>Description</span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+                  openAccordions.desc ? 'rotate-180' : ''
+                }`}
+              />
             </button>
+            {openAccordions.desc && (
+              <div className="p-4 pt-1 text-xs text-[#475569] leading-relaxed border-t border-[#E2D8C9]/60">
+                {product.fullDescription || product.shortDescription ||
+                  'Each ornament in our collection is hand-finished in our Lahore workshops with careful attention to traditional Pakistani craftsmanship.'}
+                {product.specs.craftsmanship && (
+                  <p className="mt-2 text-[#8E6E24] font-medium">
+                    {product.specs.craftsmanship}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Accordion 2: Specifications */}
+          <div className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('specs')}
+              className="w-full p-4 flex items-center justify-between text-left text-sm font-bold text-[#1E1B18] cursor-pointer"
+            >
+              <span>Specifications</span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+                  openAccordions.specs ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            {openAccordions.specs && (
+              <div className="p-4 pt-2 text-xs space-y-2 border-t border-[#E2D8C9]/60">
+                <div className="flex justify-between py-1 border-b border-[#E2D8C9]/40">
+                  <span className="text-[#64748B]">SKU:</span>
+                  <span className="font-mono font-bold text-[#1E1B18]">{product.sku}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E2D8C9]/40">
+                  <span className="text-[#64748B]">Metal:</span>
+                  <span className="font-semibold text-[#1E1B18] capitalize">{product.metal}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E2D8C9]/40">
+                  <span className="text-[#64748B]">Purity:</span>
+                  <span className="font-semibold text-[#8E6E24]">
+                    {getPurityWithPercentage(product.karat, product.metal)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E2D8C9]/40">
+                  <span className="text-[#64748B]">Gross Weight:</span>
+                  <span className="font-mono font-bold text-[#1E1B18]">
+                    {product.weightGrams}g ({tolaInfo.traditional})
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E2D8C9]/40">
+                  <span className="text-[#64748B]">Making Charge:</span>
+                  <span className="font-mono text-[#1E1B18]">
+                    {product.makingCharge.type === 'per_gram'
+                      ? `Rs. ${formatPKR(product.makingCharge.amount)}/g`
+                      : `Rs. ${formatPKR(product.makingCharge.amount)} fixed`}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-[#64748B]">Availability:</span>
+                  <span className={product.inStock ? 'font-semibold text-emerald-700' : 'text-[#64748B]'}>
+                    {product.inStock ? 'In Stock' : 'Made to Order'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Accordion 3: Price Breakdown */}
+          <div className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('pricing')}
+              className="w-full p-4 flex items-center justify-between text-left text-sm font-bold text-[#1E1B18] cursor-pointer"
+            >
+              <span>Price Breakdown</span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+                  openAccordions.pricing ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            {openAccordions.pricing && (
+              <div className="p-4 pt-2 text-xs space-y-2.5 border-t border-[#E2D8C9]/60">
+                <div className="flex justify-between">
+                  <span className="text-[#64748B]">Metal Value ({product.weightGrams}g):</span>
+                  <span className="font-mono font-bold text-[#1E1B18]">
+                    {formatPKR(breakdown.baseMetalPrice)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#64748B]">Making Charge:</span>
+                  <span className="font-mono font-bold text-[#1E1B18]">
+                    {formatPKR(breakdown.makingChargeTotal)}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-[#E2D8C9] font-bold text-sm">
+                  <span>Estimated Total:</span>
+                  <span className="font-serif text-base text-[#8E6E24]">
+                    {breakdown.formattedEstimate}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Accordion 4: Delivery and Pickup */}
+          <div className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('delivery')}
+              className="w-full p-4 flex items-center justify-between text-left text-sm font-bold text-[#1E1B18] cursor-pointer"
+            >
+              <span>Delivery &amp; Pickup</span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+                  openAccordions.delivery ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            {openAccordions.delivery && (
+              <div className="p-4 pt-2 text-xs space-y-3 border-t border-[#E2D8C9]/60">
+                <p className="text-[#64748B]">
+                  {settings.deliveryText ||
+                    'Insured transit across Pakistan with tamper-evident security packing.'}
+                </p>
+                <p className="text-[#64748B]">
+                  {settings.address
+                    ? `${settings.address}. ${settings.storeHoursDescription || ''}`
+                    : 'Showroom pickup available by appointment.'}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. "You May Also Like" Row of 4 Cards */}
+      <section className="pt-8 border-t border-[#E2D8C9] space-y-6">
+        <div>
+          <span className="text-[11px] uppercase tracking-widest text-[#8E6E24] font-semibold block">
+            Curated Complements
+          </span>
+          <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal mt-1">
+            You May Also Like
+          </h2>
+        </div>
+
+        {relatedProducts.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {relatedProducts.map((p) => (
               <ProductCard
                 key={p.id}
@@ -620,20 +909,54 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               />
             ))}
           </div>
-        </section>
+        ) : (
+          <p className="text-xs text-[#64748B]">Explore our full jewellery catalogue for more handcrafted pieces.</p>
+        )}
+      </section>
+
+      {/* 4. Mobile Sticky Bottom Bar (Appears after scrolling past main CTA) */}
+      {isPastCta && (
+        <div className="fixed bottom-0 inset-x-0 bg-[#FAF7F2]/96 backdrop-blur-md border-t border-[#C9A54B]/30 p-3 sm:hidden z-30 flex items-center justify-between gap-3 shadow-xl animate-in slide-in-from-bottom duration-200">
+          <div className="min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-[#64748B] block truncate font-medium">
+              {product.title}
+            </span>
+            <span className="font-serif text-base font-bold text-[#1E1B18] tabular-nums">
+              {breakdown.formattedEstimate}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {isOutOfStock ? (
+              <WhatsAppButton
+                href={orderOnWhatsAppUrl}
+                label="Inquire"
+                size="sm"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={isRateMissing}
+                className="px-4 py-2.5 bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] text-white text-xs font-semibold uppercase tracking-wider rounded-xl shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Add to Bag</span>
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Lightbox Modal */}
-      {product.images && product.images.length > 0 && (
-        <LightboxModal
-          isOpen={lightboxOpen}
-          onClose={() => setLightboxOpen(false)}
-          images={product.images}
-          currentIndex={selectedImageIndex}
-          onSelectIndex={setSelectedImageIndex}
-          title={product.title}
-        />
-      )}
+      <LightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={images}
+        currentIndex={selectedImageIndex}
+        onSelectIndex={setSelectedImageIndex}
+        title={product.title}
+      />
     </div>
   );
 };

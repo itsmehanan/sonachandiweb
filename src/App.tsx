@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
+import { Navbar, NavigateOptions } from './components/Navbar';
 import { LiveRateStrip } from './components/LiveRateStrip';
 import { BrandIntro } from './components/BrandIntro';
 import { CartDrawer, CartItem } from './components/CartDrawer';
@@ -34,6 +34,9 @@ export default function App() {
 
   const [catalogueMetal, setCatalogueMetal] = useState<'all' | 'gold' | 'silver'>('all');
   const [catalogueCategory, setCatalogueCategory] = useState<string | undefined>(undefined);
+  const [catalogueKarat, setCatalogueKarat] = useState<string>('all');
+  const [catalogueSort, setCatalogueSort] = useState<string>('featured');
+  const [catalogueSearch, setCatalogueSearch] = useState<string>('');
   const [filterResetNonce, setFilterResetNonce] = useState<number>(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -93,6 +96,17 @@ export default function App() {
     }
   }, [cartItems]);
 
+  // Dynamically set --bg-anim-opacity: 0.25 on catalogue and product pages, 0.5 on home
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (currentView === 'catalogue' || currentView === 'product_detail') {
+        document.documentElement.style.setProperty('--bg-anim-opacity', '0.25');
+      } else {
+        document.documentElement.style.setProperty('--bg-anim-opacity', '0.5');
+      }
+    }
+  }, [currentView]);
+
   // Listen to browser popstate
   useEffect(() => {
     const handlePopState = () => {
@@ -107,7 +121,7 @@ export default function App() {
   }, [currentView]);
 
   // Handlers
-  const handleNavigate = (view: string, filter?: string) => {
+  const handleNavigate = (view: string, filterOrOptions?: string | NavigateOptions) => {
     // Check if clicking already active button:
     if (view === 'home' && currentView === 'home') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -141,35 +155,45 @@ export default function App() {
     }
 
     if (view === 'catalogue') {
-      if (filter === 'gold') {
-        if (currentView === 'catalogue' && catalogueMetal === 'gold' && !catalogueCategory) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-        setCatalogueMetal('gold');
-        setCatalogueCategory(undefined);
-        setFilterResetNonce((n) => n + 1);
-      } else if (filter === 'silver') {
-        if (currentView === 'catalogue' && catalogueMetal === 'silver' && !catalogueCategory) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-        setCatalogueMetal('silver');
-        setCatalogueCategory(undefined);
-        setFilterResetNonce((n) => n + 1);
-      } else if (!filter || filter === 'all') {
-        if (currentView === 'catalogue' && catalogueMetal === 'all' && !catalogueCategory) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-        setCatalogueMetal('all');
-        setCatalogueCategory(undefined);
+      if (typeof filterOrOptions === 'object' && filterOrOptions !== null) {
+        setCatalogueMetal(filterOrOptions.metal ?? 'all');
+        setCatalogueCategory(filterOrOptions.category);
+        setCatalogueKarat(filterOrOptions.karat ?? 'all');
+        setCatalogueSort(filterOrOptions.sort ?? 'featured');
+        setCatalogueSearch(filterOrOptions.search ?? '');
         setFilterResetNonce((n) => n + 1);
       } else {
-        // Footer / Home category links set category and reset metal to all
-        setCatalogueCategory(filter);
-        setCatalogueMetal('all');
-        setFilterResetNonce((n) => n + 1);
+        const filter = filterOrOptions;
+        if (filter === 'gold') {
+          setCatalogueMetal('gold');
+          setCatalogueCategory(undefined);
+          setCatalogueKarat('all');
+          setCatalogueSort('featured');
+          setCatalogueSearch('');
+          setFilterResetNonce((n) => n + 1);
+        } else if (filter === 'silver') {
+          setCatalogueMetal('silver');
+          setCatalogueCategory(undefined);
+          setCatalogueKarat('all');
+          setCatalogueSort('featured');
+          setCatalogueSearch('');
+          setFilterResetNonce((n) => n + 1);
+        } else if (!filter || filter === 'all') {
+          setCatalogueMetal('all');
+          setCatalogueCategory(undefined);
+          setCatalogueKarat('all');
+          setCatalogueSort('featured');
+          setCatalogueSearch('');
+          setFilterResetNonce((n) => n + 1);
+        } else {
+          // Category link from Footer or elsewhere
+          setCatalogueCategory(filter);
+          setCatalogueMetal('all');
+          setCatalogueKarat('all');
+          setCatalogueSort('featured');
+          setCatalogueSearch('');
+          setFilterResetNonce((n) => n + 1);
+        }
       }
       setSelectedProduct(null);
       setCurrentView('catalogue');
@@ -275,11 +299,14 @@ export default function App() {
           currentView={currentView}
           currentMetal={catalogueMetal}
           currentCategory={catalogueCategory}
+          currentKarat={catalogueKarat}
+          currentSort={catalogueSort}
           onNavigate={handleNavigate}
           cartCount={cartTotalCount}
           onOpenCart={() => setCartDrawerOpen(true)}
           rates={rates}
           onOpenCalculator={() => setCalculatorOpen(true)}
+          onSelectProduct={handleSelectProduct}
         />
 
         {/* Main Content Router */}
@@ -301,9 +328,16 @@ export default function App() {
             onMetalChange={setCatalogueMetal}
             category={catalogueCategory}
             onCategoryChange={setCatalogueCategory}
+            karat={catalogueKarat}
+            onKaratChange={setCatalogueKarat}
+            sortBy={catalogueSort}
+            onSortChange={setCatalogueSort}
+            searchQuery={catalogueSearch}
+            onSearchChange={setCatalogueSearch}
             resetNonce={filterResetNonce}
             onSelectProduct={handleSelectProduct}
             onAddToCart={(p) => handleAddToCart(p, 1)}
+            onNavigateHome={() => handleNavigate('home')}
           />
         )}
 
