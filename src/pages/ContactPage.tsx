@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Clock,
   MapPin,
-  Phone,
   MessageCircle,
   Truck,
   ShieldCheck,
@@ -12,207 +11,224 @@ import {
 import { getSettings, getStoreStatus } from '../data/store';
 import { ESTIMATE_DISCLAIMER } from '../lib/pricing';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import {
+  StaggerGrid,
+  StaggerItem,
+  SectionHeading,
+} from '../components/motion/MotionUtils';
 
 export const ContactPage: React.FC = () => {
   const settings = getSettings();
   const storeStatus = getStoreStatus();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-16">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-16 sm:py-28 space-y-20">
       {/* Header */}
-      <div className="text-center max-w-2xl mx-auto space-y-3">
-        <span className="text-xs font-semibold uppercase tracking-widest text-[#8E6E24]">
-          Showroom &amp; Inquiries
-        </span>
-        <h1 className="font-serif text-3xl sm:text-5xl text-[#1E1B18] font-normal tracking-tight">
-          Visit Us or Inquire on WhatsApp
-        </h1>
-        <p className="text-xs sm:text-sm text-[#64748B] font-light leading-relaxed">
-          We welcome you for private bridal appointments, bullion bookings, and custom design consultations.
-        </p>
-      </div>
+      <SectionHeading
+        kicker="Showroom & Inquiries"
+        title="Visit Us or Inquire on WhatsApp"
+        subtitle="We welcome you for private bridal appointments, bullion bookings, and custom design consultations."
+      />
 
       {/* Showroom Status & Contact Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Store Hours Card */}
-        <div className="p-6 bg-white border border-[#E2D8C9] rounded-2xl space-y-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-lg bg-[#FAF7F2] border border-[#C9A54B]/30 flex items-center justify-center text-[#8E6E24]">
-              <Clock className="w-5 h-5" />
-            </div>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
-                storeStatus.isOpen
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'bg-amber-50 text-amber-800 border border-amber-200'
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  storeStatus.isOpen ? 'bg-emerald-500' : 'bg-amber-500'
-                }`}
-              />
-              <span>{storeStatus.statusLabel}</span>
-            </span>
-          </div>
+        <StaggerItem>
+          <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-5 shadow-sm flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-xl bg-[#F3EAD7] border border-[#B8923A]/30 flex items-center justify-center text-[#7A5A12]">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
+                    storeStatus.isOpen
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      storeStatus.isOpen ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                  />
+                  <span>{storeStatus.statusLabel}</span>
+                </span>
+              </div>
 
-          <div>
-            <h3 className="font-serif text-lg font-semibold text-[#1E1B18]">Showroom Timings</h3>
-            <p className="text-xs text-[#64748B] mt-1">{storeStatus.subtext}</p>
-          </div>
+              <div>
+                <h3 className="font-serif text-xl font-semibold text-[#1A1410]">Showroom Timings</h3>
+                <p className="text-xs text-[#5C5046] mt-1">{storeStatus.subtext}</p>
+              </div>
 
-          <div className="space-y-2 text-xs border-t border-[#F3EFEA] pt-3 text-[#64748B]">
-            <div className="flex justify-between">
-              <span className="font-medium text-[#1E1B18]">Monday – Saturday:</span>
-              <span className="font-mono">9:00 AM – 9:00 PM PKT</span>
+              <div className="space-y-2.5 text-xs border-t border-[#E2D8C9] pt-4 text-[#5C5046]">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-[#1A1410]">Monday – Saturday:</span>
+                  <span className="font-mono text-[#1A1410]">9:00 AM – 9:00 PM PKT</span>
+                </div>
+                <div className="flex justify-between items-center text-rose-800">
+                  <span className="font-medium">Sunday:</span>
+                  <span>Closed for Family Day</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between text-rose-700">
-              <span className="font-medium">Sunday:</span>
-              <span>Closed for Family Day</span>
-            </div>
-            <div className="pt-2 text-[11px] text-[#8E6E24] font-light">
+
+            <div className="text-[11px] text-[#7A5A12] font-medium pt-2">
               *Pakistan Standard Time (PKT, UTC+5)
             </div>
           </div>
-        </div>
+        </StaggerItem>
 
         {/* WhatsApp & Direct Inquiries */}
-        <div className="p-6 bg-white border border-[#E2D8C9] rounded-2xl space-y-4 shadow-xs">
-          <div className="w-10 h-10 rounded-lg bg-[#FAF7F2] border border-[#C9A54B]/30 flex items-center justify-center text-emerald-600">
-            <MessageCircle className="w-5 h-5" />
-          </div>
+        <StaggerItem>
+          <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-5 shadow-sm flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-[#E8F8EE] border border-[#25D366]/30 flex items-center justify-center text-[#25D366]">
+                <MessageCircle className="w-6 h-6" />
+              </div>
 
-          <div>
-            <h3 className="font-serif text-lg font-semibold text-[#1E1B18]">
-              WhatsApp Direct Sales Desk
-            </h3>
-            <p className="text-xs text-[#64748B] mt-1">
-              Live quotes, custom orders &amp; bullion rate confirmations
-            </p>
-          </div>
+              <div>
+                <h3 className="font-serif text-xl font-semibold text-[#1A1410]">
+                  WhatsApp Sales Desk
+                </h3>
+                <p className="text-xs text-[#5C5046] mt-1">
+                  Live quotes, custom orders &amp; bullion rate confirmations
+                </p>
+              </div>
+            </div>
 
-          <div className="space-y-3 pt-2">
-            <WhatsAppButton
-              href={`https://wa.me/${settings.whatsappNumber}`}
-              label={`Chat on WhatsApp: +${settings.whatsappNumber}`}
-              fullWidth
-              size="lg"
-            />
+            <div className="space-y-3 pt-2">
+              <WhatsAppButton
+                href={`https://wa.me/${settings.whatsappNumber}`}
+                label={`Chat on WhatsApp`}
+                fullWidth
+                size="lg"
+              />
 
-            <div className="p-2.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-xs text-[#64748B]">
-              <span className="font-semibold text-[#1E1B18] block">Instant Inquiry Support:</span>
-              <span>Available Monday to Saturday during showroom hours.</span>
+              <div className="p-3 bg-[#F3EAD7]/60 border border-[#E2D8C9] rounded-xl text-xs text-[#5C5046]">
+                <span className="font-semibold text-[#1A1410] block">Instant Inquiry Support:</span>
+                <span>Available Monday to Saturday during showroom hours.</span>
+              </div>
             </div>
           </div>
-        </div>
+        </StaggerItem>
 
         {/* Showroom Location */}
-        <div className="p-6 bg-white border border-[#E2D8C9] rounded-2xl space-y-4 shadow-xs">
-          <div className="w-10 h-10 rounded-lg bg-[#FAF7F2] border border-[#C9A54B]/30 flex items-center justify-center text-[#8E6E24]">
-            <MapPin className="w-5 h-5" />
-          </div>
+        <StaggerItem>
+          <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-5 shadow-sm flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-[#F3EAD7] border border-[#B8923A]/30 flex items-center justify-center text-[#7A5A12]">
+                <MapPin className="w-6 h-6" />
+              </div>
 
-          <div>
-            <h3 className="font-serif text-lg font-semibold text-[#1E1B18]">Boutique Location</h3>
-            <p className="text-xs text-[#8E6E24] font-medium mt-0.5">Physical Showroom &amp; Pickup</p>
-          </div>
+              <div>
+                <h3 className="font-serif text-xl font-semibold text-[#1A1410]">Boutique Location</h3>
+                <p className="text-xs text-[#7A5A12] font-semibold mt-0.5">Physical Showroom &amp; Order Pickup</p>
+              </div>
 
-          <div className="p-3 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-xs text-[#64748B] space-y-1">
-            {settings.address ? (
-              <p className="font-light text-[#1E1B18] leading-relaxed">
-                {settings.address}
-              </p>
-            ) : (
-              <p className="font-light text-[#64748B] leading-relaxed italic">
-                Contact us on WhatsApp to arrange private appointments and showroom pickup.
-              </p>
-            )}
-          </div>
+              <div className="p-3.5 bg-[#F3EAD7]/60 border border-[#E2D8C9] rounded-xl text-xs text-[#1A1410] leading-relaxed">
+                {settings.address ? (
+                  <p className="font-normal text-[#1A1410] leading-relaxed">
+                    {settings.address}
+                  </p>
+                ) : (
+                  <p className="text-[#5C5046] leading-relaxed italic">
+                    Contact us on WhatsApp to arrange private appointments and showroom pickup.
+                  </p>
+                )}
+              </div>
+            </div>
 
-          <div className="pt-2">
-            <WhatsAppButton
-              href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(
-                'Assalam-o-Alaikum, I would like to book a private showroom appointment.'
-              )}`}
-              label="Book Appointment on WhatsApp"
-              size="sm"
-              fullWidth
-            />
+            <div className="pt-2">
+              <WhatsAppButton
+                href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(
+                  'Assalam-o-Alaikum, I would like to book a private showroom appointment.'
+                )}`}
+                label="Book Appointment"
+                size="sm"
+                fullWidth
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        </StaggerItem>
+      </StaggerGrid>
 
       {/* Store Policies Section */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal">
-            Store Policies &amp; Terms
-          </h2>
-          <p className="text-xs text-[#64748B] mt-1 font-light">
-            Transparent policies governing our trade, transit, and pricing
-          </p>
-        </div>
+      <div className="space-y-12">
+        <SectionHeading
+          kicker="Transparent Standards"
+          title="Store Policies &amp; Terms"
+          subtitle="Transparent policies governing our trade, transit, and pricing"
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Policy 1: Bullion Price Disclaimer */}
-          <div className="p-6 bg-white border border-[#E2D8C9] rounded-xl space-y-3">
-            <div className="flex items-center gap-2 text-[#8E6E24]">
-              <AlertCircle className="w-5 h-5" />
-              <h3 className="font-serif text-base font-semibold text-[#1E1B18]">
-                Price Estimate Policy
-              </h3>
+          <StaggerItem>
+            <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-3 shadow-sm hover:border-[#B8923A] transition-all">
+              <div className="flex items-center gap-2.5 text-[#7A5A12]">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <h3 className="font-serif text-lg font-semibold text-[#1A1410]">
+                  Price Estimate Policy
+                </h3>
+              </div>
+              <p className="text-xs text-[#5C5046] leading-relaxed font-semibold italic">
+                "{ESTIMATE_DISCLAIMER}"
+              </p>
+              <p className="text-xs sm:text-sm text-[#5C5046] leading-relaxed">
+                Bullion markets fluctuate continuously. When you tap "Order on WhatsApp", our sales desk confirms the exact
+                live market rate per gram before your transaction is formalized.
+              </p>
             </div>
-            <p className="text-xs text-[#64748B] leading-relaxed font-medium">
-              "{ESTIMATE_DISCLAIMER}"
-            </p>
-            <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              Bullion markets fluctuate continuously. When you tap "Order on WhatsApp", our sales desk confirms the exact
-              live market rate per gram before your transaction is formalized.
-            </p>
-          </div>
+          </StaggerItem>
 
           {/* Policy 2: Hallmark Guarantee */}
-          <div className="p-6 bg-white border border-[#E2D8C9] rounded-xl space-y-3">
-            <div className="flex items-center gap-2 text-[#8E6E24]">
-              <ShieldCheck className="w-5 h-5" />
-              <h3 className="font-serif text-base font-semibold text-[#1E1B18]">
-                Hallmark &amp; Purity Standards
-              </h3>
+          <StaggerItem>
+            <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-3 shadow-sm hover:border-[#B8923A] transition-all">
+              <div className="flex items-center gap-2.5 text-[#7A5A12]">
+                <ShieldCheck className="w-5 h-5 shrink-0" />
+                <h3 className="font-serif text-lg font-semibold text-[#1A1410]">
+                  Hallmark &amp; Purity Standards
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-[#5C5046] leading-relaxed">
+                {settings.policies?.hallmarkPolicy ||
+                  'Every piece is crafted in certified 24K, 22K, 21K, 18K solid gold or 925 solid sterling silver with laser hallmark inspection.'}
+              </p>
             </div>
-            <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              {settings.policies?.hallmarkPolicy ||
-                'Every piece is crafted in certified 24K, 22K, 21K, 18K solid gold or 925 solid sterling silver with laser hallmark inspection.'}
-            </p>
-          </div>
+          </StaggerItem>
 
           {/* Policy 3: Return & Exchange */}
-          <div className="p-6 bg-white border border-[#E2D8C9] rounded-xl space-y-3">
-            <div className="flex items-center gap-2 text-[#8E6E24]">
-              <RotateCcw className="w-5 h-5" />
-              <h3 className="font-serif text-base font-semibold text-[#1E1B18]">
-                Return, Exchange &amp; Buyback
-              </h3>
+          <StaggerItem>
+            <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-3 shadow-sm hover:border-[#B8923A] transition-all">
+              <div className="flex items-center gap-2.5 text-[#7A5A12]">
+                <RotateCcw className="w-5 h-5 shrink-0" />
+                <h3 className="font-serif text-lg font-semibold text-[#1A1410]">
+                  Return, Exchange &amp; Buyback
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-[#5C5046] leading-relaxed">
+                {settings.policies?.exchangePolicy ||
+                  'Bullion buyback and exchange available at prevailing daily net metal rates.'}
+              </p>
             </div>
-            <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              {settings.policies?.exchangePolicy ||
-                'Bullion buyback and exchange available at prevailing daily net metal rates.'}
-            </p>
-          </div>
+          </StaggerItem>
 
           {/* Policy 4: Nationwide Insured Delivery */}
-          <div className="p-6 bg-white border border-[#E2D8C9] rounded-xl space-y-3">
-            <div className="flex items-center gap-2 text-[#8E6E24]">
-              <Truck className="w-5 h-5" />
-              <h3 className="font-serif text-base font-semibold text-[#1E1B18]">
-                Courier Fulfilment &amp; Security
-              </h3>
+          <StaggerItem>
+            <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-3 shadow-sm hover:border-[#B8923A] transition-all">
+              <div className="flex items-center gap-2.5 text-[#7A5A12]">
+                <Truck className="w-5 h-5 shrink-0" />
+                <h3 className="font-serif text-lg font-semibold text-[#1A1410]">
+                  Courier Fulfilment &amp; Security
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-[#5C5046] leading-relaxed">
+                {settings.deliveryText ||
+                  'Nationwide insured courier transit with tamper-evident security packing across Pakistan.'}
+              </p>
             </div>
-            <p className="text-xs text-[#64748B] leading-relaxed font-light">
-              {settings.deliveryText ||
-                'Nationwide insured courier transit with tamper-evident security packing across Pakistan.'}
-            </p>
-          </div>
-        </div>
+          </StaggerItem>
+        </StaggerGrid>
       </div>
     </div>
   );

@@ -29,6 +29,9 @@ import {
   MapPin,
   Truck,
   AlertTriangle,
+  LayoutGrid,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { auth, googleProvider, signInWithPopup, signOut } from '../../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -62,7 +65,15 @@ import {
   getSilverPerGram,
   formatPKR,
 } from '../../lib/pricing';
-import { getRates, updateRates, getSettings } from '../../data/store';
+import {
+  getRates,
+  updateRates,
+  getSettings,
+  getShowcaseTiles,
+  DEFAULT_SHOWCASE_TILES,
+  ShowcaseTile,
+  optimizeCloudinaryShowcase,
+} from '../../data/store';
 
 interface AdminPanelProps {
   onBackToStore: () => void;
@@ -76,7 +87,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'rates' | 'products' | 'inventory' | 'enquiries' | 'rateHistory' | 'staff' | 'settings'
+    'overview' | 'rates' | 'products' | 'inventory' | 'enquiries' | 'rateHistory' | 'staff' | 'settings' | 'showcase'
   >('overview');
 
   // Rates state
@@ -109,6 +120,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [inputCloudinaryUploadPreset, setInputCloudinaryUploadPreset] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsFeedback, setSettingsFeedback] = useState<string | null>(null);
+
+  // Homepage Showcase & About Media state
+  const [showcaseTiles, setShowcaseTiles] = useState<ShowcaseTile[]>(() => getShowcaseTiles());
+  const [aboutPageImageUrl, setAboutPageImageUrl] = useState<string>(() => getSettings().aboutPageImageUrl || '');
+  const [savingShowcase, setSavingShowcase] = useState(false);
+  const [showcaseFeedback, setShowcaseFeedback] = useState<string | null>(null);
+  const [uploadingTileId, setUploadingTileId] = useState<string | null>(null);
+  const [uploadingAboutPhoto, setUploadingAboutPhoto] = useState(false);
+  const [showcaseError, setShowcaseError] = useState<string | null>(null);
 
   // Inventory state
   const [inventorySearch, setInventorySearch] = useState('');
@@ -178,7 +198,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
     if (activeTab === 'staff' && staffRecord.role === 'owner') {
       loadStaff();
     }
-    if (activeTab === 'settings' || activeTab === 'overview' || activeTab === 'rates') {
+    if (activeTab === 'settings' || activeTab === 'overview' || activeTab === 'rates' || activeTab === 'showcase') {
       loadStoreSettings();
     }
   }, [activeTab, currentUser, staffRecord]);
@@ -197,6 +217,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         if (data.silverUnit) setInputSilverUnit(data.silverUnit);
         if (data.cloudinaryCloudName) setInputCloudinaryCloudName(data.cloudinaryCloudName);
         if (data.cloudinaryUploadPreset) setInputCloudinaryUploadPreset(data.cloudinaryUploadPreset);
+        if (Array.isArray(data.showcaseTiles) && data.showcaseTiles.length > 0) {
+          setShowcaseTiles(data.showcaseTiles);
+        }
+        if (typeof data.aboutPageImageUrl === 'string') {
+          setAboutPageImageUrl(data.aboutPageImageUrl);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -324,6 +350,122 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       setSettingsFeedback(`Error saving settings: ${err.message}`);
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  // Helper for Cloudinary Config
+  const getCloudinaryConfig = () => ({
+    cloudName:
+      settingsDoc?.cloudinaryCloudName?.trim() ||
+      inputCloudinaryCloudName?.trim() ||
+      (import.meta as any).env?.VITE_CLOUDINARY_CLOUD_NAME ||
+      '',
+    uploadPreset:
+      settingsDoc?.cloudinaryUploadPreset?.trim() ||
+      inputCloudinaryUploadPreset?.trim() ||
+      (import.meta as any).env?.VITE_CLOUDINARY_UPLOAD_PRESET ||
+      '',
+  });
+
+  // Showcase Handlers
+  const handleTileFieldChange = (id: string, updates: Partial<ShowcaseTile>) => {
+    setShowcaseTiles((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+    );
+  };
+
+  const handleMoveTile = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= showcaseTiles.length) return;
+    const reordered = [...showcaseTiles];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+    // Re-assign order numbers 1..N
+    const normalized = reordered.map((tile, i) => ({ ...tile, order: i + 1 }));
+    setShowcaseTiles(normalized);
+  };
+
+  const handleUploadTileImage = async (tileId: string, file: File) => {
+    setShowcaseError(null);
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setShowcaseError(`Invalid file format for "${file.name}". Only JPEG, PNG, and WebP images are allowed.`);
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setShowcaseError(`"${file.name}" is over 2 MB. Please select an image under 2 MB.`);
+      return;
+    }
+
+    setUploadingTileId(tileId);
+    try {
+      const config = getCloudinaryConfig();
+      const secureUrl = await uploadToCloudinary(file, config);
+      handleTileFieldChange(tileId, { imageUrl: secureUrl });
+      setShowcaseFeedback('✓ Tile image uploaded successfully!');
+      setTimeout(() => setShowcaseFeedback(null), 3000);
+    } catch (err: any) {
+      setShowcaseError(`Image upload failed: ${err.message}`);
+    } finally {
+      setUploadingTileId(null);
+    }
+  };
+
+  const handleRemoveTileImage = (tileId: string) => {
+    handleTileFieldChange(tileId, { imageUrl: '' });
+  };
+
+  const handleUploadAboutPhoto = async (file: File) => {
+    setShowcaseError(null);
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setShowcaseError(`Invalid file format for "${file.name}". Only JPEG, PNG, and WebP images are allowed.`);
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setShowcaseError(`"${file.name}" is over 2 MB. Please select an image under 2 MB.`);
+      return;
+    }
+
+    setUploadingAboutPhoto(true);
+    try {
+      const config = getCloudinaryConfig();
+      const secureUrl = await uploadToCloudinary(file, config);
+      setAboutPageImageUrl(secureUrl);
+      setShowcaseFeedback('✓ About page photo uploaded successfully!');
+      setTimeout(() => setShowcaseFeedback(null), 3000);
+    } catch (err: any) {
+      setShowcaseError(`About photo upload failed: ${err.message}`);
+    } finally {
+      setUploadingAboutPhoto(false);
+    }
+  };
+
+  const handleRemoveAboutPhoto = () => {
+    setAboutPageImageUrl('');
+  };
+
+  const handleSaveShowcase = async () => {
+    setSavingShowcase(true);
+    setShowcaseFeedback(null);
+    setShowcaseError(null);
+    try {
+      await updateStoreSettingsInfo({
+        showcaseTiles,
+        aboutPageImageUrl,
+      });
+      setShowcaseFeedback('✓ Homepage Showcase & About photo saved successfully!');
+      setTimeout(() => setShowcaseFeedback(null), 4000);
+    } catch (err: any) {
+      setShowcaseError(`Error saving showcase: ${err.message}`);
+    } finally {
+      setSavingShowcase(false);
+    }
+  };
+
+  const handleResetShowcaseDefaults = () => {
+    if (window.confirm('Reset showcase tiles to initial 6 defaults? Any custom titles and image assignments will be cleared.')) {
+      setShowcaseTiles(DEFAULT_SHOWCASE_TILES);
+      setAboutPageImageUrl('');
+      setShowcaseFeedback('Reset to default tiles. Click "Save Showcase Changes" to publish.');
     }
   };
 
@@ -749,17 +891,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
           </button>
 
           {canAccessSettings && (
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'settings'
-                  ? 'bg-[#1E1B18] text-white shadow-xs'
-                  : 'text-[#64748B] hover:text-[#1E1B18] hover:bg-[#FAF7F2]'
-              }`}
-            >
-              <SettingsIcon className="w-4 h-4" />
-              <span>Store Configuration</span>
-            </button>
+            <>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'settings'
+                    ? 'bg-[#1E1B18] text-white shadow-xs'
+                    : 'text-[#64748B] hover:text-[#1E1B18] hover:bg-[#FAF7F2]'
+                }`}
+              >
+                <SettingsIcon className="w-4 h-4" />
+                <span>Store Configuration</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('showcase')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'showcase'
+                    ? 'bg-[#1E1B18] text-white shadow-xs'
+                    : 'text-[#64748B] hover:text-[#1E1B18] hover:bg-[#FAF7F2]'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>Homepage Showcase</span>
+              </button>
+            </>
           )}
 
           {canAccessStaff && (
@@ -1779,7 +1935,421 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
             </div>
           )}
 
-          {/* TAB 8: STAFF ACCESS */}
+          {/* TAB 8: HOMEPAGE SHOWCASE */}
+          {activeTab === 'showcase' && canAccessSettings && (
+            <div className="bg-white border border-[#E2D8C9] rounded-2xl p-6 sm:p-8 space-y-8 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E2D8C9] pb-5">
+                <div>
+                  <h2 className="font-serif text-2xl font-bold text-[#1E1B18]">Homepage Showcase &amp; Collections</h2>
+                  <p className="text-xs text-[#64748B] mt-1">
+                    Manage the 6 curated collection tiles on the home page and the feature photo on the About page.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleResetShowcaseDefaults}
+                    className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Reset to Defaults</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveShowcase}
+                    disabled={savingShowcase || uploadingTileId !== null || uploadingAboutPhoto}
+                    className="px-5 py-2 bg-[#C9A54B] hover:bg-[#B18D35] disabled:opacity-50 text-white font-semibold text-xs rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 transition-colors"
+                  >
+                    {savingShowcase ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Save Showcase</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {showcaseFeedback && (
+                <div className="p-3.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{showcaseFeedback}</span>
+                </div>
+              )}
+
+              {showcaseError && (
+                <div className="p-3.5 rounded-lg text-xs font-medium bg-rose-50 text-rose-800 border border-rose-200 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{showcaseError}</span>
+                </div>
+              )}
+
+              {/* SECTION 1: 6 CURATED SHOWCASE TILES */}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-[#1E1B18]">Curated Collections Showcase</h3>
+                    <p className="text-xs text-[#64748B]">
+                      6 featured tiles rendered on the storefront home page. Image priority: custom image &rarr; newest active product photo in category &rarr; branded placeholder.
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-[#8E6E24] font-medium bg-[#FAF7F2] px-2.5 py-1 rounded-md border border-[#E2D8C9]">
+                    {showcaseTiles.filter((t) => t.visible !== false).length} of {showcaseTiles.length} Visible
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {showcaseTiles.map((tile, index) => {
+                    const isUploadingThis = uploadingTileId === tile.id;
+                    const previewUrl = tile.imageUrl ? optimizeCloudinaryShowcase(tile.imageUrl) : '';
+
+                    return (
+                      <div
+                        key={tile.id}
+                        className={`border rounded-xl p-4 sm:p-5 transition-all ${
+                          tile.visible !== false
+                            ? 'bg-[#FAF7F2]/60 border-[#E2D8C9]'
+                            : 'bg-slate-50 border-slate-200 opacity-70'
+                        }`}
+                      >
+                        <div className="flex flex-col md:flex-row gap-5 items-start">
+                          {/* Live Thumbnail Preview */}
+                          <div className="shrink-0 w-28 sm:w-32">
+                            <div className="relative aspect-[4/5] rounded-lg overflow-hidden border border-[#E2D8C9] bg-gradient-to-br from-[#FAF7F2] via-[#F3EBE1] to-[#E5D7BE] flex flex-col items-center justify-center shadow-xs">
+                              {previewUrl ? (
+                                <img
+                                  src={previewUrl}
+                                  alt={tile.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="p-2 text-center flex flex-col items-center justify-center">
+                                  <Sparkles className="w-5 h-5 text-[#C9A54B] mb-1.5" />
+                                  <span className="font-serif text-[11px] font-bold text-[#1E1B18] leading-tight line-clamp-2">
+                                    {tile.title}
+                                  </span>
+                                  <span className="text-[9px] text-[#8E6E24] mt-1 font-sans">
+                                    Auto fallback
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Order & Visibility Badge */}
+                              <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs">
+                                #{tile.order || index + 1}
+                              </div>
+
+                              {tile.visible === false && (
+                                <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center">
+                                  <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-white text-slate-800 shadow-xs">
+                                    Hidden
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-center text-[#64748B] block mt-1">
+                              Preview (4:5)
+                            </span>
+                          </div>
+
+                          {/* Editable Fields */}
+                          <div className="flex-1 w-full space-y-3 text-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block font-semibold text-[#1E1B18] mb-1">
+                                  Tile Heading
+                                </label>
+                                <input
+                                  type="text"
+                                  value={tile.title}
+                                  onChange={(e) => handleTileFieldChange(tile.id, { title: e.target.value })}
+                                  placeholder="e.g. Bridal Sets"
+                                  className="w-full px-3 py-2 bg-white border border-[#E2D8C9] rounded-lg text-[#1E1B18] font-serif font-semibold focus:outline-[#C9A54B]"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block font-semibold text-[#1E1B18] mb-1">
+                                  Subtitle / Tagline
+                                </label>
+                                <input
+                                  type="text"
+                                  value={tile.subtitle}
+                                  onChange={(e) => handleTileFieldChange(tile.id, { subtitle: e.target.value })}
+                                  placeholder="e.g. Explore the collection"
+                                  className="w-full px-3 py-2 bg-white border border-[#E2D8C9] rounded-lg text-[#1E1B18] focus:outline-[#C9A54B]"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block font-semibold text-[#1E1B18] mb-1">
+                                  Storefront Link Target
+                                </label>
+                                <select
+                                  value={tile.target}
+                                  onChange={(e) =>
+                                    handleTileFieldChange(tile.id, {
+                                      target: e.target.value as ShowcaseTile['target'],
+                                    })
+                                  }
+                                  className="w-full px-3 py-2 bg-white border border-[#E2D8C9] rounded-lg text-[#1E1B18] focus:outline-[#C9A54B]"
+                                >
+                                  <option value="bridal_sets">Bridal Sets (Category)</option>
+                                  <option value="bangles">Bangles &amp; Karas (Category)</option>
+                                  <option value="earrings">Jhumkas &amp; Balis (Category)</option>
+                                  <option value="necklaces">Necklaces (Category)</option>
+                                  <option value="rings">Gold Rings (Category)</option>
+                                  <option value="silver">Silver Collection (Metal)</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block font-semibold text-[#1E1B18] mb-1">
+                                  Custom Photograph
+                                </label>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <input
+                                    type="file"
+                                    id={`tile-upload-${tile.id}`}
+                                    className="hidden"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleUploadTileImage(tile.id, file);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => document.getElementById(`tile-upload-${tile.id}`)?.click()}
+                                    disabled={isUploadingThis}
+                                    className="px-3 py-1.5 bg-[#FAF7F2] hover:bg-[#F3EFEA] border border-[#E2D8C9] hover:border-[#C9A54B] rounded-md font-semibold text-[#1E1B18] transition-colors cursor-pointer flex items-center gap-1.5"
+                                  >
+                                    {isUploadingThis ? (
+                                      <>
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C9A54B]" />
+                                        <span>Uploading...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-3.5 h-3.5 text-[#8E6E24]" />
+                                        <span>{tile.imageUrl ? 'Replace Image' : 'Upload Image'}</span>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  {tile.imageUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveTileImage(tile.id)}
+                                      className="px-2.5 py-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                                      title="Remove image and use category fallback"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Remove</span>
+                                    </button>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-[#64748B] mt-1 block">
+                                  Best: portrait photo, 4:5, under 2 MB
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Visibility & Reorder Controls */}
+                            <div className="flex items-center justify-between pt-2 border-t border-[#E2D8C9]/60">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleTileFieldChange(tile.id, {
+                                    visible: tile.visible === false ? true : false,
+                                  })
+                                }
+                                className={`px-3 py-1.5 rounded-md font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                  tile.visible !== false
+                                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                }`}
+                              >
+                                {tile.visible !== false ? (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>Visible on Storefront</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <EyeOff className="w-3.5 h-3.5" />
+                                    <span>Hidden from Storefront</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] text-[#64748B] mr-2">Reorder:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveTile(index, -1)}
+                                  disabled={index === 0}
+                                  className="p-1.5 border border-[#E2D8C9] rounded hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                  title="Move Up"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5 text-[#1E1B18]" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveTile(index, 1)}
+                                  disabled={index === showcaseTiles.length - 1}
+                                  className="p-1.5 border border-[#E2D8C9] rounded hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                  title="Move Down"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5 text-[#1E1B18]" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SECTION 2: ABOUT PAGE FEATURE PHOTO */}
+              <div className="pt-6 border-t border-[#E2D8C9] space-y-4">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-[#1E1B18]">About Page Feature Portrait</h3>
+                  <p className="text-xs text-[#64748B]">
+                    The primary portrait photo displayed on the "About Sona &amp; Chandi" brand story page.
+                  </p>
+                </div>
+
+                <div className="bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl p-5">
+                  <div className="flex flex-col sm:flex-row items-start gap-5">
+                    <div className="shrink-0 w-32 sm:w-36">
+                      <div className="aspect-[4/5] rounded-lg overflow-hidden border border-[#E2D8C9] bg-[#EAE2D5] shadow-xs relative">
+                        <img
+                          src={aboutPageImageUrl || '/assets/aistudio/intro-poster_d8a114e6.jpg'}
+                          alt="About Page Portrait"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = '/assets/aistudio/intro-poster_d8a114e6.jpg';
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-center text-[#64748B] block mt-1">
+                        {aboutPageImageUrl ? 'Custom Uploaded' : 'Default Asset'}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 space-y-3 text-xs">
+                      <div>
+                        <h4 className="font-serif text-sm font-semibold text-[#1E1B18]">Brand Heritage Photograph</h4>
+                        <p className="text-[#64748B] text-[11px] mt-0.5 leading-relaxed">
+                          This photo introduces your workshop, artisans, or showroom heritage to clients reading the About Sona &amp; Chandi story.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <input
+                          type="file"
+                          id="about-photo-file-input"
+                          className="hidden"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleUploadAboutPhoto(file);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('about-photo-file-input')?.click()}
+                          disabled={uploadingAboutPhoto}
+                          className="px-4 py-2 bg-white hover:bg-[#FAF7F2] border border-[#E2D8C9] hover:border-[#C9A54B] rounded-lg font-semibold text-[#1E1B18] transition-colors cursor-pointer flex items-center gap-2"
+                        >
+                          {uploadingAboutPhoto ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C9A54B]" />
+                              <span>Uploading Portrait...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5 text-[#8E6E24]" />
+                              <span>{aboutPageImageUrl ? 'Replace About Photo' : 'Upload About Photo'}</span>
+                            </>
+                          )}
+                        </button>
+
+                        {aboutPageImageUrl && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveAboutPhoto}
+                            className="px-3 py-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Remove Custom Photo</span>
+                          </button>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-[#64748B] block">
+                        Best: portrait photo, 4:5, under 2 MB
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTTOM SAVE BAR */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[#E2D8C9]">
+                <p className="text-xs text-[#64748B]">
+                  Changes will be saved directly to the store settings document and appear live across the storefront.
+                </p>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleResetShowcaseDefaults}
+                    className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Reset Defaults
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveShowcase}
+                    disabled={savingShowcase || uploadingTileId !== null || uploadingAboutPhoto}
+                    className="flex-1 sm:flex-initial px-6 py-2.5 bg-[#C9A54B] hover:bg-[#B18D35] disabled:opacity-50 text-white font-semibold text-xs rounded-lg shadow-xs cursor-pointer flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {savingShowcase ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Saving Changes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Save Showcase Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 9: STAFF ACCESS */}
           {activeTab === 'staff' && canAccessStaff && (
             <div className="bg-white border border-[#E2D8C9] rounded-2xl p-6 shadow-xs space-y-6">
               <div>

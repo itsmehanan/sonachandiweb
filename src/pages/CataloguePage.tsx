@@ -12,6 +12,7 @@ import { Product, getProducts, getSettings } from '../data/store';
 import { BullionRates, calculateProductPrice, formatPKR } from '../lib/pricing';
 import { ProductCard } from '../components/ProductCard';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import { StaggerGrid, StaggerItem } from '../components/motion/MotionUtils';
 
 interface CataloguePageProps {
   rates: BullionRates;
@@ -301,7 +302,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
         </button>
 
         {openGroups.metal && (
-          <div className="grid grid-cols-3 gap-1.5 mt-3">
+          <div className="grid grid-cols-3 gap-2 mt-3">
             {[
               { id: 'all', label: 'All' },
               { id: 'gold', label: 'Gold' },
@@ -316,10 +317,10 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
                     onMetalChange(m.id as 'all' | 'gold' | 'silver');
                     handleKaratSelect('all');
                   }}
-                  className={`py-2 px-2 text-xs font-semibold rounded-xl text-center transition-all cursor-pointer ${
+                  className={`py-2 px-2 text-xs font-semibold rounded-full text-center transition-all cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                     isSelected
-                      ? 'bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] text-[#1E1B18] shadow-xs'
-                      : 'bg-[#FAF7F2] text-[#475569] hover:text-[#1E1B18] border border-[#E2D8C9] hover:border-[#C9A54B]/60'
+                      ? 'bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] text-[#1A1410] shadow-xs'
+                      : 'bg-[#FBF8F2] text-[#4A3F35] hover:text-[#1A1410] border border-[#E2D8C9] hover:border-[#B8923A]'
                   }`}
                 >
                   {m.label}
@@ -335,11 +336,11 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
         <button
           type="button"
           onClick={() => toggleGroup('category')}
-          className="w-full flex items-center justify-between text-left text-xs font-bold uppercase tracking-wider text-[#1E1B18] py-1 cursor-pointer"
+          className="w-full flex items-center justify-between text-left text-xs font-bold uppercase tracking-[0.14em] text-[#1A1410] py-1 cursor-pointer"
         >
           <span>Category</span>
           <ChevronDown
-            className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+            className={`w-4 h-4 text-[#7A5A12] transition-transform duration-200 ${
               openGroups.category ? 'rotate-180' : ''
             }`}
           />
@@ -354,15 +355,15 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
                   key={cat.id}
                   type="button"
                   onClick={() => onCategoryChange(cat.id === 'all' ? undefined : cat.id)}
-                  className={`w-full py-2 px-3 text-xs font-medium rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
+                  className={`w-full py-2 px-3 text-xs font-medium rounded-full text-left transition-all flex items-center justify-between cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                     isSelected
-                      ? 'bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] text-[#1E1B18] font-bold shadow-xs'
-                      : 'bg-[#FAF7F2] text-[#475569] hover:text-[#1E1B18] hover:bg-[#F3EFEA]'
+                      ? 'bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] text-[#1A1410] font-semibold shadow-xs'
+                      : 'bg-[#FBF8F2] text-[#4A3F35] hover:text-[#1A1410] border border-[#E2D8C9] hover:border-[#B8923A]'
                   }`}
                 >
                   <span>{cat.label}</span>
                   {isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1E1B18]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1A1410]" />
                   )}
                 </button>
               );
@@ -376,11 +377,11 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
         <button
           type="button"
           onClick={() => toggleGroup('purity')}
-          className="w-full flex items-center justify-between text-left text-xs font-bold uppercase tracking-wider text-[#1E1B18] py-1 cursor-pointer"
+          className="w-full flex items-center justify-between text-left text-xs font-bold uppercase tracking-[0.14em] text-[#1A1410] py-1 cursor-pointer"
         >
           <span>Purity &amp; Karat</span>
           <ChevronDown
-            className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+            className={`w-4 h-4 text-[#7A5A12] transition-transform duration-200 ${
               openGroups.purity ? 'rotate-180' : ''
             }`}
           />
@@ -395,15 +396,15 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
                   key={p.id}
                   type="button"
                   onClick={() => handleKaratSelect(p.id)}
-                  className={`w-full py-2 px-3 text-xs font-medium rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
+                  className={`w-full py-2 px-3 text-xs font-medium rounded-full text-left transition-all flex items-center justify-between cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                     isSelected
-                      ? 'bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] text-[#1E1B18] font-bold shadow-xs'
-                      : 'bg-[#FAF7F2] text-[#475569] hover:text-[#1E1B18] hover:bg-[#F3EFEA]'
+                      ? 'bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] text-[#1A1410] font-semibold shadow-xs'
+                      : 'bg-[#FBF8F2] text-[#4A3F35] hover:text-[#1A1410] border border-[#E2D8C9] hover:border-[#B8923A]'
                   }`}
                 >
                   <span>{p.label}</span>
                   {isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1E1B18]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1A1410]" />
                   )}
                 </button>
               );
@@ -417,11 +418,11 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
         <button
           type="button"
           onClick={() => toggleGroup('availability')}
-          className="w-full flex items-center justify-between text-left text-xs font-bold uppercase tracking-wider text-[#1E1B18] py-1 cursor-pointer"
+          className="w-full flex items-center justify-between text-left text-xs font-bold uppercase tracking-[0.14em] text-[#1A1410] py-1 cursor-pointer"
         >
           <span>Availability</span>
           <ChevronDown
-            className={`w-4 h-4 text-[#8E6E24] transition-transform duration-200 ${
+            className={`w-4 h-4 text-[#7A5A12] transition-transform duration-200 ${
               openGroups.availability ? 'rotate-180' : ''
             }`}
           />
@@ -432,10 +433,10 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
             <button
               type="button"
               onClick={() => setInStockOnly(!inStockOnly)}
-              className={`w-full py-2.5 px-3 rounded-xl text-xs font-medium transition-all flex items-center justify-between cursor-pointer ${
+              className={`w-full py-2 px-3 rounded-full text-xs font-medium transition-all flex items-center justify-between cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                 inStockOnly
-                  ? 'bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] text-[#1E1B18] font-bold shadow-xs'
-                  : 'bg-[#FAF7F2] text-[#475569] hover:text-[#1E1B18] border border-[#E2D8C9]'
+                  ? 'bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] text-[#1A1410] font-semibold shadow-xs'
+                  : 'bg-[#FBF8F2] text-[#4A3F35] hover:text-[#1A1410] border border-[#E2D8C9] hover:border-[#B8923A]'
               }`}
             >
               <span>In Stock Only</span>
@@ -494,27 +495,27 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-8">
       {/* 1. Breadcrumbs (Home / Gold / Rings) */}
-      <nav aria-label="Breadcrumb" className="text-xs text-[#64748B] flex items-center gap-2">
+      <nav aria-label="Breadcrumb" className="text-xs text-[#6E6259] flex items-center gap-2">
         <button
           type="button"
           onClick={() => {
             if (onNavigateHome) onNavigateHome();
           }}
-          className="hover:text-[#8E6E24] transition-colors cursor-pointer"
+          className="hover:text-[#7A5A12] transition-colors cursor-pointer"
         >
           Home
         </button>
-        <span className="text-[#C9A54B]/60" aria-hidden="true">/</span>
+        <span className="text-[#B8923A]/60" aria-hidden="true">/</span>
 
         <button
           type="button"
           onClick={() => {
             onCategoryChange(undefined);
           }}
-          className={`hover:text-[#8E6E24] transition-colors cursor-pointer ${
-            activeCategory === 'all' ? 'font-semibold text-[#1E1B18]' : ''
+          className={`hover:text-[#7A5A12] transition-colors cursor-pointer ${
+            activeCategory === 'all' ? 'font-semibold text-[#1A1410]' : ''
           }`}
         >
           {metal === 'gold' ? 'Gold' : metal === 'silver' ? 'Silver' : 'All Jewellery'}
@@ -522,8 +523,8 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
         {activeCategory !== 'all' && (
           <>
-            <span className="text-[#C9A54B]/60" aria-hidden="true">/</span>
-            <span className="font-semibold text-[#1E1B18] capitalize">
+            <span className="text-[#B8923A]/60" aria-hidden="true">/</span>
+            <span className="font-semibold text-[#1A1410] capitalize">
               {activeCategory.replace('_', ' ')}
             </span>
           </>
@@ -533,10 +534,10 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
       {/* 2. Page Title, Count & Sort Dropdown */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#E2D8C9]">
         <div>
-          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1E1B18] font-normal tracking-tight">
+          <h1 className="font-serif text-[clamp(1.8rem,3.5vw,2.8rem)] text-[#1A1410] font-medium leading-[1.2] [text-wrap:balance]">
             {pageTitle}
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-1 font-light">
+          <p className="text-sm text-[#4A3F35] mt-1 font-light">
             Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'piece' : 'pieces'} with transparent live bullion pricing
           </p>
         </div>
@@ -547,22 +548,22 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(true)}
-            className="lg:hidden min-h-[44px] px-3.5 py-2 bg-[#FAF7F2] border border-[#C9A54B]/50 hover:border-[#C9A54B] rounded-xl text-xs font-semibold text-[#8E6E24] flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            className="lg:hidden min-h-[44px] px-4 py-2 bg-white/85 border border-[#B8923A] rounded-full text-xs font-semibold text-[#7A5A12] flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-[0.97]"
           >
-            <Filter className="w-4 h-4 text-[#C9A54B]" />
+            <Filter className="w-4 h-4 text-[#B8923A]" />
             <span>Filters</span>
             {hasActiveFilters && (
-              <span className="w-2 h-2 rounded-full bg-[#C9A54B]" />
+              <span className="w-2 h-2 rounded-full bg-[#B8923A]" />
             )}
           </button>
 
           {/* Sort Dropdown */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#64748B] font-medium hidden md:inline">Sort:</span>
+            <span className="text-xs text-[#6E6259] font-medium hidden md:inline">Sort:</span>
             <select
               value={activeSort}
               onChange={(e) => handleSortSelect(e.target.value)}
-              className="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#FAF7F2] text-[#1E1B18] border border-[#E2D8C9] hover:border-[#C9A54B] cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-[#C9A54B] shadow-2xs"
+              className="min-h-[44px] px-4 py-2 rounded-full text-xs font-semibold bg-white/85 text-[#1A1410] border border-[#E2D8C9] hover:border-[#B8923A] cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-[#B8923A] shadow-2xs"
             >
               <option value="newest">Newest Arrivals</option>
               <option value="price_asc">Price: Low to High</option>
@@ -697,20 +698,21 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           {filterControls}
         </aside>
 
-        {/* Product Grid Area */}
+        {/* Product Grid Area with StaggerGrid animation */}
         <div className="flex-1 w-full min-w-0">
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
+            <StaggerGrid className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  rates={rates}
-                  onSelect={onSelectProduct}
-                  onAddToCart={onAddToCart}
-                />
+                <StaggerItem key={product.id}>
+                  <ProductCard
+                    product={product}
+                    rates={rates}
+                    onSelect={onSelectProduct}
+                    onAddToCart={onAddToCart}
+                  />
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerGrid>
           ) : (
             /* 5. Empty State */
             <div className="py-16 sm:py-24 text-center bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl p-8 space-y-5">

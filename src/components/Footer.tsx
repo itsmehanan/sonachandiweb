@@ -150,11 +150,11 @@ export const Footer: React.FC<FooterProps> = ({
 
       {/* Top Hairline accent */}
       <div
-        className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#C9A54B]/80 to-transparent pointer-events-none"
+        className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#B8923A]/80 to-transparent pointer-events-none"
         aria-hidden="true"
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-8 space-y-12">
         {/* Top Band: "Order on WhatsApp", Green Button & Live Store Status Badge */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-10 border-b border-[#292420]">
           <div className="space-y-3 max-w-md">

@@ -49,7 +49,7 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   };
 
   const baseStyles =
-    'wa-btn-pulse inline-flex items-center justify-center gap-2.5 font-semibold tracking-wide text-white bg-[#25D366] hover:bg-[#1EBE5A] rounded-xl transition-all duration-200 shadow-md shadow-[#25D366]/30 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 outline-hidden cursor-pointer select-none';
+    'wa-btn-pulse inline-flex items-center justify-center gap-2.5 font-semibold tracking-wide text-white bg-[#25D366] hover:bg-[#1EBE5A] rounded-full transition-all duration-200 shadow-md shadow-[#25D366]/30 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 outline-hidden cursor-pointer select-none';
 
   const widthStyle = fullWidth ? 'w-full' : '';
   const combinedClasses = `${baseStyles} ${sizeClasses[size]} ${widthStyle} ${className}`.trim();

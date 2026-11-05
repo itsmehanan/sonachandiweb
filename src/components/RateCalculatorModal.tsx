@@ -283,7 +283,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
             <div className="p-5 sm:p-6 space-y-6 overflow-y-auto flex-1">
               {/* STEP 1: Select Metal (Two Large Selectable Cards) */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#8E6E24] mb-2.5">
+                <label className="label-kicker block text-[#7A5A12] mb-2.5">
                   1. Select Metal
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -291,27 +291,27 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setMetal('gold')}
-                    className={`relative p-4 rounded-xl text-left transition-all duration-200 cursor-pointer min-h-[76px] flex flex-col justify-between focus-visible:ring-2 focus-visible:ring-[#C9A54B] outline-hidden ${
+                    className={`relative p-4 rounded-2xl text-left transition-all duration-200 cursor-pointer min-h-[76px] flex flex-col justify-between focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                       metal === 'gold'
-                        ? 'border-2 border-[#C9A54B] bg-gradient-to-b from-[#FFFDF9] to-[#FBF6EC] shadow-md shadow-[#C9A54B]/15 ring-2 ring-[#C9A54B]/20'
-                        : 'border border-[#E2D8C9] bg-white hover:border-[#C9A54B]/50 hover:bg-[#FAF7F2]'
+                        ? 'border-2 border-[#B8923A] bg-gradient-to-b from-white to-[#F3EAD7]/50 shadow-md shadow-[#B8923A]/15 ring-2 ring-[#B8923A]/20'
+                        : 'border border-[#E2D8C9] bg-white hover:border-[#B8923A]/50 hover:bg-[#FBF8F2]'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#E8CF8A] to-[#C9A54B] flex items-center justify-center shadow-xs">
-                        <span className="font-serif text-xs font-bold text-white">Au</span>
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#F1D98B] to-[#C9A54B] flex items-center justify-center shadow-xs">
+                        <span className="font-serif text-xs font-bold text-[#1A1410]">Au</span>
                       </span>
                       {metal === 'gold' && (
-                        <span className="w-5 h-5 rounded-full bg-[#C9A54B] text-white flex items-center justify-center">
+                        <span className="w-5 h-5 rounded-full bg-[#B8923A] text-white flex items-center justify-center">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
                         </span>
                       )}
                     </div>
                     <div className="mt-2">
-                      <span className="font-serif text-base font-bold text-[#1E1B18] block leading-tight">
+                      <span className="font-serif text-base font-bold text-[#1A1410] block leading-tight">
                         Gold (Sona)
                       </span>
-                      <span className="text-[11px] text-[#8E6E24] font-medium block">
+                      <span className="text-[11px] text-[#7A5A12] font-semibold block">
                         24K, 22K, 21K, 18K
                       </span>
                     </div>
@@ -321,27 +321,27 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setMetal('silver')}
-                    className={`relative p-4 rounded-xl text-left transition-all duration-200 cursor-pointer min-h-[76px] flex flex-col justify-between focus-visible:ring-2 focus-visible:ring-[#C9A54B] outline-hidden ${
+                    className={`relative p-4 rounded-2xl text-left transition-all duration-200 cursor-pointer min-h-[76px] flex flex-col justify-between focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                       metal === 'silver'
-                        ? 'border-2 border-[#C9A54B] bg-gradient-to-b from-[#FFFDF9] to-[#F5F6F8] shadow-md shadow-[#C9A54B]/15 ring-2 ring-[#C9A54B]/20'
-                        : 'border border-[#E2D8C9] bg-white hover:border-[#C9A54B]/50 hover:bg-[#FAF7F2]'
+                        ? 'border-2 border-[#B8923A] bg-gradient-to-b from-white to-[#F5F6F8] shadow-md shadow-[#B8923A]/15 ring-2 ring-[#B8923A]/20'
+                        : 'border border-[#E2D8C9] bg-white hover:border-[#B8923A]/50 hover:bg-[#FBF8F2]'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
                       <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#E2E8F0] via-[#CBD5E1] to-[#94A3B8] flex items-center justify-center shadow-xs">
-                        <span className="font-serif text-xs font-bold text-[#1E293B]">Ag</span>
+                        <span className="font-serif text-xs font-bold text-[#1A1410]">Ag</span>
                       </span>
                       {metal === 'silver' && (
-                        <span className="w-5 h-5 rounded-full bg-[#C9A54B] text-white flex items-center justify-center">
+                        <span className="w-5 h-5 rounded-full bg-[#B8923A] text-white flex items-center justify-center">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
                         </span>
                       )}
                     </div>
                     <div className="mt-2">
-                      <span className="font-serif text-base font-bold text-[#1E1B18] block leading-tight">
+                      <span className="font-serif text-base font-bold text-[#1A1410] block leading-tight">
                         Silver (Chandi)
                       </span>
-                      <span className="text-[11px] text-[#64748B] font-medium block">
+                      <span className="text-[11px] text-[#5C5046] font-medium block">
                         925 Pure Sterling Silver
                       </span>
                     </div>
@@ -352,7 +352,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
               {/* STEP 2: Gold Purity Pills (Gold only) */}
               {metal === 'gold' && (
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#8E6E24] mb-2.5">
+                  <label className="label-kicker block text-[#7A5A12] mb-2.5">
                     2. Select Gold Purity
                   </label>
                   <div className="grid grid-cols-4 gap-2">
@@ -363,16 +363,16 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                           key={karat}
                           type="button"
                           onClick={() => setGoldKarat(karat)}
-                          className={`py-2.5 px-2 rounded-xl text-center transition-all cursor-pointer min-h-[50px] flex flex-col items-center justify-center focus-visible:ring-2 focus-visible:ring-[#C9A54B] outline-hidden ${
+                          className={`py-2 px-2 rounded-full text-center transition-all cursor-pointer min-h-[48px] flex flex-col items-center justify-center focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                             isSelected
-                              ? 'bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] text-[#1E1B18] font-bold shadow-xs border border-transparent'
-                              : 'bg-white text-[#475569] border border-[#E2D8C9] hover:border-[#C9A54B]/60 hover:text-[#1E1B18]'
+                              ? 'bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] text-[#1A1410] font-bold shadow-xs border border-[#B8923A]'
+                              : 'bg-white text-[#5C5046] border border-[#E2D8C9] hover:border-[#B8923A] hover:text-[#1A1410]'
                           }`}
                         >
                           <span className="text-sm font-bold leading-none">{karat}</span>
                           <span
-                            className={`text-[10px] mt-1 ${
-                              isSelected ? 'text-[#3E2F13] font-semibold' : 'text-[#94A3B8]'
+                            className={`text-[10px] mt-0.5 ${
+                              isSelected ? 'text-[#1A1410] font-medium' : 'text-[#7A5A12]'
                             }`}
                           >
                             {percent}
@@ -387,19 +387,19 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
               {/* STEP 3: Weight with Grams | Tola toggle & steppers */}
               <div>
                 <div className="flex items-center justify-between mb-2.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#8E6E24]">
+                  <label className="label-kicker text-[#7A5A12]">
                     {metal === 'gold' ? '3. Enter Weight' : '2. Enter Weight'}
                   </label>
 
                   {/* Grams | Tola Toggle */}
-                  <div className="flex items-center p-0.5 bg-[#EAE3D6] rounded-lg border border-[#DCD1BF]">
+                  <div className="flex items-center p-0.5 bg-[#F3EAD7] rounded-full border border-[#E2D8C9]">
                     <button
                       type="button"
                       onClick={() => setWeightUnit('grams')}
-                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                         weightUnit === 'grams'
-                          ? 'bg-white text-[#8E6E24] shadow-2xs'
-                          : 'text-[#64748B] hover:text-[#1E1B18]'
+                          ? 'bg-white text-[#7A5A12] shadow-2xs'
+                          : 'text-[#5C5046] hover:text-[#1A1410]'
                       }`}
                     >
                       Grams
@@ -407,10 +407,10 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setWeightUnit('tola')}
-                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                         weightUnit === 'tola'
-                          ? 'bg-white text-[#8E6E24] shadow-2xs'
-                          : 'text-[#64748B] hover:text-[#1E1B18]'
+                          ? 'bg-white text-[#7A5A12] shadow-2xs'
+                          : 'text-[#5C5046] hover:text-[#1A1410]'
                       }`}
                     >
                       Tola
@@ -482,7 +482,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
 
                 {/* Quick Chips */}
                 <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
-                  <span className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold shrink-0">
+                  <span className="text-[11px] uppercase tracking-wider text-[#7A5A12] font-semibold shrink-0">
                     Quick:
                   </span>
                   {quickChips.map((chip) => {
@@ -496,10 +496,10 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                           setWeightUnit(chip.unit);
                           setWeight(chip.val);
                         }}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all cursor-pointer min-h-[36px] focus-visible:ring-2 focus-visible:ring-[#C9A54B] outline-hidden ${
+                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all cursor-pointer min-h-[36px] focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                           isSelected
-                            ? 'bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] text-[#1E1B18] shadow-xs'
-                            : 'bg-white text-[#475569] border border-[#E2D8C9] hover:border-[#C9A54B] hover:text-[#1E1B18]'
+                            ? 'bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] text-[#1A1410] shadow-xs border border-[#B8923A]'
+                            : 'bg-white text-[#5C5046] border border-[#E2D8C9] hover:border-[#B8923A] hover:text-[#1A1410]'
                         }`}
                       >
                         {chip.label}
@@ -510,20 +510,20 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
               </div>
 
               {/* RESULT CARD: Subtle Gold Glow + Big Serif Number */}
-              <div className="relative rounded-2xl p-5 sm:p-6 border border-[#C9A54B]/40 bg-gradient-to-b from-[#FFFDF9] via-[#FAF6ED] to-[#F5EEDB] shadow-md shadow-[#C9A54B]/10 overflow-hidden">
+              <div className="relative rounded-2xl p-5 sm:p-6 border border-[#B8923A]/40 bg-gradient-to-b from-white via-[#F3EAD7]/50 to-[#F3EAD7] shadow-md shadow-[#B8923A]/10 overflow-hidden">
                 {/* Soft ambient background glow */}
                 <div
-                  className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[#E8CF8A]/25 blur-2xl pointer-events-none"
+                  className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[#F1D98B]/30 blur-2xl pointer-events-none"
                   aria-hidden="true"
                 />
 
                 <div className="relative z-10 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-wider font-semibold text-[#8E6E24]">
+                    <span className="label-kicker font-semibold text-[#7A5A12]">
                       Estimated metal value
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-[#64748B] font-medium">
-                      <Sparkles className="w-3 h-3 text-[#C9A54B]" />
+                    <span className="inline-flex items-center gap-1 text-[11px] text-[#5C5046] font-medium">
+                      <Sparkles className="w-3.5 h-3.5 text-[#7A5A12]" />
                       Live Sarafa Rate
                     </span>
                   </div>
@@ -531,24 +531,24 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                   {/* Big Animated Number or Rate Missing Notice */}
                   {isRateMissing ? (
                     <div className="py-2 text-left">
-                      <p className="font-serif text-lg font-semibold text-[#8E6E24]">
+                      <p className="font-serif text-lg font-semibold text-[#7A5A12]">
                         Rates are being updated. Please ask us on WhatsApp.
                       </p>
                     </div>
                   ) : !isValidWeight ? (
                     <div className="py-2 text-left">
-                      <p className="font-serif text-xl text-[#94A3B8]">
+                      <p className="font-serif text-xl text-[#A8ADB3]">
                         Enter a valid weight above
                       </p>
                     </div>
                   ) : (
                     <div>
-                      <div className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#8E6E24] tabular-nums">
+                      <div className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#1A1410] tabular-nums">
                         {formatPKR(animatedMetalValue)}
                       </div>
-                      <p className="text-xs text-[#64748B] mt-1.5 font-light">
+                      <p className="text-xs text-[#5C5046] mt-1.5 font-normal">
                         Today’s {metal === 'gold' ? goldKarat : 'silver'} rate:{' '}
-                        <span className="font-mono font-semibold text-[#1E1B18]">
+                        <span className="font-mono font-semibold text-[#1A1410]">
                           {formatPKR(Math.round(perGramRate))}
                         </span>{' '}
                         per gram
@@ -558,7 +558,7 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
 
                   {/* Last updated indicator if available */}
                   {rates.lastUpdated && (
-                    <p className="text-[10px] text-[#94A3B8] font-light pt-1 border-t border-[#C9A54B]/20">
+                    <p className="text-[10px] text-[#5C5046] font-normal pt-1 border-t border-[#B8923A]/20">
                       Market rate updated: {rates.lastUpdated}
                     </p>
                   )}
@@ -567,8 +567,8 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
 
               {/* Design Note & WhatsApp Action */}
               <div className="space-y-3">
-                <div className="p-3.5 bg-white/80 border border-[#E2D8C9] rounded-xl text-xs text-[#64748B] leading-relaxed">
-                  <span className="font-semibold text-[#1E1B18]">Note: </span>
+                <div className="p-4 bg-white/85 border border-[#E2D8C9] rounded-2xl text-xs text-[#5C5046] leading-relaxed">
+                  <span className="font-semibold text-[#1A1410]">Note: </span>
                   Making charges depend on the design. Ask us on WhatsApp for the exact price.
                 </div>
 

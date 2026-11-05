@@ -203,12 +203,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <header
-        className={`sticky top-0 z-40 bg-[#FAF7F2]/85 backdrop-blur-md border-b border-[#C9A54B]/30 transition-all duration-300 ease-out ${
+        className={`sticky top-0 z-40 bg-[#FBF8F2]/85 backdrop-blur-md border-b border-[#C9A54B]/30 transition-all duration-300 ease-out ${
           isScrolled ? 'shadow-xs' : ''
         }`}
       >
         <div
-          className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-3 md:gap-6 transition-all duration-300 ease-out ${
+          className={`max-w-[1280px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-3 md:gap-6 transition-all duration-300 ease-out ${
             isScrolled ? 'h-16 sm:h-18' : 'h-20 sm:h-22'
           }`}
         >
@@ -227,10 +227,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               referrerPolicy="no-referrer"
             />
             <div className="hidden min-[480px]:block">
-              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-[#1E1B18] block leading-tight">
+              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-[#1A1410] block leading-tight">
                 Sona &amp; Chandi
               </span>
-              <span className="text-[10px] sm:text-[11px] tracking-widest uppercase text-[#8E6E24] font-medium block">
+              <span className="text-[10px] sm:text-[11px] tracking-widest uppercase text-[#7A5A12] font-semibold block">
                 Gold Collection
               </span>
             </div>
@@ -239,14 +239,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Zone 2: Nav Centre */}
           <nav
             data-dropdown-container
-            className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-medium text-[#475569]"
+            className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-medium text-[#4A3F35]"
           >
             {/* 1. Home */}
             <button
               onClick={() => handleNav('home')}
               aria-current={isHomeActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isHomeActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isHomeActive ? 'text-[#7A5A12] font-semibold' : 'hover:text-[#1A1410]'
               }`}
             >
               <span>Home</span>
@@ -571,7 +571,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNav('about')}
               aria-current={isAboutActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isAboutActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isAboutActive ? 'text-[#7A5A12] font-semibold' : 'hover:text-[#1A1410]'
               }`}
             >
               <span>About</span>
@@ -587,7 +587,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNav('contact')}
               aria-current={isContactActive ? 'page' : undefined}
               className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isContactActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
+                isContactActive ? 'text-[#7A5A12] font-semibold' : 'hover:text-[#1A1410]'
               }`}
             >
               <span>Contact</span>
@@ -606,7 +606,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={() => setSearchOpen(true)}
               title="Search jewellery collection (Press / or click)"
-              className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 sm:p-2.5 rounded-full bg-white/80 hover:bg-white text-[#1E1B18] hover:text-[#8E6E24] border border-[#E2D8C9] hover:border-[#C9A54B] transition-all shadow-2xs flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
+              className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 sm:p-2.5 rounded-full bg-white/85 hover:bg-white text-[#1A1410] hover:text-[#7A5A12] border border-[#E2D8C9] hover:border-[#B8923A] transition-all shadow-2xs flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
               aria-label="Open search"
             >
               <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
@@ -618,10 +618,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={onOpenCalculator}
                 title="Open live bullion rate estimator"
-                className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 sm:p-2.5 rounded-full bg-white/80 hover:bg-white text-[#1E1B18] hover:text-[#8E6E24] border border-[#E2D8C9] hover:border-[#C9A54B] transition-all shadow-2xs flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
+                className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 sm:p-2.5 rounded-full bg-white/85 hover:bg-white text-[#1A1410] hover:text-[#7A5A12] border border-[#E2D8C9] hover:border-[#B8923A] transition-all shadow-2xs flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden"
                 aria-label="Live bullion rates and price estimator"
               >
-                <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#8E6E24]" />
+                <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#7A5A12]" />
               </button>
             )}
 
@@ -629,12 +629,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenCart}
               aria-label={`Open jewellery bag with ${cartCount} items`}
-              className={`relative flex items-center justify-center gap-2 px-3.5 py-2 sm:px-4.5 sm:py-2.5 text-xs font-semibold text-white rounded-full bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.97] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer overflow-hidden focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden min-h-[40px] sm:min-h-[44px] ${
+              className={`relative flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 text-xs font-semibold text-[#1A1410] rounded-full bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] hover:brightness-105 active:scale-[0.97] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer overflow-hidden focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 outline-hidden min-h-[40px] sm:min-h-[44px] ${
                 isAnimatingBag ? 'bag-shine-active' : ''
               }`}
             >
-              <ShoppingBag className="w-4 h-4 text-white shrink-0" />
-              <span className="hidden md:inline tracking-wide">Bag</span>
+              <ShoppingBag className="w-4 h-4 text-[#1A1410] shrink-0" />
+              <span className="hidden md:inline tracking-wide font-semibold">Bag</span>
 
               {cartCount > 0 ? (
                 <span

@@ -72,10 +72,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       tabIndex={0}
       role="button"
       aria-label={`View details for ${product.title}`}
-      className="group bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl overflow-hidden flex flex-col justify-between cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_-6px_rgba(201,165,75,0.22)] hover:border-[#C9A54B]/60 focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:outline-hidden"
+      className="group bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl overflow-hidden flex flex-col justify-between cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_-6px_rgba(184,146,58,0.25)] hover:border-[#B8923A] focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:outline-hidden h-full"
     >
       {/* 4:5 Product Image on Solid Ivory with Skeleton Loader */}
-      <div className="relative aspect-4/5 w-full bg-[#FAF7F2] overflow-hidden flex items-center justify-center">
+      <div className="relative aspect-4/5 w-full bg-[#FBF8F2] overflow-hidden flex items-center justify-center">
         {/* Skeleton Shimmer */}
         {!imageLoaded && (
           <div className="absolute inset-0 bg-[#EFE9DF] animate-pulse" />
@@ -111,7 +111,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         ) : (
           <div className="flex flex-col items-center justify-center gap-1.5 text-[#C9A54B]/80 p-4">
             <Sparkles className="w-8 h-8 text-[#C9A54B]" />
-            <span className="text-[10px] font-serif text-[#8E6E24] tracking-widest uppercase font-semibold">
+            <span className="text-[10px] font-serif text-[#7A5A12] tracking-widest uppercase font-semibold">
               Sona &amp; Chandi
             </span>
           </div>
@@ -120,50 +120,50 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Badges: Top-Left */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start z-10">
           {isOutOfStock ? (
-            <span className="px-2 py-0.5 text-[10px] font-medium text-[#64748B] bg-[#FAF7F2]/95 border border-[#E2D8C9] rounded-md shadow-2xs">
+            <span className="px-2.5 py-0.5 text-[10px] font-medium text-[#4A3F35] bg-[#FBF8F2]/95 border border-[#E2D8C9] rounded-full shadow-2xs">
               Out of stock
             </span>
           ) : isNew ? (
-            <span className="px-2 py-0.5 text-[10px] font-bold text-[#1E1B18] bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] rounded-md shadow-xs uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 text-[10px] font-bold text-[#1A1410] bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] rounded-full shadow-xs uppercase tracking-wider">
               New
             </span>
           ) : product.featured ? (
-            <span className="px-2 py-0.5 text-[10px] font-semibold text-[#8E6E24] bg-white/95 border border-[#C9A54B]/40 rounded-md shadow-2xs">
+            <span className="px-2.5 py-0.5 text-[10px] font-semibold text-[#7A5A12] bg-white/95 border border-[#B8923A]/40 rounded-full shadow-2xs">
               Featured
             </span>
           ) : null}
         </div>
 
         {/* Slide-Up "View details" Bar on Hover */}
-        <div className="absolute bottom-0 inset-x-0 bg-[#1E1B18]/85 backdrop-blur-xs py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#E8CF8A] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none z-10">
+        <div className="absolute bottom-0 inset-x-0 bg-[#1A1410]/85 backdrop-blur-xs py-2.5 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#F1D98B] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none z-10">
           <span>View details</span>
-          <ArrowRight className="w-3.5 h-3.5 text-[#E8CF8A]" />
+          <ArrowRight className="w-3.5 h-3.5 text-[#F1D98B]" />
         </div>
       </div>
 
       {/* Minimal Product Info */}
-      <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between bg-[#FAF7F2]">
+      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between bg-white/85">
         <div>
           {/* Small Caps Category */}
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8E6E24] block leading-tight">
+          <span className="text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[#7A5A12] block leading-tight">
             {categoryLabel}
           </span>
 
-          {/* Product Name */}
-          <h3 className="font-serif text-sm sm:text-base font-semibold text-[#1E1B18] line-clamp-1 mt-1 group-hover:text-[#8E6E24] transition-colors">
+          {/* Product Name in Playfair Display */}
+          <h3 className="font-serif text-base font-medium text-[#1A1410] line-clamp-1 mt-1.5 group-hover:text-[#7A5A12] transition-colors">
             {product.title}
           </h3>
 
           {/* Spec Subtitle: "22K Gold | 10.5 g" */}
-          <p className="text-xs text-[#64748B] mt-0.5 font-light">
-            {metalLabel} | {product.weightGrams} g
+          <p className="text-xs text-[#6E6259] mt-1 font-light">
+            {metalLabel} · {product.weightGrams} g
           </p>
         </div>
 
-        {/* Estimated Price in Large Serif */}
-        <div className="mt-3 pt-2.5 border-t border-[#E2D8C9]/70">
+        {/* Estimated Price in Large Serif, Tabular Numbers */}
+        <div className="mt-3.5 pt-3 border-t border-[#E2D8C9]/70">
           <div className="flex items-baseline justify-between">
-            <span className="font-serif text-base sm:text-lg lg:text-xl font-bold text-[#1E1B18] tracking-tight">
+            <span className="font-serif tabular-nums text-lg sm:text-xl font-semibold text-[#1A1410] tracking-tight">
               Est. {breakdown.formattedEstimate}
             </span>
           </div>
@@ -171,7 +171,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Out of Stock: Small green WhatsAppButton */}
           {isOutOfStock && (
             <div
-              className="mt-2.5"
+              className="mt-3"
               onClick={(e) => e.stopPropagation()}
             >
               <WhatsAppButton

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Navbar, NavigateOptions } from './components/Navbar';
 import { LiveRateStrip } from './components/LiveRateStrip';
 import { BrandIntro } from './components/BrandIntro';
@@ -39,6 +40,7 @@ export default function App() {
   const [catalogueSearch, setCatalogueSearch] = useState<string>('');
   const [filterResetNonce, setFilterResetNonce] = useState<number>(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const prefersReduced = useReducedMotion();
 
   // Cart state
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
@@ -309,59 +311,69 @@ export default function App() {
           onSelectProduct={handleSelectProduct}
         />
 
-        {/* Main Content Router */}
+        {/* Main Content Router with Page-to-Page Fade Transition */}
         <main className="flex-1">
-        {currentView === 'home' && (
-          <HomePage
-            rates={rates}
-            onSelectProduct={handleSelectProduct}
-            onAddToCart={(p) => handleAddToCart(p, 1)}
-            onNavigateToCatalogue={(filter) => handleNavigate('catalogue', filter)}
-            onOpenCalculator={() => setCalculatorOpen(true)}
-          />
-        )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentView === 'product_detail' ? `product_${selectedProduct?.id}` : currentView}
+              initial={prefersReduced ? undefined : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReduced ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+            >
+              {currentView === 'home' && (
+                <HomePage
+                  rates={rates}
+                  onSelectProduct={handleSelectProduct}
+                  onAddToCart={(p) => handleAddToCart(p, 1)}
+                  onNavigateToCatalogue={(filter) => handleNavigate('catalogue', filter)}
+                  onOpenCalculator={() => setCalculatorOpen(true)}
+                />
+              )}
 
-        {currentView === 'catalogue' && (
-          <CataloguePage
-            rates={rates}
-            metal={catalogueMetal}
-            onMetalChange={setCatalogueMetal}
-            category={catalogueCategory}
-            onCategoryChange={setCatalogueCategory}
-            karat={catalogueKarat}
-            onKaratChange={setCatalogueKarat}
-            sortBy={catalogueSort}
-            onSortChange={setCatalogueSort}
-            searchQuery={catalogueSearch}
-            onSearchChange={setCatalogueSearch}
-            resetNonce={filterResetNonce}
-            onSelectProduct={handleSelectProduct}
-            onAddToCart={(p) => handleAddToCart(p, 1)}
-            onNavigateHome={() => handleNavigate('home')}
-          />
-        )}
+              {currentView === 'catalogue' && (
+                <CataloguePage
+                  rates={rates}
+                  metal={catalogueMetal}
+                  onMetalChange={setCatalogueMetal}
+                  category={catalogueCategory}
+                  onCategoryChange={setCatalogueCategory}
+                  karat={catalogueKarat}
+                  onKaratChange={setCatalogueKarat}
+                  sortBy={catalogueSort}
+                  onSortChange={setCatalogueSort}
+                  searchQuery={catalogueSearch}
+                  onSearchChange={setCatalogueSearch}
+                  resetNonce={filterResetNonce}
+                  onSelectProduct={handleSelectProduct}
+                  onAddToCart={(p) => handleAddToCart(p, 1)}
+                  onNavigateHome={() => handleNavigate('home')}
+                />
+              )}
 
-        {currentView === 'product_detail' && selectedProduct && (
-          <ProductDetailPage
-            product={selectedProduct}
-            rates={rates}
-            onBack={() => handleNavigate('catalogue')}
-            onSelectProduct={handleSelectProduct}
-            onAddToCart={handleAddToCart}
-            onOpenCalculator={() => setCalculatorOpen(true)}
-          />
-        )}
+              {currentView === 'product_detail' && selectedProduct && (
+                <ProductDetailPage
+                  product={selectedProduct}
+                  rates={rates}
+                  onBack={() => handleNavigate('catalogue')}
+                  onSelectProduct={handleSelectProduct}
+                  onAddToCart={handleAddToCart}
+                  onOpenCalculator={() => setCalculatorOpen(true)}
+                />
+              )}
 
-        {currentView === 'about' && (
-          <AboutPage
-            rates={rates}
-            onNavigateToCatalogue={() => handleNavigate('catalogue')}
-            onOpenCalculator={() => setCalculatorOpen(true)}
-          />
-        )}
+              {currentView === 'about' && (
+                <AboutPage
+                  rates={rates}
+                  onNavigateToCatalogue={() => handleNavigate('catalogue')}
+                  onOpenCalculator={() => setCalculatorOpen(true)}
+                />
+              )}
 
-        {currentView === 'contact' && <ContactPage />}
-      </main>
+              {currentView === 'contact' && <ContactPage />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
 
       {/* Slide-over Cart & Inquiry Drawer */}
       <CartDrawer

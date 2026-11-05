@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Cormorant Garamond", Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --color-gold-50: #FCF9F0;
   --color-gold-100: #F7F0DC;
   --color-gold-200: #EEDFA9;
@@ -13,16 +13,27 @@
   --color-gold-700: #8E6E24;
   --color-gold-800: #6D531E;
   --color-gold-900: #4E3B17;
-  --color-cream-base: #FAF7F2;
+  --color-cream-base: #FBF8F2;
   --color-cream-card: #FFFFFF;
-  --color-cream-muted: #F3EFEA;
+  --color-cream-muted: #F3EAD7;
   --color-espresso-950: #12100E;
-  --color-espresso-900: #1C1815;
+  --color-espresso-900: #1A1410;
   --color-espresso-800: #292420;
 }
 
 :root {
   --bg-anim-opacity: 0.5;
+  --color-ivory: #FBF8F2;
+  --color-champagne: #F3EAD7;
+  --color-card-bg: rgba(255, 255, 255, 0.85);
+  --color-antique-gold: #B8923A;
+  --color-rich-gold-start: #C9A54B;
+  --color-rich-gold-end: #F1D98B;
+  --color-dark-gold-text: #7A5A12;
+  --color-espresso: #1A1410;
+  --color-silver: #A8ADB3;
+  --color-whatsapp: #25D366;
+  --color-whatsapp-hover: #1EBE5A;
 }
 
 /* Liquid gold & silver drifting blobs (transform only) */
@@ -141,6 +152,132 @@
   animation: bagShineSweep 0.75s ease-out forwards;
 }
 
+/* Typography Scale Standards */
+.h1-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 1.12;
+  font-weight: 600;
+  color: var(--color-espresso);
+  text-wrap: balance;
+}
+
+.h2-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--color-espresso);
+  text-wrap: balance;
+}
+
+.h3-title {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--color-espresso);
+  text-wrap: balance;
+}
+
+.body-lead {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: #4A3F35;
+}
+
+.label-kicker {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--color-dark-gold-text);
+}
+
+.price-tabular {
+  font-family: var(--font-serif);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Master Button Hierarchy */
+.btn-primary-gold {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  border-radius: 9999px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: #1A1410;
+  background: linear-gradient(135deg, #C9A54B 0%, #F1D98B 100%);
+  box-shadow: 0 4px 14px -2px rgba(201, 165, 75, 0.35);
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.25s ease,
+              box-shadow 0.25s ease;
+  cursor: pointer;
+}
+
+.btn-primary-gold::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(60deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+  transform: rotate(25deg);
+  transition: all 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.btn-primary-gold:hover::after {
+  left: 140%;
+}
+
+.btn-primary-gold:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 20px -2px rgba(201, 165, 75, 0.45);
+}
+
+.btn-primary-gold:active {
+  transform: scale(0.97);
+}
+
+.btn-secondary-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  border-radius: 9999px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--color-antique-gold);
+  color: var(--color-dark-gold-text);
+  background-color: transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.btn-secondary-outline:hover {
+  background-color: rgba(184, 146, 58, 0.08);
+  border-color: #C9A54B;
+  color: #1A1410;
+}
+
+.btn-secondary-outline:active {
+  transform: scale(0.97);
+}
+
 /* Gold sweep sheen on primary interactive buttons */
 .gold-sheen {
   position: relative;
@@ -172,9 +309,10 @@
 .btn-inquiry {
   position: relative;
   overflow: hidden;
-  border: 1px solid #C9A54B;
-  color: #8E6E24;
+  border: 1px solid #B8923A;
+  color: #7A5A12;
   background-color: transparent;
+  border-radius: 9999px;
   transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
@@ -185,7 +323,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #D4AF37 0%, #C9A54B 50%, #B18D35 100%);
+  background: linear-gradient(135deg, #C9A54B 0%, #F1D98B 100%);
   opacity: 0;
   transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 0;
@@ -218,13 +356,18 @@
 }
 
 .btn-inquiry:hover {
-  color: #FFFFFF;
+  color: #1A1410;
   border-color: #B18D35;
-  box-shadow: 0 4px 12px rgba(201, 165, 75, 0.3);
+  box-shadow: 0 4px 14px rgba(201, 165, 75, 0.3);
 }
 
 .btn-inquiry:active {
   transform: scale(0.97);
+}
+
+.btn-inquiry > * {
+  position: relative;
+  z-index: 2;
 }
 
 .btn-inquiry > * {
@@ -353,23 +496,25 @@
 
 /* Filter and Tab Buttons (Selected: Gold gradient, Unselected: Ivory with gold outline on hover) */
 .btn-filter-gold {
-  background: linear-gradient(135deg, #C9A54B 0%, #E8CF8A 100%);
-  color: #1E1B18;
+  background: linear-gradient(135deg, #C9A54B 0%, #F1D98B 100%);
+  color: #1A1410;
   font-weight: 600;
-  border: 1px solid rgba(177, 141, 53, 0.5);
+  border-radius: 9999px;
+  border: 1px solid rgba(184, 146, 58, 0.4);
   box-shadow: 0 3px 10px -2px rgba(201, 165, 75, 0.35);
 }
 
 .btn-filter-ivory {
-  background-color: #FAF7F2;
-  color: #4A4036;
+  background-color: #FBF8F2;
+  color: #4A3F35;
+  border-radius: 9999px;
   border: 1px solid #E2D8C9;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-filter-ivory:hover {
-  border-color: #C9A54B;
-  color: #1E1B18;
+  border-color: #B8923A;
+  color: #1A1410;
   box-shadow: 0 2px 8px -2px rgba(201, 165, 75, 0.2);
 }
 

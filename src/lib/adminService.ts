@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth, OperationType, handleFirestoreError } from './firebase';
 import { BullionRates } from './pricing';
+import { ShowcaseTile } from '../data/store';
 
 export type StaffRole = 'owner' | 'rate_manager' | 'product_manager' | 'support' | 'viewer';
 
@@ -54,6 +55,8 @@ export interface StoreSettingsDoc {
   deliveryText?: string;
   cloudinaryCloudName?: string;
   cloudinaryUploadPreset?: string;
+  showcaseTiles?: ShowcaseTile[];
+  aboutPageImageUrl?: string;
   lastHistoryId?: string;
   lastGoldHistoryId?: string;
   lastSilverHistoryId?: string;
@@ -236,6 +239,8 @@ export async function updateStoreSettingsInfo(updates: {
   deliveryText?: string;
   cloudinaryCloudName?: string;
   cloudinaryUploadPreset?: string;
+  showcaseTiles?: ShowcaseTile[];
+  aboutPageImageUrl?: string;
 }): Promise<void> {
   try {
     await setDoc(doc(db, 'settings', 'store'), updates, { merge: true });

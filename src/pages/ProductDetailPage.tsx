@@ -25,6 +25,7 @@ import {
 import { LightboxModal } from '../components/LightboxModal';
 import { ProductCard } from '../components/ProductCard';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import { StaggerGrid, StaggerItem } from '../components/motion/MotionUtils';
 
 interface ProductDetailPageProps {
   product: Product;
@@ -161,7 +162,7 @@ Please confirm today's live rate and availability.`;
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-12">
       {/* Toast Notice when item added to bag */}
       <AnimatePresence>
         {addedToast && (
@@ -376,13 +377,13 @@ Please confirm today's live rate and availability.`;
                   >
                     -
                   </button>
-                  <span className="px-4 py-2 text-xs font-mono font-bold text-[#1E1B18]">
+                  <span className="px-4 py-2 text-xs font-mono font-bold text-[#1A1410]">
                     {quantity}
                   </span>
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
-                    className="px-3.5 py-2 text-sm font-semibold text-[#1E1B18] hover:bg-[#F3EFEA] cursor-pointer transition-colors"
+                    className="px-3.5 py-2 text-sm font-semibold text-[#1A1410] hover:bg-[#F3EFEA] cursor-pointer transition-colors"
                     aria-label="Increase quantity"
                   >
                     +
@@ -397,10 +398,10 @@ Please confirm today's live rate and availability.`;
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isOutOfStock || isRateMissing}
-                className={`min-h-[48px] px-5 py-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-white rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all ${
+                className={`btn-primary-gold rounded-full min-h-[48px] px-6 py-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-xs transition-all ${
                   isOutOfStock || isRateMissing
-                    ? 'bg-[#EAE3D6] text-[#94A3B8] cursor-not-allowed border border-[#E2D8C9]'
-                    : 'bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.98] cursor-pointer'
+                    ? 'opacity-60 cursor-not-allowed border border-[#E2D8C9]'
+                    : 'cursor-pointer'
                 }`}
               >
                 <ShoppingBag className="w-4 h-4" />
@@ -418,22 +419,22 @@ Please confirm today's live rate and availability.`;
             </div>
 
             {/* Mandatory Disclaimer */}
-            <p className="text-xs text-[#64748B] leading-relaxed pt-1">
+            <p className="text-xs text-[#5C5046] leading-relaxed pt-1">
               {ESTIMATE_DISCLAIMER}
             </p>
 
             {/* Small Trust Row with ONLY True Verified Statements */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E2D8C9] text-[11px] text-[#4A4036]">
-                <Scale className="w-4 h-4 text-[#C9A54B] shrink-0" />
+              <div className="flex items-center gap-2 p-3 rounded-2xl bg-white/85 border border-[#E2D8C9] text-xs text-[#1A1410]">
+                <Scale className="w-4 h-4 text-[#7A5A12] shrink-0" />
                 <span className="font-medium leading-tight">Transparent live-rate pricing</span>
               </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E2D8C9] text-[11px] text-[#4A4036]">
-                <Sparkles className="w-4 h-4 text-[#C9A54B] shrink-0" />
+              <div className="flex items-center gap-2 p-3 rounded-2xl bg-white/85 border border-[#E2D8C9] text-xs text-[#1A1410]">
+                <Sparkles className="w-4 h-4 text-[#7A5A12] shrink-0" />
                 <span className="font-medium leading-tight">Confirmed on WhatsApp</span>
               </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E2D8C9] text-[11px] text-[#4A4036]">
-                <Truck className="w-4 h-4 text-[#C9A54B] shrink-0" />
+              <div className="flex items-center gap-2 p-3 rounded-2xl bg-white/85 border border-[#E2D8C9] text-xs text-[#1A1410]">
+                <Truck className="w-4 h-4 text-[#7A5A12] shrink-0" />
                 <span className="font-medium leading-tight">Store pickup or courier</span>
               </div>
             </div>
@@ -887,41 +888,42 @@ Please confirm today's live rate and availability.`;
       </div>
 
       {/* 3. "You May Also Like" Row of 4 Cards */}
-      <section className="pt-8 border-t border-[#E2D8C9] space-y-6">
+      <section className="pt-12 border-t border-[#E2D8C9] space-y-8">
         <div>
-          <span className="text-[11px] uppercase tracking-widest text-[#8E6E24] font-semibold block">
+          <span className="label-kicker block text-[#7A5A12]">
             Curated Complements
           </span>
-          <h2 className="font-serif text-2xl sm:text-3xl text-[#1E1B18] font-normal mt-1">
+          <h2 className="font-serif text-2xl sm:text-3xl text-[#1A1410] font-normal mt-1 [text-wrap:balance]">
             You May Also Like
           </h2>
         </div>
 
         {relatedProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <StaggerGrid className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {relatedProducts.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                rates={rates}
-                onSelect={onSelectProduct}
-                onAddToCart={(prod) => onAddToCart(prod, 1)}
-              />
+              <StaggerItem key={p.id}>
+                <ProductCard
+                  product={p}
+                  rates={rates}
+                  onSelect={onSelectProduct}
+                  onAddToCart={(prod) => onAddToCart(prod, 1)}
+                />
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGrid>
         ) : (
-          <p className="text-xs text-[#64748B]">Explore our full jewellery catalogue for more handcrafted pieces.</p>
+          <p className="text-sm text-[#5C5046]">Explore our full jewellery catalogue for more handcrafted pieces.</p>
         )}
       </section>
 
       {/* 4. Mobile Sticky Bottom Bar (Appears after scrolling past main CTA) */}
       {isPastCta && (
-        <div className="fixed bottom-0 inset-x-0 bg-[#FAF7F2]/96 backdrop-blur-md border-t border-[#C9A54B]/30 p-3 sm:hidden z-30 flex items-center justify-between gap-3 shadow-xl animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-0 inset-x-0 bg-[#FBF8F2]/95 backdrop-blur-md border-t border-[#B8923A]/30 p-3.5 sm:hidden z-30 flex items-center justify-between gap-3 shadow-xl">
           <div className="min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-[#64748B] block truncate font-medium">
+            <span className="text-[10px] uppercase tracking-wider text-[#5C5046] block truncate font-medium">
               {product.title}
             </span>
-            <span className="font-serif text-base font-bold text-[#1E1B18] tabular-nums">
+            <span className="font-serif text-base font-bold text-[#1A1410] tabular-nums">
               {breakdown.formattedEstimate}
             </span>
           </div>
@@ -938,7 +940,7 @@ Please confirm today's live rate and availability.`;
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isRateMissing}
-                className="px-4 py-2.5 bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] text-white text-xs font-semibold uppercase tracking-wider rounded-xl shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="btn-primary-gold rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-wider shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
                 <span>Add to Bag</span>

@@ -50,6 +50,73 @@ export interface Product extends PricingProductInput {
   };
 }
 
+export interface ShowcaseTile {
+  id: string;
+  title: string;
+  subtitle: string;
+  target: 'bridal_sets' | 'bangles' | 'earrings' | 'necklaces' | 'rings' | 'silver' | string;
+  imageUrl?: string;
+  visible: boolean;
+  order: number;
+}
+
+export const DEFAULT_SHOWCASE_TILES: ShowcaseTile[] = [
+  {
+    id: 'bridal_sets',
+    title: 'Bridal Sets',
+    subtitle: 'Explore the collection',
+    target: 'bridal_sets',
+    imageUrl: '',
+    visible: true,
+    order: 1,
+  },
+  {
+    id: 'bangles',
+    title: 'Bangles & Karas',
+    subtitle: 'Explore the collection',
+    target: 'bangles',
+    imageUrl: '',
+    visible: true,
+    order: 2,
+  },
+  {
+    id: 'earrings',
+    title: 'Jhumkas & Balis',
+    subtitle: 'Explore the collection',
+    target: 'earrings',
+    imageUrl: '',
+    visible: true,
+    order: 3,
+  },
+  {
+    id: 'necklaces',
+    title: 'Necklaces',
+    subtitle: 'Explore the collection',
+    target: 'necklaces',
+    imageUrl: '',
+    visible: true,
+    order: 4,
+  },
+  {
+    id: 'rings',
+    title: 'Gold Rings',
+    subtitle: 'Explore the collection',
+    target: 'rings',
+    imageUrl: '',
+    visible: true,
+    order: 5,
+  },
+  {
+    id: 'silver',
+    title: 'Silver',
+    subtitle: 'Explore the collection',
+    target: 'silver',
+    imageUrl: '',
+    visible: true,
+    order: 6,
+  },
+];
+
 export interface StoreSettings {
   brandName: string;
   tagline: string;
@@ -59,6 +126,8 @@ export interface StoreSettings {
   address?: string;
   phone?: string;
   deliveryText?: string;
+  aboutPageImageUrl?: string;
+  showcaseTiles?: ShowcaseTile[];
   policies?: {
     estimateDisclaimer: string;
     hallmarkPolicy?: string;
@@ -89,6 +158,8 @@ let currentSettings: StoreSettings = {
     estimateDisclaimer:
       'Estimated price only. Final price will be confirmed on WhatsApp based on the latest rate.',
   },
+  showcaseTiles: DEFAULT_SHOWCASE_TILES,
+  aboutPageImageUrl: '',
 };
 
 // Live in-memory cache populated exclusively from Firestore
@@ -192,6 +263,14 @@ export function initFirestoreStore(): void {
           if (data.hoursText) currentSettings.storeHoursDescription = data.hoursText;
           if (data.address) currentSettings.address = data.address;
           if (data.deliveryText) currentSettings.deliveryText = data.deliveryText;
+          if (Array.isArray(data.showcaseTiles) && data.showcaseTiles.length > 0) {
+            currentSettings.showcaseTiles = data.showcaseTiles;
+          } else {
+            currentSettings.showcaseTiles = DEFAULT_SHOWCASE_TILES;
+          }
+          if (typeof data.aboutPageImageUrl === 'string') {
+            currentSettings.aboutPageImageUrl = data.aboutPageImageUrl;
+          }
           notifyStoreListeners();
         } else {
           currentRates = {
@@ -268,6 +347,24 @@ export function updateRates(newRates: Partial<BullionRates>): BullionRates {
 
 export function getSettings(): StoreSettings {
   return { ...currentSettings };
+}
+
+export function getShowcaseTiles(): ShowcaseTile[] {
+  return currentSettings.showcaseTiles && currentSettings.showcaseTiles.length > 0
+    ? [...currentSettings.showcaseTiles]
+    : [...DEFAULT_SHOWCASE_TILES];
+}
+
+/**
+ * Optimizes Cloudinary URLs for fast delivery in 4:5 showcase tiles:
+ * inserts f_auto,q_auto,w_600,c_fill,ar_4:5
+ */
+export function optimizeCloudinaryShowcase(url?: string): string {
+  if (!url) return '';
+  if (url.includes('/image/upload/') && !url.includes('f_auto')) {
+    return url.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_600,c_fill,ar_4:5/');
+  }
+  return url;
 }
 
 /**

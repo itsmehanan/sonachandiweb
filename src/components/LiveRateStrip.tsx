@@ -3,6 +3,8 @@ import { Sparkles } from 'lucide-react';
 import { BullionRates, formatPKR } from '../lib/pricing';
 import { getSettings, getStoreStatus } from '../data/store';
 
+import { useNumberCountUp } from './motion/MotionUtils';
+
 interface LiveRateStripProps {
   rates: BullionRates;
   onOpenCalculator: () => void;
@@ -11,6 +13,7 @@ interface LiveRateStripProps {
 export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalculator }) => {
   const settings = getSettings();
   const storeStatus = getStoreStatus();
+  const animated24kRate = useNumberCountUp(rates.gold24KPerTola, 600);
 
   const hasWhatsapp = Boolean(settings.whatsappNumber && settings.whatsappNumber.trim());
   const hasHours = Boolean(settings.storeHoursDescription && settings.storeHoursDescription.trim());
@@ -26,7 +29,7 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
           href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#E8CF8A] hover:text-white transition-colors font-medium underline-offset-2 hover:underline"
+          className="text-[#F1D98B] hover:text-white transition-colors font-medium underline-offset-2 hover:underline"
         >
           {settings.whatsappNumber}
         </a>
@@ -46,7 +49,7 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
   leftItems.push(
     <span
       key="status-badge"
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-[#201A15] border border-[#C9A54B]/30"
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-[#201A15] border border-[#C9A54B]/30"
       title={storeStatus.subtext}
     >
       <span
@@ -63,7 +66,7 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
 
   return (
     <div className="bg-[#12100E] border-b border-[#29221B] text-[#C9A54B] text-[11px] sm:text-xs py-1.5 px-4 select-none transition-colors">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-4">
+      <div className="max-w-[1280px] mx-auto px-0 sm:px-4 flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-4">
         {/* Left: WhatsApp, Hours, and Open/Closed status */}
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1">
           {leftItems.map((item, index) => (
@@ -83,14 +86,14 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
           <button
             type="button"
             onClick={onOpenCalculator}
-            className="inline-flex items-center gap-1.5 text-[#E8CF8A] hover:text-white transition-colors cursor-pointer group focus-visible:ring-1 focus-visible:ring-[#C9A54B] outline-hidden rounded px-1.5 py-0.5"
+            className="inline-flex items-center gap-1.5 text-[#F1D98B] hover:text-white transition-colors cursor-pointer group focus-visible:ring-1 focus-visible:ring-[#C9A54B] outline-hidden rounded px-2 py-0.5"
             title="Open Price Estimator & Live Bullion Rates"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#C9A54B] group-hover:scale-110 transition-transform" />
             <span className="font-medium underline-offset-2 group-hover:underline">Live Rates</span>
             {rates.gold24KPerTola > 0 && (
-              <span className="font-mono text-[11px] font-bold text-[#E8CF8A]/90 hidden md:inline">
-                (24K: {formatPKR(rates.gold24KPerTola)})
+              <span className="font-serif tabular-nums text-[11px] font-bold text-[#F1D98B]/90 hidden md:inline ml-1">
+                (24K: {formatPKR(animated24kRate)})
               </span>
             )}
           </button>
