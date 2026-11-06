@@ -11,8 +11,11 @@ import { BrandIntro } from './components/BrandIntro';
 import { CartDrawer, CartItem } from './components/CartDrawer';
 import { RateCalculatorModal } from './components/RateCalculatorModal';
 import { Footer } from './components/Footer';
-import { AdminPanel } from './components/admin/AdminPanel';
 import { AnimatedGoldBackground } from './components/AnimatedGoldBackground';
+
+const AdminPanel = React.lazy(() =>
+  import('./components/admin/AdminPanel').then((m) => ({ default: m.AdminPanel }))
+);
 
 import { HomePage } from './pages/HomePage';
 import { CataloguePage } from './pages/CataloguePage';
@@ -266,14 +269,25 @@ export default function App() {
   // If Admin View is active, render AdminPanel directly
   if (currentView === 'admin') {
     return (
-      <AdminPanel
-        onBackToStore={() => {
-          if (typeof window !== 'undefined') {
-            window.history.pushState({}, '', '/');
-          }
-          setCurrentView('home');
-        }}
-      />
+      <React.Suspense
+        fallback={
+          <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center p-6 text-center">
+            <div className="space-y-3">
+              <div className="w-10 h-10 border-2 border-[#C9A54B] border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="font-serif text-sm text-[#1E1B18]">Loading Staff Portal...</p>
+            </div>
+          </div>
+        }
+      >
+        <AdminPanel
+          onBackToStore={() => {
+            if (typeof window !== 'undefined') {
+              window.history.pushState({}, '', '/');
+            }
+            setCurrentView('home');
+          }}
+        />
+      </React.Suspense>
     );
   }
 

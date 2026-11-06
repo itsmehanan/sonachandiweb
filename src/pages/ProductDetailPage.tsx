@@ -493,15 +493,15 @@ Please confirm today's live rate and availability.`;
                 </h3>
                 <p className="text-sm text-[#475569] leading-relaxed whitespace-pre-line font-light">
                   {product.fullDescription || product.shortDescription ||
-                    'Each ornament in our collection is hand-finished in our Lahore workshops with careful attention to traditional Pakistani craftsmanship. We uphold strict zero-stone-deduction policies: every milligram is weighed honestly, and every karat ratio is calculated with mathematical precision from the live 24K bullion baseline.'}
+                    'Fine jewellery piece priced from live bullion rates with exact weight and karat specifications.'}
                 </p>
-                {product.specs.craftsmanship && (
+                {(settings.craftsmanshipText || product.specs.craftsmanship) && (
                   <div className="pt-2">
                     <span className="text-xs font-semibold uppercase tracking-wider text-[#8E6E24] block mb-1">
-                      Artisan Craftsmanship
+                      Craftsmanship &amp; Details
                     </span>
                     <p className="text-sm text-[#64748B]">
-                      {product.specs.craftsmanship}
+                      {settings.craftsmanshipText || product.specs.craftsmanship}
                     </p>
                   </div>
                 )}
@@ -572,20 +572,11 @@ Please confirm today's live rate and availability.`;
                     </span>
                   </div>
 
-                  {product.specs.hallmarkStamp && (
-                    <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
-                      <span className="text-[#64748B]">Hallmark Stamp:</span>
-                      <span className="font-semibold text-[#1E1B18]">
-                        {product.specs.hallmarkStamp}
-                      </span>
-                    </div>
-                  )}
-
-                  {product.specs.craftsmanship && (
+                  {(settings.craftsmanshipText || product.specs.craftsmanship) && (
                     <div className="sm:col-span-2 p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
                       <span className="text-[#64748B]">Craftsmanship:</span>
                       <span className="font-medium text-[#1E1B18]">
-                        {product.specs.craftsmanship}
+                        {settings.craftsmanshipText || product.specs.craftsmanship}
                       </span>
                     </div>
                   )}
@@ -754,10 +745,10 @@ Please confirm today's live rate and availability.`;
             {openAccordions.desc && (
               <div className="p-4 pt-1 text-xs text-[#475569] leading-relaxed border-t border-[#E2D8C9]/60">
                 {product.fullDescription || product.shortDescription ||
-                  'Each ornament in our collection is hand-finished in our Lahore workshops with careful attention to traditional Pakistani craftsmanship.'}
-                {product.specs.craftsmanship && (
+                  'Fine jewellery piece priced from live bullion rates with exact weight and karat specifications.'}
+                {(settings.craftsmanshipText || product.specs.craftsmanship) && (
                   <p className="mt-2 text-[#8E6E24] font-medium">
-                    {product.specs.craftsmanship}
+                    {settings.craftsmanshipText || product.specs.craftsmanship}
                   </p>
                 )}
               </div>
@@ -924,7 +915,7 @@ Please confirm today's live rate and availability.`;
               {product.title}
             </span>
             <span className="font-serif text-base font-bold text-[#1A1410] tabular-nums">
-              {breakdown.formattedEstimate}
+              {isRateMissing ? 'Rate unavailable' : breakdown.formattedEstimate}
             </span>
           </div>
 

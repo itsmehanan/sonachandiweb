@@ -43,7 +43,7 @@ export interface Product extends PricingProductInput {
   specs: {
     grossWeightGrams: number;
     purity: string;
-    hallmarkStamp: string;
+    hallmarkStamp?: string;
     craftsmanship: string;
     dimensionsOrSize?: string;
     occasion?: string;
@@ -127,6 +127,8 @@ export interface StoreSettings {
   phone?: string;
   deliveryText?: string;
   aboutPageImageUrl?: string;
+  aboutPageStory?: string;
+  craftsmanshipText?: string;
   showcaseTiles?: ShowcaseTile[];
   policies?: {
     estimateDisclaimer: string;
@@ -154,6 +156,8 @@ let currentSettings: StoreSettings = {
   address: '',
   phone: '',
   deliveryText: '',
+  aboutPageStory: '',
+  craftsmanshipText: '',
   policies: {
     estimateDisclaimer:
       'Estimated price only. Final price will be confirmed on WhatsApp based on the latest rate.',
@@ -217,9 +221,8 @@ function mapDocToProduct(docData: any, docId: string): Product {
     images: Array.isArray(docData.images) ? docData.images : [],
     specs: {
       grossWeightGrams: weightGrams,
-      purity: metal === 'gold' ? `${karat} Solid Gold` : '92.5% Solid Sterling Silver',
-      hallmarkStamp: metal === 'gold' ? `${karat} Laser Hallmark` : '925 Silver Hallmark',
-      craftsmanship: docData.craftsmanship || 'Handcrafted fine jewellery',
+      purity: metal === 'gold' ? `${karat} Gold` : '925 Silver',
+      craftsmanship: docData.craftsmanship || '',
       dimensionsOrSize: docData.dimensionsOrSize || '',
       occasion: docData.occasion || '',
     },
@@ -263,6 +266,12 @@ export function initFirestoreStore(): void {
           if (data.hoursText) currentSettings.storeHoursDescription = data.hoursText;
           if (data.address) currentSettings.address = data.address;
           if (data.deliveryText) currentSettings.deliveryText = data.deliveryText;
+          if (typeof data.aboutPageStory === 'string') {
+            currentSettings.aboutPageStory = data.aboutPageStory;
+          }
+          if (typeof data.craftsmanshipText === 'string') {
+            currentSettings.craftsmanshipText = data.craftsmanshipText;
+          }
           if (Array.isArray(data.showcaseTiles) && data.showcaseTiles.length > 0) {
             currentSettings.showcaseTiles = data.showcaseTiles;
           } else {

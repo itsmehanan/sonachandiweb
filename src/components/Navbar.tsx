@@ -219,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             aria-label="Sona & Chandi Gold Collection Home"
           >
             <img
-              src="/assets/aistudio/logo-light_b9e6ed91.png"
+              src="/assets/aistudio/logo-light.png"
               alt="Sona & Chandi Gold Collection"
               className={`w-auto object-contain transition-all duration-300 ease-out group-hover:scale-102 ${
                 isScrolled ? 'h-10 sm:h-12 lg:h-13' : 'h-12 sm:h-14 lg:h-16'
@@ -384,7 +384,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                     {/* Bottom Quick Link */}
                     <div className="mt-4 pt-3 border-t border-[#E2D8C9] flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-[#64748B]">Hallmarked &amp; Verified</span>
+                      <span className="text-[11px] text-[#64748B]">Priced from Live Rates</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -687,7 +687,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="p-4 sm:p-5 flex items-center justify-between border-b border-[#E2D8C9]">
                 <div className="flex items-center gap-2.5">
                   <img
-                    src="/assets/aistudio/logo-light_b9e6ed91.png"
+                    src="/assets/aistudio/logo-light.png"
                     alt="Sona & Chandi"
                     className="h-10 w-auto object-contain"
                   />
@@ -889,7 +889,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                             925 Pure Sterling Silver
                           </div>
                           <div className="text-[10px] text-[#64748B]">
-                            92.5% pure silver with hallmark stamp
+                            92.5% pure silver jewellery
                           </div>
                         </button>
                       </div>
@@ -941,7 +941,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       : 'text-[#1E1B18] hover:bg-white/80'
                   }`}
                 >
-                  About Heritage &amp; Hallmarking
+                  About Our Jewellery
                 </button>
 
                 {/* Contact */}

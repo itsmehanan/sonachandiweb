@@ -57,6 +57,8 @@ export interface StoreSettingsDoc {
   cloudinaryUploadPreset?: string;
   showcaseTiles?: ShowcaseTile[];
   aboutPageImageUrl?: string;
+  aboutPageStory?: string;
+  craftsmanshipText?: string;
   lastHistoryId?: string;
   lastGoldHistoryId?: string;
   lastSilverHistoryId?: string;
@@ -237,6 +239,8 @@ export async function updateStoreSettingsInfo(updates: {
   hoursText?: string;
   address?: string;
   deliveryText?: string;
+  aboutPageStory?: string;
+  craftsmanshipText?: string;
   cloudinaryCloudName?: string;
   cloudinaryUploadPreset?: string;
   showcaseTiles?: ShowcaseTile[];

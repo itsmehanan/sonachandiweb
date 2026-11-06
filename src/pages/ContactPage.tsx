@@ -181,18 +181,18 @@ export const ContactPage: React.FC = () => {
             </div>
           </StaggerItem>
 
-          {/* Policy 2: Hallmark Guarantee */}
+          {/* Policy 2: Purity & Bullion Standards */}
           <StaggerItem>
             <div className="h-full p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl space-y-3 shadow-sm hover:border-[#B8923A] transition-all">
               <div className="flex items-center gap-2.5 text-[#7A5A12]">
                 <ShieldCheck className="w-5 h-5 shrink-0" />
                 <h3 className="font-serif text-lg font-semibold text-[#1A1410]">
-                  Hallmark &amp; Purity Standards
+                  Purity &amp; Metal Standards
                 </h3>
               </div>
               <p className="text-xs sm:text-sm text-[#5C5046] leading-relaxed">
                 {settings.policies?.hallmarkPolicy ||
-                  'Every piece is crafted in certified 24K, 22K, 21K, 18K solid gold or 925 solid sterling silver with laser hallmark inspection.'}
+                  'Gold and silver jewellery priced from live market rates with exact karat and weight specifications.'}
               </p>
             </div>
           </StaggerItem>

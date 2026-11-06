@@ -159,7 +159,7 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-10 border-b border-[#292420]">
           <div className="space-y-3 max-w-md">
             <img
-              src="/assets/aistudio/logo-dark_226850da.png"
+              src="/assets/aistudio/logo-dark.png"
               alt="Sona & Chandi Gold Collection"
               className="h-16 w-auto object-contain drop-shadow-sm"
               referrerPolicy="no-referrer"
@@ -457,7 +457,7 @@ export const Footer: React.FC<FooterProps> = ({
               onClick={() => onNavigate('about')}
               className="footer-link hover:text-white transition-colors cursor-pointer"
             >
-              Artisan Heritage
+              About Us
             </button>
             <span aria-hidden="true" className="text-[#3A332C]">·</span>
             <button

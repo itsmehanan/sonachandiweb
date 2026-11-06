@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Scale, Award, HeartHandshake, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Scale, Award, HeartHandshake, CheckCircle2, Sparkles } from 'lucide-react';
 import { getSettings } from '../data/store';
 import { BullionRates } from '../lib/pricing';
 import {
@@ -23,85 +23,80 @@ export const AboutPage: React.FC<AboutPageProps> = ({
   const settings = getSettings();
   const [aboutImageError, setAboutImageError] = useState(false);
 
-  const displayAboutImage =
-    !aboutImageError && settings.aboutPageImageUrl
-      ? settings.aboutPageImageUrl
-      : '/assets/aistudio/intro-poster_d8a114e6.jpg';
+  const hasStory = Boolean(settings.aboutPageStory && settings.aboutPageStory.trim());
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-16 sm:py-28 space-y-20">
-      {/* Editorial Story Header */}
-      <SectionHeading
-        kicker="Our Heritage & Philosophy"
-        title="Crafting Legacies in Pure Gold & Silver"
-        subtitle="Fine jewellery embodying transcendent artisan beauty and absolute bullion transparency."
-      />
+      {/* Brand Story Section (hidden when empty) */}
+      {hasStory && (
+        <div className="space-y-12">
+          <SectionHeading
+            kicker="About Our Brand"
+            title="Our Story & Philosophy"
+            subtitle="Gold and silver jewellery priced transparently from live market rates."
+          />
 
-      {/* Heritage Story Split */}
-      <Reveal direction="up" delay={0.1}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl p-6 sm:p-12 shadow-sm">
-          <div className="space-y-6">
-            <div className="space-y-1">
-              <span className="label-kicker block text-[#7A5A12]">
-                Generational Artistry
-              </span>
-              <div className="w-12 h-0.5 bg-gradient-to-r from-[#B8923A] to-transparent mt-1" />
-            </div>
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[#1A1410] font-normal leading-snug [text-wrap:balance]">
-              Traditional Goldsmithing Heritage
-            </h2>
-            <p className="text-sm sm:text-base text-[#5C5046] font-normal leading-relaxed">
-              Every bridal choker, hammered kara, and traditional jhumka in our collection is forged
-              by generational masters whose lineages have adorned Pakistani bridal culture for decades.
-            </p>
-            <div className="border-t border-[#B8923A]/20 pt-4">
-              <p className="text-sm sm:text-base text-[#5C5046] font-normal leading-relaxed">
-                We preserve authentic techniques—from delicate filigree wire lace and kundan jadai to
-                modern diamond faceting—ensuring each heirloom withstands generations while retaining
-                its pristine luster.
-              </p>
-            </div>
+          <Reveal direction="up" delay={0.1}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl p-6 sm:p-12 shadow-sm">
+              <div className="space-y-6">
+                <div className="space-y-1">
+                  <span className="label-kicker block text-[#7A5A12]">
+                    About Sona &amp; Chandi
+                  </span>
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-[#B8923A] to-transparent mt-1" />
+                </div>
 
-            <div className="pt-2 flex flex-wrap gap-3 text-xs font-medium text-[#1A1410]">
-              <div className="flex items-center gap-2 bg-[#F3EAD7]/60 px-3.5 py-2 rounded-full border border-[#E2D8C9]">
-                <CheckCircle2 className="w-4 h-4 text-[#7A5A12]" />
-                <span>Full Weight Guaranteed</span>
-              </div>
-              <div className="flex items-center gap-2 bg-[#F3EAD7]/60 px-3.5 py-2 rounded-full border border-[#E2D8C9]">
-                <CheckCircle2 className="w-4 h-4 text-[#7A5A12]" />
-                <span>Zero Stone Deductions</span>
-              </div>
-              <div className="flex items-center gap-2 bg-[#F3EAD7]/60 px-3.5 py-2 rounded-full border border-[#E2D8C9]">
-                <CheckCircle2 className="w-4 h-4 text-[#7A5A12]" />
-                <span>Laser Hallmarked Purity</span>
-              </div>
-            </div>
-          </div>
+                <div className="text-sm sm:text-base text-[#5C5046] font-normal leading-relaxed whitespace-pre-line space-y-4">
+                  {settings.aboutPageStory}
+                </div>
 
-          {/* Refined Fixed Aspect Image with Offset Frame */}
-          <div className="relative mx-auto w-full max-w-md lg:max-w-none pt-2 sm:pt-4 pb-4 pr-3 sm:pr-4">
-            <div
-              className="absolute inset-0 translate-x-2.5 translate-y-2.5 sm:translate-x-3.5 sm:translate-y-3.5 rounded-[26px] border border-[#B8923A]/40 -z-10 pointer-events-none"
-              aria-hidden="true"
-            />
-            <div className="relative aspect-[4/3] lg:aspect-[4/5] rounded-[24px] overflow-hidden shadow-[0_20px_45px_-12px_rgba(184,146,58,0.22)] border border-[#E2D8C9] bg-[#F3EAD7] group">
-              <img
-                src={displayAboutImage}
-                alt="Artisanal Pakistani gold bridal necklace and traditional kundan jewellery craftsmanship"
-                loading="lazy"
-                onError={() => setAboutImageError(true)}
-                className="w-full h-full object-cover object-[center_28%] transition-transform duration-700 ease-out group-hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-70 pointer-events-none" />
-              <div className="absolute bottom-4 left-4 right-4 text-white text-[11px] font-mono tracking-wider opacity-90 drop-shadow-sm flex items-center justify-between">
-                <span>TRADITIONAL KUNDAN &amp; 22K GOLD</span>
-                <span>EST. LAHORE</span>
+                <div className="pt-2 flex flex-wrap gap-3 text-xs font-medium text-[#1A1410]">
+                  <div className="flex items-center gap-2 bg-[#F3EAD7]/60 px-3.5 py-2 rounded-full border border-[#E2D8C9]">
+                    <CheckCircle2 className="w-4 h-4 text-[#7A5A12]" />
+                    <span>Full Weight Guaranteed</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-[#F3EAD7]/60 px-3.5 py-2 rounded-full border border-[#E2D8C9]">
+                    <CheckCircle2 className="w-4 h-4 text-[#7A5A12]" />
+                    <span>Zero Hidden Wastage</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-[#F3EAD7]/60 px-3.5 py-2 rounded-full border border-[#E2D8C9]">
+                    <CheckCircle2 className="w-4 h-4 text-[#7A5A12]" />
+                    <span>Live-Rate Pricing</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Refined Fixed Aspect Image with Offset Frame */}
+              <div className="relative mx-auto w-full max-w-md lg:max-w-none pt-2 sm:pt-4 pb-4 pr-3 sm:pr-4">
+                <div
+                  className="absolute inset-0 translate-x-2.5 translate-y-2.5 sm:translate-x-3.5 sm:translate-y-3.5 rounded-[26px] border border-[#B8923A]/40 -z-10 pointer-events-none"
+                  aria-hidden="true"
+                />
+                <div className="relative aspect-[4/3] lg:aspect-[4/5] rounded-[24px] overflow-hidden shadow-[0_20px_45px_-12px_rgba(184,146,58,0.22)] border border-[#E2D8C9] bg-gradient-to-br from-[#FAF7F2] to-[#EFE7D8] group flex items-center justify-center">
+                  {settings.aboutPageImageUrl && !aboutImageError ? (
+                    <img
+                      src={settings.aboutPageImageUrl}
+                      alt="Sona & Chandi Gold Collection"
+                      loading="lazy"
+                      onError={() => setAboutImageError(true)}
+                      className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-[#FBF8F2] via-[#F3EAD7] to-[#E8DCBF]">
+                      <div className="w-16 h-16 rounded-full bg-white/70 border border-[#B8923A]/30 flex items-center justify-center text-[#7A5A12] shadow-xs mb-3">
+                        <Sparkles className="w-8 h-8" />
+                      </div>
+                      <span className="font-serif text-lg text-[#1A1410] font-semibold">Sona &amp; Chandi</span>
+                      <span className="text-xs text-[#7A5A12] mt-1 tracking-wider uppercase">Gold Collection</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
-      </Reveal>
+      )}
 
       {/* The 4 Transparency Pillars */}
       <div className="space-y-12">
@@ -152,7 +147,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
               </h3>
               <div className="w-8 h-px bg-[#B8923A]/40" />
               <p className="text-sm text-[#5C5046] font-normal leading-relaxed">
-                Calculated from official 24K rates: 22K is exactly 22/24ths, 21K is 21/24ths, and 18K is 18/24ths. Laser stamped on every piece.
+                Calculated strictly from 24K bullion without arbitrary markups: 22K is 22/24ths, 21K is 21/24ths, and 18K is 18/24ths.
               </p>
             </div>
           </StaggerItem>

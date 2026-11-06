@@ -186,10 +186,12 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
                   {matchingProducts.slice(0, 9).map((product) => {
                     const priceEstimate = calculateProductPrice(product, rates);
+                    const isRateMissing =
+                      product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0;
                     const imageSrc =
                       product.images && product.images.length > 0
                         ? product.images[0]
-                        : '/assets/aistudio/logo-light_b9e6ed91.png';
+                        : '/assets/aistudio/logo-light.png';
 
                     return (
                       <div
@@ -224,8 +226,8 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                           </div>
 
                           <div className="flex items-center justify-between text-xs pt-1">
-                            <span className="font-mono font-bold text-[#1E1B18]">
-                              {priceEstimate.formattedEstimate}
+                            <span className={`font-mono font-bold ${isRateMissing ? 'text-xs text-rose-700' : 'text-[#1E1B18]'}`}>
+                              {isRateMissing ? 'Rate unavailable' : priceEstimate.formattedEstimate}
                             </span>
                             {product.inStock ? (
                               <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.2 rounded">

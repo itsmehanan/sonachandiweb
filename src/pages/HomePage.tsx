@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowRight, Sparkles, Scale, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
@@ -56,6 +56,11 @@ const CuratedShowcaseCard: React.FC<CuratedShowcaseCardProps> = ({ tile, product
     }
     return '';
   }, [tile.imageUrl, tile.target, products]);
+
+  // Reset imageError state whenever the image URL changes
+  useEffect(() => {
+    setImageError(false);
+  }, [resolvedImageUrl]);
 
   const showPlaceholder = !resolvedImageUrl || imageError;
 
@@ -186,7 +191,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs font-medium text-[#4A3F35]">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-[#B8923A]" />
-                    <span>100% Laser Hallmarked</span>
+                    <span>Priced from Live Rates</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-[#B8923A]" />
@@ -306,7 +311,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <SectionHeading
             kicker="The Bullion Standard"
             title="Understanding Gold &amp; Silver Purity"
-            subtitle="We uphold strict legal hallmarking standards across all metals. Every estimate derives transparently from the 24K per tola benchmark rate."
+            subtitle="Gold and silver jewellery priced from live rates. Every estimate derives transparently from the 24K per tola benchmark rate."
           />
 
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
@@ -343,7 +348,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <h4 className="font-serif text-lg font-medium text-[#1A1410]">Royal Bridal Gold</h4>
                   <p className="text-xs text-[#4A3F35] font-light leading-relaxed">
-                    The Pakistani gold standard for bridal chokers, bangles, and family heirlooms (916 laser hallmark).
+                    The traditional gold standard for bridal chokers, bangles, and family heirlooms (91.6% pure gold).
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E2D8C9]/60 text-[11px] font-semibold text-[#7A5A12]">
@@ -364,7 +369,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <h4 className="font-serif text-lg font-medium text-[#1A1410]">Traditional Festive</h4>
                   <p className="text-xs text-[#4A3F35] font-light leading-relaxed">
-                    Ideal balance of radiant warmth and tensile resilience for intricate jhumkas and chandeliers (875 hallmark).
+                    Ideal balance of radiant warmth and tensile resilience for intricate jhumkas and chandeliers (87.5% pure gold).
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E2D8C9]/60 text-[11px] font-semibold text-[#7A5A12]">
@@ -385,7 +390,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <h4 className="font-serif text-lg font-medium text-[#1A1410]">Contemporary Fine</h4>
                   <p className="text-xs text-[#4A3F35] font-light leading-relaxed">
-                    Hardened alloy ideal for stone-set rings, delicate bracelets, and modern fine jewellery (750 hallmark).
+                    Hardened alloy ideal for stone-set rings, delicate bracelets, and modern fine jewellery (75.0% pure gold).
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E2D8C9]/60 text-[11px] font-semibold text-[#7A5A12]">
@@ -431,8 +436,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                   Prefer Direct Personal Consultation?
                 </h3>
                 <p className="text-sm text-[#4A3F35] max-w-xl font-light leading-relaxed">
-                  Chat directly with our master goldsmiths on WhatsApp. Send photos of custom designs,
-                  ask about live tola rates, or reserve ready pieces from our Lahore showroom.
+                  Chat directly with our team on WhatsApp. Send photos of custom designs,
+                  ask about live tola rates, or reserve ready pieces.
                 </p>
               </div>
               <WhatsAppButton

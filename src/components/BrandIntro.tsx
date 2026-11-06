@@ -419,7 +419,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
           }`}
         >
           <img
-            src="/assets/aistudio/logo-light_b9e6ed91.png"
+            src="/assets/aistudio/logo-light.png"
             alt="Sona & Chandi Gold Collection"
             className="h-16 sm:h-20 w-auto object-contain mx-auto mb-4 drop-shadow-xs"
             referrerPolicy="no-referrer"
@@ -438,7 +438,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
             Sona &amp; Chandi Gold Collection
           </h1>
           <p className="text-xs sm:text-sm text-[#64748B] max-w-md mx-auto font-light leading-relaxed mb-6">
-            Handcrafted Pakistani Fine Jewellery · Certified 24K, 22K, 21K, 18K &amp; 925 Sterling Silver
+            Handcrafted Pakistani Fine Jewellery · 24K, 22K, 21K, 18K Gold &amp; 925 Sterling Silver
           </p>
         </div>
 

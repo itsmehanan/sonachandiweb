@@ -38,10 +38,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   rates,
   onSelect,
+  onAddToCart,
 }) => {
   const settings = getSettings();
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  const isRateMissing =
+    product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0;
   const breakdown = calculateProductPrice(product, rates);
   const isOutOfStock = product.stock <= 0 || !product.inStock;
   const isNew = isProductNew(product);
@@ -162,10 +165,35 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Estimated Price in Large Serif, Tabular Numbers */}
         <div className="mt-3.5 pt-3 border-t border-[#E2D8C9]/70">
-          <div className="flex items-baseline justify-between">
-            <span className="font-serif tabular-nums text-lg sm:text-xl font-semibold text-[#1A1410] tracking-tight">
-              Est. {breakdown.formattedEstimate}
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`font-serif tabular-nums text-lg sm:text-xl font-semibold tracking-tight ${
+                isRateMissing
+                  ? 'text-xs text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200'
+                  : 'text-[#1A1410]'
+              }`}
+            >
+              {isRateMissing ? 'Rate unavailable' : `Est. ${breakdown.formattedEstimate}`}
             </span>
+
+            {onAddToCart && !isOutOfStock && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isRateMissing) onAddToCart(product);
+                }}
+                disabled={isRateMissing}
+                aria-label={`Add ${product.title} to bag`}
+                className={`text-[11px] font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full transition-all ${
+                  isRateMissing
+                    ? 'bg-[#EFEAE2] text-[#9E948A] cursor-not-allowed border border-[#E2D8C9]'
+                    : 'btn-primary-gold cursor-pointer shadow-xs active:scale-95'
+                }`}
+              >
+                Add
+              </button>
+            )}
           </div>
 
           {/* Out of Stock: Small green WhatsAppButton */}

@@ -262,13 +262,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                             {/* Line Estimated Price */}
                             <div className="text-right">
-                              <span className="font-serif font-bold text-sm text-[#1A1410] tabular-nums">
-                                {formatPKR(lineTotalEstimate)}
-                              </span>
-                              {quantity > 1 && (
-                                <span className="block text-[10px] text-[#5C5046] tabular-nums">
-                                  ({unitBreakdown.formattedEstimate} each)
+                              {product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0 ? (
+                                <span className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                                  Rate unavailable
                                 </span>
+                              ) : (
+                                <>
+                                  <span className="font-serif font-bold text-sm text-[#1A1410] tabular-nums">
+                                    {formatPKR(lineTotalEstimate)}
+                                  </span>
+                                  {quantity > 1 && (
+                                    <span className="block text-[10px] text-[#5C5046] tabular-nums">
+                                      ({unitBreakdown.formattedEstimate} each)
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
@@ -397,7 +405,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       Estimated Total:
                     </span>
                     <span className="font-serif text-2xl font-bold text-[#1A1410] tabular-nums">
-                      {summary.formattedTotal}
+                      {summary.items.some((i) =>
+                        i.product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0
+                      ) ? (
+                        <span className="text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded">
+                          Rate unavailable
+                        </span>
+                      ) : (
+                        summary.formattedTotal
+                      )}
                     </span>
                   </div>
 
@@ -421,6 +437,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 label="Order on WhatsApp"
                 size="lg"
                 fullWidth
+                disabled={summary.items.some((i) =>
+                  i.product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0
+                )}
               />
 
               <div className="flex items-center justify-between text-xs text-[#5C5046] px-1">

@@ -11,6 +11,7 @@ export interface WhatsAppButtonProps {
   target?: string;
   rel?: string;
   children?: React.ReactNode;
+  disabled?: boolean;
 }
 
 export const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
@@ -35,6 +36,7 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   target = '_blank',
   rel = 'noopener noreferrer',
   children,
+  disabled = false,
 }) => {
   const sizeClasses = {
     sm: 'px-3.5 py-2 text-xs min-h-[40px] sm:min-h-[44px]',
@@ -49,10 +51,14 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   };
 
   const baseStyles =
-    'wa-btn-pulse inline-flex items-center justify-center gap-2.5 font-semibold tracking-wide text-white bg-[#25D366] hover:bg-[#1EBE5A] rounded-full transition-all duration-200 shadow-md shadow-[#25D366]/30 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 outline-hidden cursor-pointer select-none';
+    'inline-flex items-center justify-center gap-2.5 font-semibold tracking-wide text-white bg-[#25D366] hover:bg-[#1EBE5A] rounded-full transition-all duration-200 shadow-md shadow-[#25D366]/30 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 outline-hidden';
+
+  const disabledStyles = disabled
+    ? 'opacity-50 cursor-not-allowed pointer-events-none shadow-none'
+    : 'wa-btn-pulse cursor-pointer select-none';
 
   const widthStyle = fullWidth ? 'w-full' : '';
-  const combinedClasses = `${baseStyles} ${sizeClasses[size]} ${widthStyle} ${className}`.trim();
+  const combinedClasses = `${baseStyles} ${disabledStyles} ${sizeClasses[size]} ${widthStyle} ${className}`.trim();
 
   const content = (
     <>
@@ -61,7 +67,7 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
     </>
   );
 
-  if (href) {
+  if (href && !disabled) {
     return (
       <a
         href={href}
@@ -79,7 +85,8 @@ export const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={combinedClasses}
       aria-label={ariaLabel || label || 'Chat on WhatsApp'}
     >

@@ -116,6 +116,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [inputAddress, setInputAddress] = useState('');
   const [inputHours, setInputHours] = useState('');
   const [inputDelivery, setInputDelivery] = useState('');
+  const [inputAboutStory, setInputAboutStory] = useState('');
+  const [inputCraftsmanship, setInputCraftsmanship] = useState('');
   const [inputCloudinaryCloudName, setInputCloudinaryCloudName] = useState('');
   const [inputCloudinaryUploadPreset, setInputCloudinaryUploadPreset] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -212,6 +214,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         if (data.address) setInputAddress(data.address);
         if (data.hoursText) setInputHours(data.hoursText);
         if (data.deliveryText) setInputDelivery(data.deliveryText);
+        if (data.aboutPageStory) setInputAboutStory(data.aboutPageStory);
+        if (data.craftsmanshipText) setInputCraftsmanship(data.craftsmanshipText);
         if (data.gold24kPerTola) setInputGold24k(data.gold24kPerTola);
         if (data.silverRate) setInputSilver(data.silverRate);
         if (data.silverUnit) setInputSilverUnit(data.silverUnit);
@@ -341,6 +345,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         address: inputAddress.trim(),
         hoursText: inputHours.trim(),
         deliveryText: inputDelivery.trim(),
+        aboutPageStory: inputAboutStory.trim(),
+        craftsmanshipText: inputCraftsmanship.trim(),
         cloudinaryCloudName: inputCloudinaryCloudName.trim(),
         cloudinaryUploadPreset: inputCloudinaryUploadPreset.trim(),
       });
@@ -679,7 +685,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2] p-4">
         <div className="w-full max-w-md bg-white border border-[#E2D8C9] rounded-2xl p-8 shadow-xl text-center space-y-6">
           <img
-            src="/assets/aistudio/logo-light_b9e6ed91.png"
+            src="/assets/aistudio/logo-light.png"
             alt="Sona & Chandi Gold Collection"
             className="h-16 w-auto mx-auto object-contain"
           />
@@ -780,7 +786,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
             </button>
             <div className="flex items-center gap-2.5">
               <img
-                src="/assets/aistudio/logo-light_b9e6ed91.png"
+                src="/assets/aistudio/logo-light.png"
                 alt="Sona & Chandi"
                 className="h-8 w-auto object-contain"
               />
@@ -1843,7 +1849,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                     <input
                       type="text"
                       value={inputAddress}
-                      placeholder="e.g. Suite 4-B, Gold Souk, Lahore (Leave empty to show neutral 'Contact us on WhatsApp')"
+                      placeholder="e.g. Shop 12, Main Commercial Market (Leave empty to show neutral 'Contact us on WhatsApp')"
                       onChange={(e) => setInputAddress(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
                     />
@@ -1877,6 +1883,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       className="w-full pl-9 pr-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#64748B] mb-1">About Page Story Description (Optional)</label>
+                  <textarea
+                    rows={3}
+                    value={inputAboutStory}
+                    placeholder="Enter your custom brand story and philosophy. When left blank, this section is hidden on the About page."
+                    onChange={(e) => setInputAboutStory(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                  />
+                  <span className="text-[11px] text-[#64748B] mt-0.5 block">
+                    Empty by default. If left blank, the story section on the About page is automatically hidden.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#64748B] mb-1">Craftsmanship &amp; Workshop Description (Optional)</label>
+                  <textarea
+                    rows={3}
+                    value={inputCraftsmanship}
+                    placeholder="Enter details on craftsmanship, finishing, or jewellery techniques. When left blank, this section is hidden on product pages."
+                    onChange={(e) => setInputCraftsmanship(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                  />
+                  <span className="text-[11px] text-[#64748B] mt-0.5 block">
+                    Empty by default. If left blank, craftsmanship claims are hidden across product details.
+                  </span>
                 </div>
 
                 {/* Cloudinary Integration Settings */}
@@ -2239,17 +2273,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                   <div className="flex flex-col sm:flex-row items-start gap-5">
                     <div className="shrink-0 w-32 sm:w-36">
                       <div className="aspect-[4/5] rounded-lg overflow-hidden border border-[#E2D8C9] bg-[#EAE2D5] shadow-xs relative">
-                        <img
-                          src={aboutPageImageUrl || '/assets/aistudio/intro-poster_d8a114e6.jpg'}
-                          alt="About Page Portrait"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = '/assets/aistudio/intro-poster_d8a114e6.jpg';
-                          }}
-                        />
+                        {aboutPageImageUrl ? (
+                          <img
+                            src={aboutPageImageUrl}
+                            alt="About Page Portrait"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-[#FAF7F2] to-[#EFE7D8] flex flex-col items-center justify-center p-3 text-center">
+                            <Sparkles className="w-6 h-6 text-[#C9A54B]/60 mb-1" />
+                            <span className="text-[10px] text-[#8E6E24] font-serif">Neutral Placeholder</span>
+                          </div>
+                        )}
                       </div>
                       <span className="text-[10px] text-center text-[#64748B] block mt-1">
-                        {aboutPageImageUrl ? 'Custom Uploaded' : 'Default Asset'}
+                        {aboutPageImageUrl ? 'Custom Uploaded' : 'Neutral Placeholder'}
                       </span>
                     </div>
 
