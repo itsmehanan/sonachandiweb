@@ -144,7 +144,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 • Metal & Purity: ${metalLabel}
 • Weight: ${product.weightGrams}g (~${tolaInfo.formattedTola})
 • Quantity: ${quantity}
-• Estimated Total: ${breakdown.formattedEstimate}
+• Estimated Total: ${isRateMissing ? 'Rate unavailable' : breakdown.formattedEstimate}
 
 Please confirm today's live rate and availability.`;
 
@@ -615,7 +615,13 @@ Please confirm today's live rate and availability.`;
                       </span>
                     </div>
                     <span className="font-mono font-bold text-sm text-[#1E1B18]">
-                      {formatPKR(breakdown.baseMetalPrice)}
+                      {isRateMissing ? (
+                        <span className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                          Rate unavailable
+                        </span>
+                      ) : (
+                        formatPKR(breakdown.baseMetalPrice)
+                      )}
                     </span>
                   </div>
 
@@ -628,7 +634,7 @@ Please confirm today's live rate and availability.`;
                       <span className="text-[11px] text-[#64748B]">
                         {breakdown.makingChargeType === 'per_gram'
                           ? `${product.weightGrams}g × ${formatPKR(product.makingCharge.amount)}/g`
-                          : 'Standard artisan bench fee'}
+                          : 'Standard bench fee'}
                       </span>
                     </div>
                     <span className="font-mono font-bold text-sm text-[#1E1B18]">
@@ -647,7 +653,13 @@ Please confirm today's live rate and availability.`;
                       </span>
                     </div>
                     <span className="font-serif text-2xl font-bold text-[#8E6E24] tabular-nums">
-                      {breakdown.formattedEstimate}
+                      {isRateMissing ? (
+                        <span className="text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded">
+                          Rate unavailable
+                        </span>
+                      ) : (
+                        breakdown.formattedEstimate
+                      )}
                     </span>
                   </div>
                 </div>
@@ -828,7 +840,13 @@ Please confirm today's live rate and availability.`;
                 <div className="flex justify-between">
                   <span className="text-[#64748B]">Metal Value ({product.weightGrams}g):</span>
                   <span className="font-mono font-bold text-[#1E1B18]">
-                    {formatPKR(breakdown.baseMetalPrice)}
+                    {isRateMissing ? (
+                      <span className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                        Rate unavailable
+                      </span>
+                    ) : (
+                      formatPKR(breakdown.baseMetalPrice)
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -840,7 +858,13 @@ Please confirm today's live rate and availability.`;
                 <div className="flex justify-between pt-2 border-t border-[#E2D8C9] font-bold text-sm">
                   <span>Estimated Total:</span>
                   <span className="font-serif text-base text-[#8E6E24]">
-                    {breakdown.formattedEstimate}
+                    {isRateMissing ? (
+                      <span className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                        Rate unavailable
+                      </span>
+                    ) : (
+                      breakdown.formattedEstimate
+                    )}
                   </span>
                 </div>
               </div>
@@ -903,7 +927,7 @@ Please confirm today's live rate and availability.`;
             ))}
           </StaggerGrid>
         ) : (
-          <p className="text-sm text-[#5C5046]">Explore our full jewellery catalogue for more handcrafted pieces.</p>
+          <p className="text-sm text-[#5C5046]">Explore our full jewellery catalogue for more gold and silver pieces.</p>
         )}
       </section>
 

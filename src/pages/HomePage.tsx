@@ -156,7 +156,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
               <Reveal delay={0.2}>
                 <p className="text-base text-[#4A3F35] font-light max-w-xl mx-auto lg:mx-0 leading-[1.65]">
-                  Handcrafted Pakistani bridal chokers, engraved 22K karas, and solid 925 sterling
+                  Pakistani bridal chokers, 22K karas, and solid 925 sterling
                   silver. Transparent bullion pricing calculated directly from live market rates.
                 </p>
               </Reveal>
@@ -241,8 +241,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-16 sm:py-28">
           <SectionHeading
             kicker="Curated Collections"
-            title="Handcrafted For Every Occasion"
-            subtitle="Select a category to browse authentic weights, karats, and timeless artisan designs."
+            title="Collections For Every Occasion"
+            subtitle="Select a category to browse authentic weights, karats, and jewellery designs."
           />
 
           <StaggerGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">

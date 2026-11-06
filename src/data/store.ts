@@ -439,6 +439,8 @@ export function getStoreStatus(): {
 
 /**
  * Save Enquiry to Firestore
+ * Security rules enforce: customerName, customerPhone, fulfilment, status, notes, rateSnapshot, estimatedTotal, items, createdAt
+ * Any undefined or empty string key is strictly omitted before addDoc.
  */
 export async function logWhatsAppEnquiry(enquiry: {
   customerName?: string;
@@ -454,14 +456,52 @@ export async function logWhatsAppEnquiry(enquiry: {
     weightG: number;
     estimate: number;
   }>;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
-    await addDoc(collection(db, 'enquiries'), {
-      ...enquiry,
+    const raw: Record<string, any> = {
+      customerName: enquiry.customerName?.trim() ? enquiry.customerName.trim().slice(0, 100) : undefined,
+      customerPhone: enquiry.customerPhone?.trim() ? enquiry.customerPhone.trim().slice(0, 50) : undefined,
+      fulfilment: enquiry.fulfilment === 'pickup' ? 'pickup' : 'courier',
       status: 'new',
+      notes: enquiry.notes?.trim() ? enquiry.notes.trim().slice(0, 1000) : undefined,
+      rateSnapshot: enquiry.rateSnapshot,
+      estimatedTotal: Math.max(0, Number(enquiry.estimatedTotal) || 0),
+      items: Array.isArray(enquiry.items)
+        ? enquiry.items.slice(0, 50).map((it) => ({
+            sku: String(it.sku || '').slice(0, 50),
+            name: String(it.name || '').slice(0, 100),
+            qty: Math.max(1, Math.floor(Number(it.qty) || 1)),
+            weightG: Math.max(0, Number(it.weightG) || 0),
+            estimate: Math.max(0, Number(it.estimate) || 0),
+          }))
+        : [],
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    const allowedKeys = [
+      'customerName',
+      'customerPhone',
+      'fulfilment',
+      'status',
+      'notes',
+      'rateSnapshot',
+      'estimatedTotal',
+      'items',
+      'createdAt',
+    ] as const;
+
+    const cleanPayload: Record<string, any> = {};
+    for (const key of allowedKeys) {
+      const val = raw[key];
+      if (val !== undefined && val !== null && val !== '') {
+        cleanPayload[key] = val;
+      }
+    }
+
+    await addDoc(collection(db, 'enquiries'), cleanPayload);
+    return true;
   } catch (error) {
     console.warn('Enquiry background logging note (will still open WhatsApp):', error);
+    return false;
   }
 }

@@ -231,6 +231,16 @@ export async function fetchStoreSettingsAdmin(): Promise<StoreSettingsDoc | null
   }
 }
 
+function stripUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  const result: any = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined) {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
 /**
  * Update General Store Settings (e.g. whatsappNumber, address, hoursText, deliveryText)
  */
@@ -247,7 +257,8 @@ export async function updateStoreSettingsInfo(updates: {
   aboutPageImageUrl?: string;
 }): Promise<void> {
   try {
-    await setDoc(doc(db, 'settings', 'store'), updates, { merge: true });
+    const cleanUpdates = stripUndefined(updates);
+    await setDoc(doc(db, 'settings', 'store'), cleanUpdates, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, 'settings/store');
   }
@@ -375,8 +386,8 @@ export async function updateEnquiryStatus(
       status,
       updatedAt: new Date().toISOString(),
     };
-    if (notes !== undefined) {
-      updateData.notes = notes;
+    if (notes !== undefined && notes !== null && notes.trim() !== '') {
+      updateData.notes = notes.trim().slice(0, 1000);
     }
     await updateDoc(doc(db, 'enquiries', enquiryId), updateData);
   } catch (error) {

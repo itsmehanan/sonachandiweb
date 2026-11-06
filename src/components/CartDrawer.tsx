@@ -9,6 +9,7 @@ import {
   Info,
   Scale,
   Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   BullionRates,
@@ -60,6 +61,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     settings.address || 'Showroom Pickup (Arranged via WhatsApp)'
   );
   const [orderNotes, setOrderNotes] = useState('');
+  const [savedForTeam, setSavedForTeam] = useState(false);
 
   if (!isOpen) return null;
 
@@ -82,13 +84,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   const handleWhatsAppOrder = () => {
+    // 1. Generate WhatsApp URL and open immediately without blocking
     const url = getWhatsAppOrderUrl(summary, fulfillment, settings.whatsappNumber);
+    window.open(url, '_blank', 'noopener,noreferrer');
 
+    // 2. Put city, address, pickup location inside notes (max 1000 chars) for Firestore enquiry compliance
+    const noteParts: string[] = [];
+    if (fulfillmentMethod === 'courier') {
+      if (city.trim()) noteParts.push(`City: ${city.trim()}`);
+      if (deliveryAddress.trim()) noteParts.push(`Address: ${deliveryAddress.trim()}`);
+    } else {
+      if (pickupLocation) noteParts.push(`Pickup: ${pickupLocation}`);
+    }
+    if (orderNotes.trim()) {
+      noteParts.push(`Notes: ${orderNotes.trim()}`);
+    }
+    const combinedNotes = noteParts.join(' | ').slice(0, 1000);
+
+    // 3. Log enquiry to Firestore in background; show confirmation only if saving succeeded
     logWhatsAppEnquiry({
       customerName: customerName.trim() || undefined,
       customerPhone: customerPhone.trim() || undefined,
       fulfilment: fulfillmentMethod,
-      notes: orderNotes.trim() || undefined,
+      notes: combinedNotes || undefined,
       rateSnapshot: rates,
       estimatedTotal: summary.totalEstimate,
       items: summary.items.map((i) => ({
@@ -98,9 +116,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         weightG: i.product.weightGrams,
         estimate: i.lineTotalEstimate,
       })),
-    }).catch(() => {});
-
-    window.open(url, '_blank', 'noopener,noreferrer');
+    })
+      .then((success) => {
+        if (success) {
+          setSavedForTeam(true);
+        }
+      })
+      .catch(() => {});
   };
 
   return (
@@ -150,7 +172,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   Your bag is currently empty
                 </h3>
                 <p className="text-xs text-[#5C5046] max-w-xs mx-auto">
-                  Browse our handcrafted Pakistani gold and 925 silver collection to start an inquiry.
+                  Browse our Pakistani gold and 925 silver collection to start an inquiry.
                 </p>
                 <button
                   onClick={() => {
@@ -441,6 +463,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   i.product.metal === 'gold' ? rates.gold24KPerTola <= 0 : rates.silverRate <= 0
                 )}
               />
+
+              {savedForTeam && (
+                <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 py-1.5 px-3 rounded-lg animate-in fade-in duration-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Saved for our team</span>
+                </div>
+              )}
 
               <div className="flex items-center justify-between text-xs text-[#5C5046] px-1">
                 <span>No online payment required</span>

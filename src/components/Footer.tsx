@@ -166,7 +166,7 @@ export const Footer: React.FC<FooterProps> = ({
             />
             <p className="text-xs text-[#A89F91] leading-relaxed font-light">
               Karat and silver purity are stated per product (24K, 22K, 21K, 18K gold and 925
-              sterling silver). Handcrafted Pakistani jewellery and transparent daily bullion
+              sterling silver). Gold and silver jewellery priced from live rates with transparent daily bullion
               calculations.
             </p>
           </div>
@@ -316,7 +316,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onClick={() => onNavigate('about')}
                     className="footer-link hover:text-[#C9A54B] cursor-pointer text-left"
                   >
-                    About Heritage &amp; Artisans
+                    About Our Jewellery
                   </button>
                 </li>
                 <li>

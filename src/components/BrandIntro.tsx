@@ -438,7 +438,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
             Sona &amp; Chandi Gold Collection
           </h1>
           <p className="text-xs sm:text-sm text-[#64748B] max-w-md mx-auto font-light leading-relaxed mb-6">
-            Handcrafted Pakistani Fine Jewellery · 24K, 22K, 21K, 18K Gold &amp; 925 Sterling Silver
+            Gold and silver jewellery priced from live rates · 24K, 22K, 21K, 18K Gold &amp; 925 Sterling Silver
           </p>
         </div>
 

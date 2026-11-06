@@ -268,7 +268,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
       ? [
           { id: '24K', label: '24K Solid Gold (99.9%)' },
           { id: '22K', label: '22K Traditional (91.6%)' },
-          { id: '21K', label: '21K Handcrafted (87.5%)' },
+          { id: '21K', label: '21K (87.5%)' },
           { id: '18K', label: '18K Contemporary (75.0%)' },
         ]
       : []),

@@ -2298,7 +2298,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       <div>
                         <h4 className="font-serif text-sm font-semibold text-[#1E1B18]">Brand Heritage Photograph</h4>
                         <p className="text-[#64748B] text-[11px] mt-0.5 leading-relaxed">
-                          This photo introduces your workshop, artisans, or showroom heritage to clients reading the About Sona &amp; Chandi story.
+                          This photo introduces your workshop or showroom to clients reading the About Sona &amp; Chandi story.
                         </p>
                       </div>
 
