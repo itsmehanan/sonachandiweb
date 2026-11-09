@@ -59,6 +59,8 @@ export interface StoreSettingsDoc {
   aboutPageImageUrl?: string;
   aboutPageStory?: string;
   craftsmanshipText?: string;
+  familyLineEn?: string;
+  familyLineUr?: string;
   lastHistoryId?: string;
   lastGoldHistoryId?: string;
   lastSilverHistoryId?: string;
@@ -255,6 +257,8 @@ export async function updateStoreSettingsInfo(updates: {
   cloudinaryUploadPreset?: string;
   showcaseTiles?: ShowcaseTile[];
   aboutPageImageUrl?: string;
+  familyLineEn?: string;
+  familyLineUr?: string;
 }): Promise<void> {
   try {
     const cleanUpdates = stripUndefined(updates);

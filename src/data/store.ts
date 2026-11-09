@@ -1,5 +1,5 @@
 /**
- * Sona & Chandi Gold Collection - Centralized Data Store (Connected to Cloud Firestore)
+ * Sona Chandi Gold Collection - Centralized Data Store (Connected to Cloud Firestore)
  *
  * Clean production store with zero fake sample data.
  * All products and settings are read in real-time from Firestore.
@@ -129,6 +129,8 @@ export interface StoreSettings {
   aboutPageImageUrl?: string;
   aboutPageStory?: string;
   craftsmanshipText?: string;
+  familyLineEn?: string;
+  familyLineUr?: string;
   showcaseTiles?: ShowcaseTile[];
   policies?: {
     estimateDisclaimer: string;
@@ -148,7 +150,7 @@ let currentRates: BullionRates = {
 
 // Initial store settings with neutral placeholders only
 let currentSettings: StoreSettings = {
-  brandName: 'Sona & Chandi Gold Collection',
+  brandName: 'Sona Chandi Gold Collection',
   tagline: 'Timeless Pakistani Fine Jewellery',
   whatsappNumber: '923109412332',
   currency: 'PKR',
@@ -158,6 +160,8 @@ let currentSettings: StoreSettings = {
   deliveryText: '',
   aboutPageStory: '',
   craftsmanshipText: '',
+  familyLineEn: 'Imtiyaz & Sons',
+  familyLineUr: 'امتیاز اینڈ سنز',
   policies: {
     estimateDisclaimer:
       'Estimated price only. Final price will be confirmed on WhatsApp based on the latest rate.',
@@ -279,6 +283,12 @@ export function initFirestoreStore(): void {
           }
           if (typeof data.aboutPageImageUrl === 'string') {
             currentSettings.aboutPageImageUrl = data.aboutPageImageUrl;
+          }
+          if (typeof data.familyLineEn === 'string') {
+            currentSettings.familyLineEn = data.familyLineEn;
+          }
+          if (typeof data.familyLineUr === 'string') {
+            currentSettings.familyLineUr = data.familyLineUr;
           }
           notifyStoreListeners();
         } else {

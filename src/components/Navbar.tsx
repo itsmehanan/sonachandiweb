@@ -14,6 +14,7 @@ import { BullionRates, formatPKR } from '../lib/pricing';
 import { getSettings, getStoreStatus, Product } from '../data/store';
 import { WhatsAppButton } from './WhatsAppButton';
 import { SearchOverlay } from './SearchOverlay';
+import { FamilyBrandLine } from './FamilyBrandLine';
 
 export interface NavigateOptions {
   metal?: 'all' | 'gold' | 'silver';
@@ -196,7 +197,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const whatsappHref = settings.whatsappNumber
     ? `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-        'Hello Sona & Chandi Gold Collection, I would like to inquire about your jewellery.'
+        'Hello Sona Chandi Gold Collection, I would like to inquire about your jewellery.'
       )}`
     : undefined;
 
@@ -216,11 +217,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => handleNav('home')}
             className="flex items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded-lg outline-hidden group shrink-0 cursor-pointer"
-            aria-label="Sona & Chandi Gold Collection Home"
+            aria-label="Sona Chandi Gold Collection Home"
           >
             <img
               src="/assets/aistudio/logo-light.png"
-              alt="Sona & Chandi Gold Collection"
+              alt="Sona Chandi Gold Collection"
               className={`w-auto object-contain transition-all duration-300 ease-out group-hover:scale-102 ${
                 isScrolled ? 'h-10 sm:h-12 lg:h-13' : 'h-12 sm:h-14 lg:h-16'
               }`}
@@ -228,11 +229,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             />
             <div className="hidden min-[480px]:block">
               <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-[#1A1410] block leading-tight">
-                Sona &amp; Chandi
+                Sona Chandi
               </span>
               <span className="text-[10px] sm:text-[11px] tracking-widest uppercase text-[#7A5A12] font-semibold block">
                 Gold Collection
               </span>
+              <FamilyBrandLine isHeader settings={settings} className="mt-0.5" />
             </div>
           </button>
 
@@ -688,16 +690,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center gap-2.5">
                   <img
                     src="/assets/aistudio/logo-light.png"
-                    alt="Sona & Chandi"
+                    alt="Sona Chandi"
                     className="h-10 w-auto object-contain"
                   />
                   <div>
                     <span className="font-serif text-base font-bold text-[#1E1B18] block leading-tight">
-                      Sona &amp; Chandi
+                      Sona Chandi
                     </span>
                     <span className="text-[10px] uppercase tracking-wider text-[#8E6E24] font-medium block">
                       Gold Collection
                     </span>
+                    <FamilyBrandLine isHeader settings={settings} className="mt-0.5" />
                   </div>
                 </div>
 

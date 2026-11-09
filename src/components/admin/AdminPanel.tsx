@@ -118,6 +118,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [inputDelivery, setInputDelivery] = useState('');
   const [inputAboutStory, setInputAboutStory] = useState('');
   const [inputCraftsmanship, setInputCraftsmanship] = useState('');
+  const [inputFamilyLineEn, setInputFamilyLineEn] = useState('Imtiyaz & Sons');
+  const [inputFamilyLineUr, setInputFamilyLineUr] = useState('امتیاز اینڈ سنز');
   const [inputCloudinaryCloudName, setInputCloudinaryCloudName] = useState('');
   const [inputCloudinaryUploadPreset, setInputCloudinaryUploadPreset] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -216,6 +218,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         if (data.deliveryText) setInputDelivery(data.deliveryText);
         if (data.aboutPageStory) setInputAboutStory(data.aboutPageStory);
         if (data.craftsmanshipText) setInputCraftsmanship(data.craftsmanshipText);
+        if (data.familyLineEn !== undefined) setInputFamilyLineEn(data.familyLineEn);
+        if (data.familyLineUr !== undefined) setInputFamilyLineUr(data.familyLineUr);
         if (data.gold24kPerTola) setInputGold24k(data.gold24kPerTola);
         if (data.silverRate) setInputSilver(data.silverRate);
         if (data.silverUnit) setInputSilverUnit(data.silverUnit);
@@ -349,6 +353,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         craftsmanshipText: inputCraftsmanship.trim(),
         cloudinaryCloudName: inputCloudinaryCloudName.trim(),
         cloudinaryUploadPreset: inputCloudinaryUploadPreset.trim(),
+        familyLineEn: inputFamilyLineEn.trim(),
+        familyLineUr: inputFamilyLineUr.trim(),
       });
       setSettingsFeedback('✓ Store settings updated successfully!');
       setTimeout(() => setSettingsFeedback(null), 4000);
@@ -686,7 +692,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         <div className="w-full max-w-md bg-white border border-[#E2D8C9] rounded-2xl p-8 shadow-xl text-center space-y-6">
           <img
             src="/assets/aistudio/logo-light.png"
-            alt="Sona & Chandi Gold Collection"
+            alt="Sona Chandi Gold Collection"
             className="h-16 w-auto mx-auto object-contain"
           />
 
@@ -787,7 +793,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
             <div className="flex items-center gap-2.5">
               <img
                 src="/assets/aistudio/logo-light.png"
-                alt="Sona & Chandi"
+                alt="Sona Chandi"
                 className="h-8 w-auto object-contain"
               />
               <span className="font-serif font-bold text-base text-[#1E1B18] hidden sm:inline">
@@ -1913,6 +1919,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                   </span>
                 </div>
 
+                {/* Family / Owner Line Configuration */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl">
+                  <div className="sm:col-span-2">
+                    <h4 className="font-serif text-sm font-semibold text-[#1E1B18]">Family / Lineage Subtitle</h4>
+                    <p className="text-[11px] text-[#64748B] mt-0.5">
+                      Displayed directly beneath the brand name in the header, intro screen, footer, and About page. Leave both blank to hide this line.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#64748B] mb-1">Family / owner line (English)</label>
+                    <input
+                      type="text"
+                      value={inputFamilyLineEn}
+                      placeholder="Imtiyaz & Sons"
+                      onChange={(e) => setInputFamilyLineEn(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                    />
+                    <span className="text-[10px] text-[#64748B] mt-0.5 block">Default: Imtiyaz &amp; Sons</span>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#64748B] mb-1">Family / owner line (Urdu)</label>
+                    <input
+                      type="text"
+                      dir="rtl"
+                      lang="ur"
+                      value={inputFamilyLineUr}
+                      placeholder="امتیاز اینڈ سنز"
+                      onChange={(e) => setInputFamilyLineUr(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-[#E2D8C9] rounded-md text-[#1E1B18] text-right"
+                    />
+                    <span className="text-[10px] text-[#64748B] mt-0.5 block">Default: امتیاز اینڈ سنز</span>
+                  </div>
+                </div>
+
                 {/* Cloudinary Integration Settings */}
                 <div className="p-4 bg-[#FAF7F2] border border-[#E2D8C9] rounded-xl space-y-3">
                   <div>
@@ -2265,7 +2305,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                 <div>
                   <h3 className="font-serif text-lg font-bold text-[#1E1B18]">About Page Feature Portrait</h3>
                   <p className="text-xs text-[#64748B]">
-                    The primary portrait photo displayed on the "About Sona &amp; Chandi" brand story page.
+                    The primary portrait photo displayed on the "About Sona Chandi" brand story page.
                   </p>
                 </div>
 
@@ -2298,7 +2338,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       <div>
                         <h4 className="font-serif text-sm font-semibold text-[#1E1B18]">Brand Heritage Photograph</h4>
                         <p className="text-[#64748B] text-[11px] mt-0.5 leading-relaxed">
-                          This photo introduces your workshop or showroom to clients reading the About Sona &amp; Chandi story.
+                          This photo introduces your workshop or showroom to clients reading the About Sona Chandi story.
                         </p>
                       </div>
 

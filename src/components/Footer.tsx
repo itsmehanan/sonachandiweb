@@ -13,6 +13,7 @@ import {
 import { getSettings, getStoreStatus } from '../data/store';
 import { BullionRates, formatPKR } from '../lib/pricing';
 import { WhatsAppButton } from './WhatsAppButton';
+import { FamilyBrandLine } from './FamilyBrandLine';
 
 interface FooterProps {
   rates: BullionRates;
@@ -160,10 +161,11 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="space-y-3 max-w-md">
             <img
               src="/assets/aistudio/logo-dark.png"
-              alt="Sona & Chandi Gold Collection"
+              alt="Sona Chandi Gold Collection"
               className="h-16 w-auto object-contain drop-shadow-sm"
               referrerPolicy="no-referrer"
             />
+            <FamilyBrandLine variant="dark" settings={settings} />
             <p className="text-xs text-[#A89F91] leading-relaxed font-light">
               Karat and silver purity are stated per product (24K, 22K, 21K, 18K gold and 925
               sterling silver). Gold and silver jewellery priced from live rates with transparent daily bullion
@@ -450,7 +452,15 @@ export const Footer: React.FC<FooterProps> = ({
 
         {/* Bottom Bar: Copyright & Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8A8174]">
-          <p>© {new Date().getFullYear()} Sona &amp; Chandi Gold Collection. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} Sona Chandi Gold Collection
+            {settings.familyLineEn !== undefined
+              ? settings.familyLineEn.trim()
+                ? ` | ${settings.familyLineEn.trim()}`
+                : ''
+              : ' | Imtiyaz & Sons'}
+            . All rights reserved.
+          </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <button

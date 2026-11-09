@@ -115,7 +115,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex flex-col items-center justify-center gap-1.5 text-[#C9A54B]/80 p-4">
             <Sparkles className="w-8 h-8 text-[#C9A54B]" />
             <span className="text-[10px] font-serif text-[#7A5A12] tracking-widest uppercase font-semibold">
-              Sona &amp; Chandi
+              Sona Chandi
             </span>
           </div>
         )}

@@ -138,7 +138,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   };
 
   // WhatsApp order inquiry url
-  const orderOnWhatsAppMessage = `Hello Sona & Chandi Gold Collection, I would like to order:
+  const orderOnWhatsAppMessage = `Hello Sona Chandi Gold Collection, I would like to order:
 • Piece: ${product.title}
 • SKU: ${product.sku}
 • Metal & Purity: ${metalLabel}
@@ -265,7 +265,7 @@ Please confirm today's live rate and availability.`;
                 <div className="flex flex-col items-center justify-center gap-2 text-[#C9A54B]/70 p-6">
                   <Sparkles className="w-10 h-10 text-[#C9A54B]" />
                   <span className="font-serif text-sm font-semibold tracking-wider uppercase text-[#8E6E24]">
-                    Sona &amp; Chandi
+                    Sona Chandi
                   </span>
                 </div>
               )}

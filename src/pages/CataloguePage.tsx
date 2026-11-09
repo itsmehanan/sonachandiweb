@@ -279,7 +279,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
   const whatsappArrivalsHref = settings.whatsappNumber
     ? `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-        'Hello Sona & Chandi Gold Collection, I would like to inquire about your upcoming new arrivals and custom designs.'
+        'Hello Sona Chandi Gold Collection, I would like to inquire about your upcoming new arrivals and custom designs.'
       )}`
     : undefined;
 

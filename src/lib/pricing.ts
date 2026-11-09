@@ -1,5 +1,5 @@
 /**
- * Sona & Chandi Gold Collection - Centralized Pricing Engine
+ * Sona Chandi Gold Collection - Centralized Pricing Engine
  *
  * ALL price math lives in this ONE file. Components must never compute prices themselves.
  *
@@ -282,7 +282,7 @@ export function buildWhatsAppOrderMessage(
 ): string {
   const lines: string[] = [];
 
-  lines.push('Assalam-o-Alaikum, Sona & Chandi Gold Collection.');
+  lines.push('Assalam-o-Alaikum, Sona Chandi Gold Collection.');
   lines.push('I would like to inquiry/order the following jewellery items from your storefront:');
   lines.push('');
 
@@ -358,7 +358,7 @@ export function getWhatsAppProductInquiryUrl(
   const tolaInfo = gramsToTola(product.weightGrams);
 
   const message = [
-    `Assalam-o-Alaikum, Sona & Chandi Gold Collection.`,
+    `Assalam-o-Alaikum, Sona Chandi Gold Collection.`,
     `I am interested in this item from your storefront:`,
     ``,
     `*${product.title}*`,

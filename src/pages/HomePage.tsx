@@ -89,7 +89,7 @@ const CuratedShowcaseCard: React.FC<CuratedShowcaseCardProps> = ({ tile, product
                 {tile.title}
               </span>
               <span className="text-[9px] uppercase tracking-[0.14em] text-[#6E6259]">
-                Sona &amp; Chandi
+                Sona Chandi
               </span>
             </div>
           )}
@@ -442,7 +442,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <WhatsAppButton
                 href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(
-                  'Assalam-o-Alaikum, I am inquiring about jewellery pieces from Sona & Chandi Gold Collection.'
+                  'Assalam-o-Alaikum, I am inquiring about jewellery pieces from Sona Chandi Gold Collection.'
                 )}`}
                 label="Chat on WhatsApp"
                 size="lg"

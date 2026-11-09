@@ -8,6 +8,7 @@ import {
   StaggerItem,
   SectionHeading,
 } from '../components/motion/MotionUtils';
+import { FamilyBrandLine } from '../components/FamilyBrandLine';
 
 interface AboutPageProps {
   rates: BullionRates;
@@ -41,7 +42,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
               <div className="space-y-6">
                 <div className="space-y-1">
                   <span className="label-kicker block text-[#7A5A12]">
-                    About Sona &amp; Chandi
+                    About Sona Chandi
                   </span>
                   <div className="w-12 h-0.5 bg-gradient-to-r from-[#B8923A] to-transparent mt-1" />
                 </div>
@@ -76,7 +77,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                   {settings.aboutPageImageUrl && !aboutImageError ? (
                     <img
                       src={settings.aboutPageImageUrl}
-                      alt="Sona & Chandi Gold Collection"
+                      alt="Sona Chandi Gold Collection"
                       loading="lazy"
                       onError={() => setAboutImageError(true)}
                       className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
@@ -87,8 +88,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                       <div className="w-16 h-16 rounded-full bg-white/70 border border-[#B8923A]/30 flex items-center justify-center text-[#7A5A12] shadow-xs mb-3">
                         <Sparkles className="w-8 h-8" />
                       </div>
-                      <span className="font-serif text-lg text-[#1A1410] font-semibold">Sona &amp; Chandi</span>
+                      <span className="font-serif text-lg text-[#1A1410] font-semibold">Sona Chandi</span>
                       <span className="text-xs text-[#7A5A12] mt-1 tracking-wider uppercase">Gold Collection</span>
+                      <FamilyBrandLine settings={settings} className="justify-center mt-2" />
                     </div>
                   )}
                 </div>
@@ -102,7 +104,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
       <div className="space-y-12">
         <SectionHeading
           kicker="Honest Bullion Standard"
-          title="The Sona &amp; Chandi Transparency Pledge"
+          title="The Sona Chandi Transparency Pledge"
           subtitle="How our mathematical pricing protects your precious investment"
         />
 

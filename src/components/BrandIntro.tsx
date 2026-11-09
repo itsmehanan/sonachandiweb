@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { FamilyBrandLine } from './FamilyBrandLine';
 
 interface BrandIntroProps {
   onComplete: () => void;
@@ -375,7 +376,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Welcome to Sona & Chandi Gold Collection"
+      aria-label="Welcome to Sona Chandi Gold Collection"
       className="fixed inset-0 z-50 flex flex-col justify-between bg-[#F7F1E6] overflow-hidden select-none"
     >
       {/* Canvas Layer for Gold Foil Flakes & Ring */}
@@ -390,7 +391,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
           <div className="max-w-md w-full aspect-1/1 rounded-2xl overflow-hidden border border-[#C9A54B]/30 shadow-xl bg-white mb-28">
             <img
               src="/assets/aistudio/intro-poster_d8a114e6.jpg"
-              alt="Sona & Chandi 24K Gold Ring"
+              alt="Sona Chandi 24K Gold Ring"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
@@ -420,7 +421,7 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
         >
           <img
             src="/assets/aistudio/logo-light.png"
-            alt="Sona & Chandi Gold Collection"
+            alt="Sona Chandi Gold Collection"
             className="h-16 sm:h-20 w-auto object-contain mx-auto mb-4 drop-shadow-xs"
             referrerPolicy="no-referrer"
           />
@@ -434,9 +435,10 @@ export const BrandIntro: React.FC<BrandIntroProps> = ({ onComplete, forceShow = 
               : 'opacity-0 translate-y-4'
           }`}
         >
-          <h1 className="font-serif text-2xl sm:text-4xl text-[#1E1B18] tracking-tight font-normal mb-2">
-            Sona &amp; Chandi Gold Collection
+          <h1 className="font-serif text-2xl sm:text-4xl text-[#1E1B18] tracking-tight font-normal mb-1">
+            Sona Chandi Gold Collection
           </h1>
+          <FamilyBrandLine className="justify-center mt-1 mb-3" />
           <p className="text-xs sm:text-sm text-[#64748B] max-w-md mx-auto font-light leading-relaxed mb-6">
             Gold and silver jewellery priced from live rates · 24K, 22K, 21K, 18K Gold &amp; 925 Sterling Silver
           </p>

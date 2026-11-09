@@ -1,12 +1,12 @@
-# Sona & Chandi Gold Collection — Operations Guide
+# Sona Chandi Gold Collection — Operations Guide
 
-A digital storefront and live bullion pricing system for **Sona & Chandi Gold Collection** (Pakistani Fine Jewellery).
+A digital storefront and live bullion pricing system for **Sona Chandi Gold Collection** (Pakistani Fine Jewellery).
 
 ---
 
 ## 1. What the Site Is
 
-Sona & Chandi Gold Collection is a specialized jewellery e-commerce catalogue and live bullion price estimator. Unlike conventional stores with static retail pricing, this application calculates item prices transparently from official market bullion rates:
+Sona Chandi Gold Collection is a specialized jewellery e-commerce catalogue and live bullion price estimator. Unlike conventional stores with static retail pricing, this application calculates item prices transparently from official market bullion rates:
 
 - **Mathematical Pricing Engine**: Every price is calculated strictly as:  
   $$\text{Price} = (\text{Weight in Grams} \times \text{Today's Per-Gram Metal Rate}) + \text{Making Charge}$$
