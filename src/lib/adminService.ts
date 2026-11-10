@@ -61,6 +61,22 @@ export interface StoreSettingsDoc {
   craftsmanshipText?: string;
   familyLineEn?: string;
   familyLineUr?: string;
+  contactEmail?: string;
+  phone?: string;
+  socialHandles?: {
+    instagram?: string;
+    facebook?: string;
+    tiktok?: string;
+    youtube?: string;
+    snapchat?: string;
+    x?: string;
+  };
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  youtube?: string;
+  snapchat?: string;
+  x?: string;
   lastHistoryId?: string;
   lastGoldHistoryId?: string;
   lastSilverHistoryId?: string;
@@ -259,6 +275,22 @@ export async function updateStoreSettingsInfo(updates: {
   aboutPageImageUrl?: string;
   familyLineEn?: string;
   familyLineUr?: string;
+  contactEmail?: string;
+  phone?: string;
+  socialHandles?: {
+    instagram?: string;
+    facebook?: string;
+    tiktok?: string;
+    youtube?: string;
+    snapchat?: string;
+    x?: string;
+  };
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  youtube?: string;
+  snapchat?: string;
+  x?: string;
 }): Promise<void> {
   try {
     const cleanUpdates = stripUndefined(updates);

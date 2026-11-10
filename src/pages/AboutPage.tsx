@@ -9,6 +9,8 @@ import {
   SectionHeading,
 } from '../components/motion/MotionUtils';
 import { FamilyBrandLine } from '../components/FamilyBrandLine';
+import { TolaGuide } from '../components/TolaGuide';
+import { SocialLinks } from '../components/SocialLinks';
 
 interface AboutPageProps {
   rates: BullionRates;
@@ -114,9 +116,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({
               <div className="w-12 h-12 rounded-xl bg-[#F3EAD7] border border-[#B8923A]/30 flex items-center justify-center text-[#7A5A12]">
                 <Scale className="w-6 h-6" />
               </div>
-              <h3 className="font-serif text-lg font-semibold text-[#1A1410]">
-                1. 1 tola = 11.6638 Grams
-              </h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-serif text-lg font-semibold text-[#1A1410]">
+                  1. 1 tola = 11.6638 Grams
+                </h3>
+                <TolaGuide triggerVariant="badge" label="Guide" tone="light" />
+              </div>
               <div className="w-8 h-px bg-[#B8923A]/40" />
               <p className="text-sm text-[#5C5046] font-normal leading-relaxed">
                 We operate strictly on international and Pakistani legal standards. We never round down weight or inflate tola conversions.
@@ -195,6 +200,21 @@ export const AboutPage: React.FC<AboutPageProps> = ({
               Open Rate Calculator
             </button>
           </div>
+
+          {/* Connect on Social (Round brand icons if configured) */}
+          {Boolean(
+            settings.socialHandles &&
+              Object.values(settings.socialHandles).some(
+                (val) => typeof val === 'string' && val.trim().length > 0
+              )
+          ) && (
+            <div className="pt-6 border-t border-[#B8923A]/30 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <span className="text-xs uppercase tracking-wider font-semibold text-[#7A5A12]">
+                Connect With Us Online:
+              </span>
+              <SocialLinks socialHandles={settings.socialHandles} variant="gold" size="md" />
+            </div>
+          )}
         </div>
       </Reveal>
     </div>

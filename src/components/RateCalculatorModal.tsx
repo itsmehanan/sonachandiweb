@@ -13,6 +13,7 @@ import {
 } from '../lib/pricing';
 import { getSettings } from '../data/store';
 import { WhatsAppButton } from './WhatsAppButton';
+import { TolaGuide } from './TolaGuide';
 
 interface RateCalculatorModalProps {
   isOpen: boolean;
@@ -407,13 +408,14 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setWeightUnit('tola')}
-                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer inline-flex items-center gap-1 ${
                         weightUnit === 'tola'
                           ? 'bg-white text-[#7A5A12] shadow-2xs'
                           : 'text-[#5C5046] hover:text-[#1A1410]'
                       }`}
                     >
-                      Tola
+                      <span>Tola</span>
+                      <TolaGuide triggerVariant="icon" tone={weightUnit === 'tola' ? 'gold' : 'light'} iconSize={12} />
                     </button>
                   </div>
                 </div>
@@ -450,15 +452,21 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                     </div>
 
                     {/* Equivalent in other unit */}
-                    <div className="text-[11px] text-[#64748B] font-medium mt-0.5">
+                    <div className="text-[11px] text-[#64748B] font-medium mt-0.5 flex items-center justify-center gap-1">
                       {weightUnit === 'grams' ? (
-                        <span>
-                          ~ {(safeWeight / TOLA_IN_GRAMS).toFixed(3)} tola (1 tola = 11.66g)
-                        </span>
+                        <>
+                          <span>
+                            ~ {(safeWeight / TOLA_IN_GRAMS).toFixed(3)} tola (1 tola = 11.6638g)
+                          </span>
+                          <TolaGuide triggerVariant="icon" tone="gold" iconSize={12} />
+                        </>
                       ) : (
-                        <span>
-                          ~ {(safeWeight * TOLA_IN_GRAMS).toFixed(2)} grams
-                        </span>
+                        <>
+                          <span>
+                            ~ {(safeWeight * TOLA_IN_GRAMS).toFixed(2)} grams
+                          </span>
+                          <TolaGuide triggerVariant="icon" tone="gold" iconSize={12} />
+                        </>
                       )}
                     </div>
                   </div>
@@ -608,8 +616,11 @@ export const RateCalculatorModal: React.FC<RateCalculatorModalProps> = ({
                     <p className="font-semibold text-[#1E1B18]">
                       Weight × today’s per-gram rate for the chosen purity.
                     </p>
-                    <p>
-                      Today’s 24K bullion rate per tola is divided by 11.6638 grams (1 tola) to determine the pure gram rate, then adjusted for karat purity (e.g., 22K is 22/24 parts pure). Your weight is then multiplied by this rate.
+                    <p className="flex flex-wrap items-center gap-1">
+                      <span>
+                        Today’s 24K bullion rate per tola is divided by 11.6638 grams (1 tola) to determine the pure gram rate, then adjusted for karat purity (e.g., 22K is 22/24 parts pure). Your weight is then multiplied by this rate.
+                      </span>
+                      <TolaGuide triggerVariant="badge" label="View tola standards" tone="light" />
                     </p>
                     <p className="text-[11px] text-[#8E6E24] font-medium">
                       This calculation estimates metal value only. Making charges and design craftsmanship will be confirmed directly on WhatsApp based on your selected piece.

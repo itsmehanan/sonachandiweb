@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { BullionRates, formatPKR } from '../lib/pricing';
 import { getSettings, getStoreStatus } from '../data/store';
+import { TolaGuide } from './TolaGuide';
 
 import { useNumberCountUp } from './motion/MotionUtils';
 
@@ -93,10 +94,12 @@ export const LiveRateStrip: React.FC<LiveRateStripProps> = ({ rates, onOpenCalcu
             <span className="font-medium underline-offset-2 group-hover:underline">Live Rates</span>
             {rates.gold24KPerTola > 0 && (
               <span className="font-serif tabular-nums text-[11px] font-bold text-[#F1D98B]/90 hidden md:inline ml-1">
-                (24K: {formatPKR(animated24kRate)})
+                (24K: {formatPKR(animated24kRate)}/tola)
               </span>
             )}
           </button>
+          <TolaGuide triggerVariant="badge" label="What is a tola?" tone="dark" className="ml-2 hidden sm:inline-flex" />
+          <TolaGuide triggerVariant="icon" tone="dark" className="inline-flex sm:hidden ml-1" />
         </div>
       </div>
     </div>

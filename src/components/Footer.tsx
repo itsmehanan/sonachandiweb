@@ -9,11 +9,14 @@ import {
   ShieldCheck,
   Truck,
   Sparkles,
+  Mail,
 } from 'lucide-react';
 import { getSettings, getStoreStatus } from '../data/store';
 import { BullionRates, formatPKR } from '../lib/pricing';
 import { WhatsAppButton } from './WhatsAppButton';
 import { FamilyBrandLine } from './FamilyBrandLine';
+import { SocialLinks } from './SocialLinks';
+import { TolaGuide } from './TolaGuide';
 
 interface FooterProps {
   rates: BullionRates;
@@ -171,6 +174,15 @@ export const Footer: React.FC<FooterProps> = ({
               sterling silver). Gold and silver jewellery priced from live rates with transparent daily bullion
               calculations.
             </p>
+            {/* Round brand social icons and Email us mailto link */}
+            <div className="pt-1">
+              <SocialLinks
+                socialHandles={settings.socialHandles}
+                contactEmail={settings.contactEmail}
+                showEmail={true}
+                variant="dark"
+              />
+            </div>
           </div>
 
           {/* Top Band Action: WhatsApp Button & Open/Closed Live Status Badge */}
@@ -415,13 +427,30 @@ export const Footer: React.FC<FooterProps> = ({
                 </div>
               )}
 
+              {/* Contact Email - IF EMAIL IS EMPTY, SHOW NOTHING */}
+              {settings.contactEmail && settings.contactEmail.trim() !== '' && (
+                <div className="flex items-center gap-2.5 pt-2 border-t border-[#292420] text-xs">
+                  <Mail className="w-4 h-4 text-[#C9A54B] shrink-0" />
+                  <a
+                    href={`mailto:${settings.contactEmail.trim()}`}
+                    className="text-[#D4CDC3] hover:text-[#C9A54B] transition-colors"
+                    title="Send an email inquiry"
+                  >
+                    Email us: {settings.contactEmail.trim()}
+                  </a>
+                </div>
+              )}
+
               {/* Benchmark 24K Rate Indicator */}
               <div className="pt-2 border-t border-[#292420] text-[11px] text-[#A89F91] flex items-center justify-between">
                 <span>Official 24K Benchmark:</span>
-                <span className="font-mono text-white font-medium">
-                  {rates.gold24KPerTola > 0
-                    ? `${formatPKR(rates.gold24KPerTola)} / tola`
-                    : 'Rate unavailable'}
+                <span className="font-mono text-white font-medium inline-flex items-center gap-1">
+                  <span>
+                    {rates.gold24KPerTola > 0
+                      ? `${formatPKR(rates.gold24KPerTola)} / tola`
+                      : 'Rate unavailable'}
+                  </span>
+                  <TolaGuide triggerVariant="icon" tone="dark" iconSize={12} />
                 </span>
               </div>
             </div>

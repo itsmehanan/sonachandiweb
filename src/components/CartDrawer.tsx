@@ -22,6 +22,7 @@ import {
 } from '../lib/pricing';
 import { Product, getSettings, logWhatsAppEnquiry } from '../data/store';
 import { WhatsAppButton } from './WhatsAppButton';
+import { TolaGuide } from './TolaGuide';
 
 export interface CartItem {
   product: Product;
@@ -254,8 +255,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                                 {unitBreakdown.karatLabel} {product.metal}
                               </span>
                               <span aria-hidden="true">·</span>
-                              <span>
-                                {product.weightGrams}g ({tolaInfo.formattedTola})
+                              <span className="inline-flex items-center gap-1">
+                                <span>{product.weightGrams}g ({tolaInfo.formattedTola})</span>
+                                <TolaGuide triggerVariant="icon" tone="gold" iconSize={12} />
                               </span>
                             </div>
                           </div>
@@ -409,10 +411,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                 {/* Price Breakdown & Required Disclaimer */}
                 <div className="p-5 bg-[#F3EAD7] border border-[#B8923A]/30 rounded-2xl space-y-2.5 text-xs">
-                  <div className="flex justify-between text-[#5C5046]">
+                  <div className="flex justify-between items-center text-[#5C5046]">
                     <span>Total Jewellery Weight:</span>
-                    <span className="font-mono text-[#1A1410] font-medium">
-                      {summary.totalWeightGrams.toFixed(2)} grams (~{gramsToTola(summary.totalWeightGrams).formattedTola})
+                    <span className="font-mono text-[#1A1410] font-medium inline-flex items-center gap-1.5">
+                      <span>{summary.totalWeightGrams.toFixed(2)} g (~{gramsToTola(summary.totalWeightGrams).formattedTola})</span>
+                      <TolaGuide triggerVariant="badge" label="Tola guide" tone="light" />
                     </span>
                   </div>
                   <div className="flex justify-between text-[#5C5046]">

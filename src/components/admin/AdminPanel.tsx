@@ -32,7 +32,18 @@ import {
   LayoutGrid,
   Eye,
   EyeOff,
+  ExternalLink,
+  Mail,
+  Globe,
 } from 'lucide-react';
+import { TolaGuide } from '../TolaGuide';
+import {
+  normalizeSocialUrl,
+  normalizeWhatsAppNumber,
+  isValidEmail,
+  SocialHandles,
+  SocialPlatform,
+} from '../SocialLinks';
 import { auth, googleProvider, signInWithPopup, signOut } from '../../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import {
@@ -113,6 +124,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   // Store Settings state
   const [settingsDoc, setSettingsDoc] = useState<StoreSettingsDoc | null>(null);
   const [inputWhatsApp, setInputWhatsApp] = useState('923109412332');
+  const [inputPhone, setInputPhone] = useState('');
+  const [inputEmail, setInputEmail] = useState('');
+  const [inputSocials, setInputSocials] = useState<SocialHandles>({
+    instagram: '',
+    facebook: '',
+    tiktok: '',
+    youtube: '',
+    snapchat: '',
+    x: '',
+  });
   const [inputAddress, setInputAddress] = useState('');
   const [inputHours, setInputHours] = useState('');
   const [inputDelivery, setInputDelivery] = useState('');
@@ -213,6 +234,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       if (data) {
         setSettingsDoc(data);
         if (data.whatsappNumber) setInputWhatsApp(data.whatsappNumber);
+        if (data.phone) setInputPhone(data.phone);
+        if (data.contactEmail) setInputEmail(data.contactEmail);
+        if (data.socialHandles) {
+          setInputSocials({
+            instagram: data.socialHandles.instagram || data.instagram || '',
+            facebook: data.socialHandles.facebook || data.facebook || '',
+            tiktok: data.socialHandles.tiktok || data.tiktok || '',
+            youtube: data.socialHandles.youtube || data.youtube || '',
+            snapchat: data.socialHandles.snapchat || data.snapchat || '',
+            x: data.socialHandles.x || data.x || '',
+          });
+        } else {
+          setInputSocials({
+            instagram: data.instagram || '',
+            facebook: data.facebook || '',
+            tiktok: data.tiktok || '',
+            youtube: data.youtube || '',
+            snapchat: data.snapchat || '',
+            x: data.x || '',
+          });
+        }
         if (data.address) setInputAddress(data.address);
         if (data.hoursText) setInputHours(data.hoursText);
         if (data.deliveryText) setInputDelivery(data.deliveryText);
@@ -344,8 +386,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
     setSavingSettings(true);
     setSettingsFeedback(null);
     try {
+      // 1. WhatsApp Number validation & normalization
+      const waResult = normalizeWhatsAppNumber(inputWhatsApp);
+      if (inputWhatsApp.trim() && waResult.error) {
+        setSettingsFeedback(`Error in WhatsApp number: ${waResult.error}`);
+        setSavingSettings(false);
+        return;
+      }
+
+      // 2. Email validation
+      if (inputEmail.trim() && !isValidEmail(inputEmail)) {
+        setSettingsFeedback('Error in contact email: Please enter a valid email address (e.g. info@sonachandi.pk).');
+        setSavingSettings(false);
+        return;
+      }
+
+      // 3. Social platforms validation & normalization
+      const normalizedSocials: SocialHandles = {};
+      const platformKeys: SocialPlatform[] = ['instagram', 'facebook', 'tiktok', 'youtube', 'snapchat', 'x'];
+      for (const p of platformKeys) {
+        const rawVal = inputSocials[p]?.trim() || '';
+        if (rawVal) {
+          const norm = normalizeSocialUrl(p, rawVal);
+          if (norm.error) {
+            setSettingsFeedback(`Error in ${p.toUpperCase()} URL: ${norm.error}`);
+            setSavingSettings(false);
+            return;
+          }
+          normalizedSocials[p] = norm.url;
+        } else {
+          normalizedSocials[p] = '';
+        }
+      }
+
+      const cleanWa = waResult.normalized || inputWhatsApp.trim();
+
       await updateStoreSettingsInfo({
-        whatsappNumber: inputWhatsApp.trim(),
+        whatsappNumber: cleanWa,
+        phone: inputPhone.trim(),
+        contactEmail: inputEmail.trim(),
+        socialHandles: normalizedSocials,
+        instagram: normalizedSocials.instagram,
+        facebook: normalizedSocials.facebook,
+        tiktok: normalizedSocials.tiktok,
+        youtube: normalizedSocials.youtube,
+        snapchat: normalizedSocials.snapchat,
+        x: normalizedSocials.x,
         address: inputAddress.trim(),
         hoursText: inputHours.trim(),
         deliveryText: inputDelivery.trim(),
@@ -356,7 +442,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         familyLineEn: inputFamilyLineEn.trim(),
         familyLineUr: inputFamilyLineUr.trim(),
       });
-      setSettingsFeedback('✓ Store settings updated successfully!');
+
+      // Update input fields to show normalized values immediately
+      setInputWhatsApp(cleanWa);
+      setInputSocials(normalizedSocials);
+
+      setSettingsFeedback('✓ Store settings, contact details & social channels updated successfully!');
       setTimeout(() => setSettingsFeedback(null), 4000);
     } catch (err: any) {
       setSettingsFeedback(`Error saving settings: ${err.message}`);
@@ -1056,9 +1147,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 24K Gold Input */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#64748B]">
-                    24K Gold Rate (PKR / Tola)
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+                      24K Gold Rate (PKR / Tola)
+                    </label>
+                    <TolaGuide triggerVariant="badge" label="What is a tola?" tone="light" />
+                  </div>
                   <div className="relative">
                     <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-[#8E6E24]">Rs.</span>
                     <input
@@ -1071,7 +1165,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       className="w-full pl-10 pr-4 py-2.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-lg text-sm text-[#1E1B18] font-mono outline-none focus:border-[#C9A54B]"
                     />
                   </div>
-                  <span className="text-[11px] text-[#64748B] block">1 tola = 11.6638 grams</span>
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#64748B]">
+                    <span>1 tola = 11.6638 grams</span>
+                    <TolaGuide triggerVariant="icon" tone="gold" />
+                  </div>
                 </div>
 
                 {/* Silver Rate Input */}
@@ -1084,13 +1181,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       <button
                         type="button"
                         onClick={() => setInputSilverUnit('tola')}
-                        className={`px-2 py-0.5 rounded cursor-pointer ${
+                        className={`px-2 py-0.5 rounded cursor-pointer inline-flex items-center gap-1 ${
                           inputSilverUnit === 'tola'
                             ? 'bg-[#1E1B18] text-white font-semibold'
                             : 'bg-slate-100 text-[#64748B]'
                         }`}
                       >
-                        Per Tola
+                        <span>Per Tola</span>
+                        <TolaGuide triggerVariant="icon" tone={inputSilverUnit === 'tola' ? 'dark' : 'light'} iconSize={12} />
                       </button>
                       <button
                         type="button"
@@ -1833,20 +1931,185 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
               )}
 
               <div className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-semibold text-[#64748B] mb-1">WhatsApp Order &amp; Hotline Number</label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 absolute left-3 top-2.5 text-[#8E6E24]" />
-                    <input
-                      type="text"
-                      value={inputWhatsApp}
-                      placeholder="923109412332"
-                      onChange={(e) => setInputWhatsApp(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
-                    />
+                {/* Contact and Social Card (Owner only) */}
+                {staffRecord?.role === 'owner' && (
+                  <div className="p-5 sm:p-6 bg-[#FAF7F2] border border-[#B8923A]/40 rounded-2xl space-y-5 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2D8C9] pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-[#7A5A12]" />
+                          <h3 className="font-serif text-base font-bold text-[#1E1B18]">
+                            Contact and Social Channels
+                          </h3>
+                        </div>
+                        <p className="text-[11px] text-[#64748B] mt-0.5">
+                          Configure official store contact lines and social media handles. Handles accept usernames or URLs and are normalised automatically.
+                        </p>
+                      </div>
+                      <span className="self-start sm:self-auto px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#F3EAD7] text-[#7A5A12] border border-[#B8923A]/30">
+                        Owner Only
+                      </span>
+                    </div>
+
+                    {/* WhatsApp Hotline with live preview and Test link button */}
+                    {(() => {
+                      const waNorm = normalizeWhatsAppNumber(inputWhatsApp);
+                      return (
+                        <div className="space-y-1.5 p-3.5 bg-white border border-[#E2D8C9] rounded-xl">
+                          <div className="flex justify-between items-center">
+                            <label className="font-semibold text-[#1E1B18] flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-[#25D366]" />
+                              <span>WhatsApp Hotline Number</span>
+                            </label>
+                            {waNorm.waUrl && !waNorm.error && (
+                              <a
+                                href={waNorm.waUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#25D366] hover:text-[#1EBE5A] hover:underline"
+                              >
+                                <span>Test link</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={inputWhatsApp}
+                              placeholder="e.g. 0310 9412332 or 923109412332"
+                              onChange={(e) => setInputWhatsApp(e.target.value)}
+                              className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18] font-mono text-xs focus:border-[#C9A54B] outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                            <span className="text-[#64748B]">
+                              Digits only with country code (converts 03xx to 923xx automatically).
+                            </span>
+                            {inputWhatsApp.trim() && (
+                              <span className={`font-mono ${waNorm.error ? 'text-rose-600 font-semibold' : 'text-[#25D366] font-medium'}`}>
+                                {waNorm.error ? `⚠ ${waNorm.error}` : `Live preview: wa.me/${waNorm.normalized}`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Phone & Email Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="p-3.5 bg-white border border-[#E2D8C9] rounded-xl space-y-1.5">
+                        <label className="font-semibold text-[#1E1B18] flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-[#7A5A12]" />
+                          <span>Showroom Phone Number (Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={inputPhone}
+                          placeholder="e.g. +92 51 1234567 or 0310 9412332"
+                          onChange={(e) => setInputPhone(e.target.value)}
+                          className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18] text-xs focus:border-[#C9A54B] outline-none"
+                        />
+                        <span className="text-[10px] text-[#64748B] block">Direct landline or sales mobile.</span>
+                      </div>
+
+                      <div className="p-3.5 bg-white border border-[#E2D8C9] rounded-xl space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="font-semibold text-[#1E1B18] flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-[#7A5A12]" />
+                            <span>Contact Email Address (Optional)</span>
+                          </label>
+                          {inputEmail.trim() && isValidEmail(inputEmail) && (
+                            <a
+                              href={`mailto:${inputEmail.trim()}`}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#7A5A12] hover:underline"
+                            >
+                              <span>Test mailto</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                        <input
+                          type="email"
+                          value={inputEmail}
+                          placeholder="e.g. contact@sonachandi.pk"
+                          onChange={(e) => setInputEmail(e.target.value)}
+                          className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18] text-xs focus:border-[#C9A54B] outline-none"
+                        />
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-[#64748B]">Shown as "Email us" mailto link in footer &amp; contact page.</span>
+                          {inputEmail.trim() && !isValidEmail(inputEmail) && (
+                            <span className="text-rose-600 font-semibold">Invalid email format</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Social Handles Grid */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#7A5A12]">
+                          Social Media Profiles (Round brand icons on storefront)
+                        </span>
+                        <span className="text-[10px] text-[#64748B]">Empty handles are hidden cleanly</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {(
+                          [
+                            { id: 'instagram' as SocialPlatform, label: 'Instagram', placeholder: '@sonachandi or URL', domain: 'instagram.com' },
+                            { id: 'facebook' as SocialPlatform, label: 'Facebook', placeholder: 'page name or URL', domain: 'facebook.com' },
+                            { id: 'tiktok' as SocialPlatform, label: 'TikTok', placeholder: '@sonachandi or URL', domain: 'tiktok.com' },
+                            { id: 'youtube' as SocialPlatform, label: 'YouTube', placeholder: '@channel or URL', domain: 'youtube.com' },
+                            { id: 'snapchat' as SocialPlatform, label: 'Snapchat', placeholder: 'username or URL', domain: 'snapchat.com' },
+                            { id: 'x' as SocialPlatform, label: 'X (Twitter)', placeholder: '@handle or URL', domain: 'x.com / twitter.com' },
+                          ] as const
+                        ).map((item) => {
+                          const rawVal = inputSocials[item.id] || '';
+                          const norm = normalizeSocialUrl(item.id, rawVal);
+                          return (
+                            <div key={item.id} className="p-3 bg-white border border-[#E2D8C9] rounded-xl space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <label className="font-semibold text-[#1E1B18]">{item.label}</label>
+                                {norm.url && (
+                                  <a
+                                    href={norm.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] text-[#7A5A12] hover:underline inline-flex items-center gap-0.5"
+                                  >
+                                    <span>Preview</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                )}
+                              </div>
+                              <input
+                                type="text"
+                                value={rawVal}
+                                placeholder={item.placeholder}
+                                onChange={(e) =>
+                                  setInputSocials((prev) => ({ ...prev, [item.id]: e.target.value }))
+                                }
+                                className="w-full px-2.5 py-1.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-xs text-[#1E1B18] outline-none focus:border-[#C9A54B]"
+                              />
+                              <div className="text-[10px] truncate">
+                                {norm.error ? (
+                                  <span className="text-rose-600 font-semibold">{norm.error}</span>
+                                ) : norm.url ? (
+                                  <span className="text-emerald-700 font-mono truncate block" title={norm.url}>
+                                    → {norm.url}
+                                  </span>
+                                ) : (
+                                  <span className="text-[#64748B]">Domain: {item.domain}</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[11px] text-[#64748B] mt-0.5 block">Format: International with country code, e.g. 923109412332</span>
-                </div>
+                )}
 
                 <div>
                   <label className="block font-semibold text-[#64748B] mb-1">Showroom Address (Optional)</label>

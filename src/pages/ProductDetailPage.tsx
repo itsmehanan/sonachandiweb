@@ -25,6 +25,7 @@ import {
 import { LightboxModal } from '../components/LightboxModal';
 import { ProductCard } from '../components/ProductCard';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import { TolaGuide } from '../components/TolaGuide';
 import { StaggerGrid, StaggerItem } from '../components/motion/MotionUtils';
 
 interface ProductDetailPageProps {
@@ -305,8 +306,9 @@ Please confirm today's live rate and availability.`;
                 SKU: {product.sku}
               </span>
               <span className="text-[#CBD5E1]" aria-hidden="true">·</span>
-              <span className="font-medium text-[#8E6E24]">
-                {metalLabel} | {product.weightGrams} g
+              <span className="font-medium text-[#8E6E24] inline-flex items-center gap-1.5">
+                <span>{metalLabel} | {product.weightGrams} g (~{tolaInfo.formattedTola})</span>
+                <TolaGuide triggerVariant="icon" tone="gold" iconSize={13} />
               </span>
             </div>
 
@@ -343,9 +345,12 @@ Please confirm today's live rate and availability.`;
                   {breakdown.formattedEstimate}
                 </span>
               )}
-              <span className="text-xs text-[#8E6E24] font-medium">
-                (~{tolaInfo.formattedTola})
-              </span>
+              <div className="inline-flex items-center gap-1.5">
+                <span className="text-xs text-[#8E6E24] font-medium">
+                  (~{tolaInfo.formattedTola})
+                </span>
+                <TolaGuide triggerVariant="badge" label="What is a tola?" tone="light" />
+              </div>
             </div>
 
             {/* Inline "How is this calculated?" link */}
@@ -544,8 +549,9 @@ Please confirm today's live rate and availability.`;
 
                   <div className="p-3.5 bg-white/70 border border-[#E2D8C9] rounded-xl flex justify-between items-center">
                     <span className="text-[#64748B]">Full Gross Weight:</span>
-                    <span className="font-mono font-bold text-[#1E1B18]">
-                      {product.weightGrams}g ({tolaInfo.traditional})
+                    <span className="font-mono font-bold text-[#1E1B18] inline-flex items-center gap-1.5">
+                      <span>{product.weightGrams}g ({tolaInfo.traditional})</span>
+                      <TolaGuide triggerVariant="icon" tone="gold" iconSize={13} />
                     </span>
                   </div>
 
@@ -799,8 +805,9 @@ Please confirm today's live rate and availability.`;
                 </div>
                 <div className="flex justify-between py-1 border-b border-[#E2D8C9]/40">
                   <span className="text-[#64748B]">Gross Weight:</span>
-                  <span className="font-mono font-bold text-[#1E1B18]">
-                    {product.weightGrams}g ({tolaInfo.traditional})
+                  <span className="font-mono font-bold text-[#1E1B18] inline-flex items-center gap-1">
+                    <span>{product.weightGrams}g ({tolaInfo.traditional})</span>
+                    <TolaGuide triggerVariant="icon" tone="gold" iconSize={12} />
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-[#E2D8C9]/40">

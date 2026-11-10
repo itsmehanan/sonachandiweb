@@ -13,6 +13,8 @@ import {
 import { BullionRates } from '../lib/pricing';
 import { ProductCard } from '../components/ProductCard';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import { TolaGuide } from '../components/TolaGuide';
+import { SocialLinks } from '../components/SocialLinks';
 import {
   Reveal,
   StaggerGrid,
@@ -225,8 +227,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <h3 className="font-serif text-xl sm:text-2xl font-normal mt-1 leading-snug">
                       22K &amp; 24K Purity Masterpieces
                     </h3>
-                    <p className="text-xs text-white/80 mt-1 font-light leading-relaxed">
-                      Every piece weighed in grams and tolas with zero stone deductions.
+                    <p className="text-xs text-white/80 mt-1 font-light leading-relaxed flex items-center">
+                      <span>Every piece weighed in grams and tolas with zero stone deductions.</span>
+                      <TolaGuide triggerVariant="icon" tone="gold" iconSize={13} className="inline-flex ml-1" />
                     </p>
                   </div>
                 </div>
@@ -308,11 +311,16 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 4. THE BULLION PURITY STANDARD (Champagne Background #F3EAD7) */}
       <section className="bg-[#F3EAD7] border-b border-[#E2D8C9]/60">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-16 sm:py-28">
-          <SectionHeading
-            kicker="The Bullion Standard"
-            title="Understanding Gold &amp; Silver Purity"
-            subtitle="Gold and silver jewellery priced from live rates. Every estimate derives transparently from the 24K per tola benchmark rate."
-          />
+          <div className="flex flex-col items-center">
+            <SectionHeading
+              kicker="The Bullion Standard"
+              title="Understanding Gold &amp; Silver Purity"
+              subtitle="Gold and silver jewellery priced from live rates. Every estimate derives transparently from the 24K per tola benchmark rate."
+            />
+            <div className="-mt-6 mb-8">
+              <TolaGuide triggerVariant="badge" label="What is a tola?" tone="light" />
+            </div>
+          </div>
 
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {/* 24K */}
@@ -329,6 +337,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <p className="text-xs text-[#4A3F35] font-light leading-relaxed">
                     Raw investment gold bar and tola coin standard. Used as the benchmark baseline for all bullion calculations.
                   </p>
+                  <TolaGuide triggerVariant="chip" label="1 tola = 11.6638g" tone="gold" className="font-semibold text-[11px]" />
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E2D8C9]/60 text-[11px] font-semibold text-[#7A5A12]">
                   Benchmark Standard
@@ -435,9 +444,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <h3 className="font-serif text-2xl sm:text-3xl text-[#1A1410] font-medium [text-wrap:balance]">
                   Prefer Direct Personal Consultation?
                 </h3>
-                <p className="text-sm text-[#4A3F35] max-w-xl font-light leading-relaxed">
-                  Chat directly with our team on WhatsApp. Send photos of custom designs,
-                  ask about live tola rates, or reserve ready pieces.
+                <p className="text-sm text-[#4A3F35] max-w-xl font-light leading-relaxed flex flex-wrap items-center gap-1">
+                  <span>Chat directly with our team on WhatsApp. Send photos of custom designs, ask about live tola rates, or reserve ready pieces.</span>
+                  <TolaGuide triggerVariant="icon" tone="gold" iconSize={13} />
                 </p>
               </div>
               <WhatsAppButton
@@ -452,6 +461,31 @@ export const HomePage: React.FC<HomePageProps> = ({
           </Reveal>
         </div>
       </section>
+
+      {/* 6. FOLLOW US STRIP (Displays only if any social handle has a value) */}
+      {Boolean(
+        settings.socialHandles &&
+          Object.values(settings.socialHandles).some(
+            (val) => typeof val === 'string' && val.trim().length > 0
+          )
+      ) && (
+        <section className="bg-[#FAF7F2] border-t border-[#E2D8C9]/70 py-10 px-4 sm:px-8">
+          <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="text-center sm:text-left space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7A5A12] block">
+                Stay Connected
+              </span>
+              <h4 className="font-serif text-xl sm:text-2xl text-[#1A1410] font-normal">
+                Follow Sona Chandi Online
+              </h4>
+              <p className="text-xs text-[#5C5046] font-light">
+                Explore our latest bridal creations, craftsmanship highlights, and live bullion updates.
+              </p>
+            </div>
+            <SocialLinks socialHandles={settings.socialHandles} variant="gold" size="lg" />
+          </div>
+        </section>
+      )}
     </div>
   );
 };

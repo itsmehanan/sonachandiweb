@@ -15,6 +15,7 @@ import { getSettings, getStoreStatus, Product } from '../data/store';
 import { WhatsAppButton } from './WhatsAppButton';
 import { SearchOverlay } from './SearchOverlay';
 import { FamilyBrandLine } from './FamilyBrandLine';
+import { TolaGuide } from './TolaGuide';
 
 export interface NavigateOptions {
   metal?: 'all' | 'gold' | 'silver';
@@ -990,7 +991,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
                 {rates && rates.gold24KPerTola > 0 && (
                   <div className="pt-2 border-t border-[#E2D8C9] flex items-center justify-between text-[11px]">
-                    <span className="text-[#8E6E24] font-medium">24K Gold Rate / Tola:</span>
+                    <span className="text-[#8E6E24] font-medium inline-flex items-center gap-1">
+                      <span>24K Gold Rate / Tola:</span>
+                      <TolaGuide triggerVariant="icon" tone="gold" iconSize={13} />
+                    </span>
                     <span className="font-mono font-bold text-[#1E1B18]">
                       {formatPKR(rates.gold24KPerTola)}
                     </span>

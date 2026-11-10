@@ -117,6 +117,8 @@ export const DEFAULT_SHOWCASE_TILES: ShowcaseTile[] = [
   },
 ];
 
+import { SocialHandles } from '../components/SocialLinks';
+
 export interface StoreSettings {
   brandName: string;
   tagline: string;
@@ -125,6 +127,8 @@ export interface StoreSettings {
   storeHoursDescription?: string;
   address?: string;
   phone?: string;
+  contactEmail?: string;
+  socialHandles?: SocialHandles;
   deliveryText?: string;
   aboutPageImageUrl?: string;
   aboutPageStory?: string;
@@ -157,6 +161,8 @@ let currentSettings: StoreSettings = {
   storeHoursDescription: '',
   address: '',
   phone: '',
+  contactEmail: '',
+  socialHandles: {},
   deliveryText: '',
   aboutPageStory: '',
   craftsmanshipText: '',
@@ -289,6 +295,31 @@ export function initFirestoreStore(): void {
           }
           if (typeof data.familyLineUr === 'string') {
             currentSettings.familyLineUr = data.familyLineUr;
+          }
+          if (typeof data.contactEmail === 'string') {
+            currentSettings.contactEmail = data.contactEmail;
+          }
+          if (typeof data.phone === 'string') {
+            currentSettings.phone = data.phone;
+          }
+          if (data.socialHandles && typeof data.socialHandles === 'object') {
+            currentSettings.socialHandles = {
+              instagram: data.socialHandles.instagram || data.instagram || '',
+              facebook: data.socialHandles.facebook || data.facebook || '',
+              tiktok: data.socialHandles.tiktok || data.tiktok || '',
+              youtube: data.socialHandles.youtube || data.youtube || '',
+              snapchat: data.socialHandles.snapchat || data.snapchat || '',
+              x: data.socialHandles.x || data.x || '',
+            };
+          } else if (data.instagram || data.facebook || data.tiktok || data.youtube || data.snapchat || data.x) {
+            currentSettings.socialHandles = {
+              instagram: data.instagram || '',
+              facebook: data.facebook || '',
+              tiktok: data.tiktok || '',
+              youtube: data.youtube || '',
+              snapchat: data.snapchat || '',
+              x: data.x || '',
+            };
           }
           notifyStoreListeners();
         } else {

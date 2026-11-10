@@ -7,10 +7,13 @@ import {
   ShieldCheck,
   RotateCcw,
   AlertCircle,
+  Mail,
+  Share2,
 } from 'lucide-react';
 import { getSettings, getStoreStatus } from '../data/store';
 import { ESTIMATE_DISCLAIMER } from '../lib/pricing';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import { SocialLinks } from '../components/SocialLinks';
 import {
   StaggerGrid,
   StaggerItem,
@@ -152,6 +155,44 @@ export const ContactPage: React.FC = () => {
           </div>
         </StaggerItem>
       </StaggerGrid>
+
+      {/* Contact Email & Social Channels (Displays only if email or social handle has a value) */}
+      {(Boolean(settings.contactEmail && settings.contactEmail.trim()) ||
+        Boolean(
+          settings.socialHandles &&
+            Object.values(settings.socialHandles).some(
+              (val) => typeof val === 'string' && val.trim().length > 0
+            )
+        )) && (
+        <div className="p-6 sm:p-8 bg-white/85 backdrop-blur-xs border border-[#E2D8C9] rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A5A12] block">
+              Digital Channels
+            </span>
+            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#1A1410]">
+              Direct Inquiries &amp; Social Feeds
+            </h3>
+            <p className="text-xs text-[#5C5046] font-light max-w-xl">
+              Write to our showroom desk for official corporate inquiries or follow our craftsmen on social channels.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            {settings.contactEmail && settings.contactEmail.trim() !== '' && (
+              <a
+                href={`mailto:${settings.contactEmail.trim()}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-[#F3EAD7] hover:bg-[#C9A54B] text-[#7A5A12] hover:text-white border border-[#B8923A]/40 transition-all shadow-xs cursor-pointer"
+                title={`Email us at ${settings.contactEmail}`}
+              >
+                <Mail className="w-4 h-4" />
+                <span>Email us ({settings.contactEmail.trim()})</span>
+              </a>
+            )}
+
+            <SocialLinks socialHandles={settings.socialHandles} variant="gold" size="lg" />
+          </div>
+        </div>
+      )}
 
       {/* Store Policies Section */}
       <div className="space-y-12">
