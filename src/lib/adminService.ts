@@ -57,7 +57,9 @@ export interface StoreSettingsDoc {
   cloudinaryUploadPreset?: string;
   showcaseTiles?: ShowcaseTile[];
   aboutPageImageUrl?: string;
+  aboutPageImageUrl2?: string;
   aboutPageStory?: string;
+  establishedYear?: string;
   craftsmanshipText?: string;
   familyLineEn?: string;
   familyLineUr?: string;
@@ -268,11 +270,13 @@ export async function updateStoreSettingsInfo(updates: {
   address?: string;
   deliveryText?: string;
   aboutPageStory?: string;
+  establishedYear?: string;
   craftsmanshipText?: string;
   cloudinaryCloudName?: string;
   cloudinaryUploadPreset?: string;
   showcaseTiles?: ShowcaseTile[];
   aboutPageImageUrl?: string;
+  aboutPageImageUrl2?: string;
   familyLineEn?: string;
   familyLineUr?: string;
   contactEmail?: string;

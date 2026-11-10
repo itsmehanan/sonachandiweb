@@ -138,6 +138,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [inputHours, setInputHours] = useState('');
   const [inputDelivery, setInputDelivery] = useState('');
   const [inputAboutStory, setInputAboutStory] = useState('');
+  const [inputAboutImageUrl2, setInputAboutImageUrl2] = useState<string>(() => getSettings().aboutPageImageUrl2 || '');
+  const [inputEstablishedYear, setInputEstablishedYear] = useState<string>(() => getSettings().establishedYear || '');
+  const [uploadingAboutPhoto2, setUploadingAboutPhoto2] = useState(false);
   const [inputCraftsmanship, setInputCraftsmanship] = useState('');
   const [inputFamilyLineEn, setInputFamilyLineEn] = useState('Imtiyaz & Sons');
   const [inputFamilyLineUr, setInputFamilyLineUr] = useState('امتیاز اینڈ سنز');
@@ -259,6 +262,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         if (data.hoursText) setInputHours(data.hoursText);
         if (data.deliveryText) setInputDelivery(data.deliveryText);
         if (data.aboutPageStory) setInputAboutStory(data.aboutPageStory);
+        if (data.aboutPageImageUrl2) setInputAboutImageUrl2(data.aboutPageImageUrl2);
+        if (data.establishedYear) setInputEstablishedYear(data.establishedYear);
         if (data.craftsmanshipText) setInputCraftsmanship(data.craftsmanshipText);
         if (data.familyLineEn !== undefined) setInputFamilyLineEn(data.familyLineEn);
         if (data.familyLineUr !== undefined) setInputFamilyLineUr(data.familyLineUr);
@@ -436,6 +441,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         hoursText: inputHours.trim(),
         deliveryText: inputDelivery.trim(),
         aboutPageStory: inputAboutStory.trim(),
+        aboutPageImageUrl2: inputAboutImageUrl2.trim(),
+        establishedYear: inputEstablishedYear.trim(),
         craftsmanshipText: inputCraftsmanship.trim(),
         cloudinaryCloudName: inputCloudinaryCloudName.trim(),
         cloudinaryUploadPreset: inputCloudinaryUploadPreset.trim(),
@@ -544,6 +551,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
 
   const handleRemoveAboutPhoto = () => {
     setAboutPageImageUrl('');
+  };
+
+  const handleUploadAboutPhoto2 = async (file: File) => {
+    setSettingsFeedback(null);
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setSettingsFeedback(`Invalid file format for "${file.name}". Only JPEG, PNG, and WebP images are allowed.`);
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSettingsFeedback(`"${file.name}" is over 2 MB. Please select an image under 2 MB.`);
+      return;
+    }
+
+    setUploadingAboutPhoto2(true);
+    try {
+      const config = getCloudinaryConfig();
+      const secureUrl = await uploadToCloudinary(file, config);
+      setInputAboutImageUrl2(secureUrl);
+      setSettingsFeedback('✓ Second About photo uploaded successfully! Click "Save Store Settings" to publish.');
+      setTimeout(() => setSettingsFeedback(null), 4000);
+    } catch (err: any) {
+      setSettingsFeedback(`About photo upload failed: ${err.message}`);
+    } finally {
+      setUploadingAboutPhoto2(false);
+    }
+  };
+
+  const handleRemoveAboutPhoto2 = () => {
+    setInputAboutImageUrl2('');
   };
 
   const handleSaveShowcase = async () => {
@@ -2154,19 +2190,139 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-[#64748B] mb-1">About Page Story Description (Optional)</label>
-                  <textarea
-                    rows={3}
-                    value={inputAboutStory}
-                    placeholder="Enter your custom brand story and philosophy. When left blank, this section is hidden on the About page."
-                    onChange={(e) => setInputAboutStory(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
-                  />
-                  <span className="text-[11px] text-[#64748B] mt-0.5 block">
-                    Empty by default. If left blank, the story section on the About page is automatically hidden.
-                  </span>
-                </div>
+                {/* About Page Configuration Card (Owner only) */}
+                {staffRecord?.role === 'owner' && (
+                  <div className="p-5 sm:p-6 bg-[#FAF7F2] border border-[#B8923A]/40 rounded-2xl space-y-5 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2D8C9] pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-[#7A5A12]" />
+                          <h3 className="font-serif text-base font-bold text-[#1E1B18]">
+                            About Page &amp; Story Configuration
+                          </h3>
+                        </div>
+                        <p className="text-[11px] text-[#64748B] mt-0.5">
+                          Configure the brand story text, optional established year badge, and secondary story portrait.
+                        </p>
+                      </div>
+                      <span className="self-start sm:self-auto px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#F3EAD7] text-[#7A5A12] border border-[#B8923A]/30">
+                        Owner Only
+                      </span>
+                    </div>
+
+                    {/* Established Year */}
+                    <div className="space-y-1.5 p-3.5 bg-white border border-[#E2D8C9] rounded-xl">
+                      <label className="font-semibold text-[#1E1B18] flex items-center justify-between">
+                        <span>Established Year (Optional)</span>
+                        {inputEstablishedYear.trim() && (
+                          <span className="text-[11px] font-mono text-[#7A5A12]">
+                            Badge preview: Est. {inputEstablishedYear.trim().replace(/^est\.?\s*/i, '')}
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={inputEstablishedYear}
+                        placeholder="e.g. 1988 (Leave blank to hide Established badge)"
+                        onChange={(e) => setInputEstablishedYear(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18] text-xs focus:border-[#C9A54B] outline-none"
+                      />
+                      <span className="text-[10px] text-[#64748B] block">
+                        When filled, an "Est. [Year]" badge appears in the About page hero banner. If blank, the badge is hidden.
+                      </span>
+                    </div>
+
+                    {/* About Page Story Description */}
+                    <div className="space-y-1.5 p-3.5 bg-white border border-[#E2D8C9] rounded-xl">
+                      <label className="font-semibold text-[#1E1B18] block">
+                        About Page Story Text (settings.aboutPageStory)
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={inputAboutStory}
+                        placeholder="Enter your custom brand story and philosophy. When left blank, this section is hidden on the About page."
+                        onChange={(e) => setInputAboutStory(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18] text-xs focus:border-[#C9A54B] outline-none leading-relaxed"
+                      />
+                      <span className="text-[10px] text-[#64748B] block">
+                        Empty by default. If left blank, the story section on the About page is automatically hidden.
+                      </span>
+                    </div>
+
+                    {/* Second Story Image (aboutPageImageUrl2) with Cloudinary Upload */}
+                    <div className="space-y-2.5 p-3.5 bg-white border border-[#E2D8C9] rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <label className="font-semibold text-[#1E1B18]">
+                          Second Story Image (Optional - aboutPageImageUrl2)
+                        </label>
+                        {inputAboutImageUrl2 && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveAboutPhoto2}
+                            className="text-[11px] text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                          >
+                            Remove second photo
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        {/* Preview */}
+                        <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-xl overflow-hidden border border-[#E2D8C9] bg-[#FAF7F2] shrink-0 relative flex items-center justify-center shadow-2xs">
+                          {inputAboutImageUrl2 ? (
+                            <img
+                              src={inputAboutImageUrl2}
+                              alt="Second Story Portrait"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="text-center p-2 text-[#8E6E24]">
+                              <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-50" />
+                              <span className="text-[9px] block">No second photo</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Upload Controls */}
+                        <div className="flex-1 space-y-2 w-full">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#FAF7F2] hover:bg-[#F3EAD7] border border-[#B8923A]/40 text-[#7A5A12] font-semibold text-xs transition-colors cursor-pointer shadow-2xs">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{uploadingAboutPhoto2 ? 'Uploading...' : inputAboutImageUrl2 ? 'Replace Photo' : 'Upload Second Photo'}</span>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                disabled={uploadingAboutPhoto2}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) handleUploadAboutPhoto2(f);
+                                }}
+                              />
+                            </label>
+                          </div>
+
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={inputAboutImageUrl2}
+                              placeholder="Or paste direct image URL (https://...)"
+                              onChange={(e) => setInputAboutImageUrl2(e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-xs text-[#1E1B18] outline-none focus:border-[#C9A54B]"
+                            />
+                          </div>
+
+                          <span className="text-[10px] text-[#64748B] block">
+                            Paired on the About page alongside the primary image with an arch frame and scroll reveal.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block font-semibold text-[#64748B] mb-1">Craftsmanship &amp; Workshop Description (Optional)</label>

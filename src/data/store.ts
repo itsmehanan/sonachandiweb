@@ -131,7 +131,9 @@ export interface StoreSettings {
   socialHandles?: SocialHandles;
   deliveryText?: string;
   aboutPageImageUrl?: string;
+  aboutPageImageUrl2?: string;
   aboutPageStory?: string;
+  establishedYear?: string;
   craftsmanshipText?: string;
   familyLineEn?: string;
   familyLineUr?: string;
@@ -166,6 +168,7 @@ let currentSettings: StoreSettings = {
   deliveryText: '',
   aboutPageStory: '',
   craftsmanshipText: '',
+  establishedYear: '',
   familyLineEn: 'Imtiyaz & Sons',
   familyLineUr: 'امتیاز اینڈ سنز',
   policies: {
@@ -174,6 +177,7 @@ let currentSettings: StoreSettings = {
   },
   showcaseTiles: DEFAULT_SHOWCASE_TILES,
   aboutPageImageUrl: '',
+  aboutPageImageUrl2: '',
 };
 
 // Live in-memory cache populated exclusively from Firestore
@@ -289,6 +293,12 @@ export function initFirestoreStore(): void {
           }
           if (typeof data.aboutPageImageUrl === 'string') {
             currentSettings.aboutPageImageUrl = data.aboutPageImageUrl;
+          }
+          if (typeof data.aboutPageImageUrl2 === 'string') {
+            currentSettings.aboutPageImageUrl2 = data.aboutPageImageUrl2;
+          }
+          if (typeof data.establishedYear === 'string') {
+            currentSettings.establishedYear = data.establishedYear;
           }
           if (typeof data.familyLineEn === 'string') {
             currentSettings.familyLineEn = data.familyLineEn;
