@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Info, X, Scale, ArrowRightLeft, Check, Sparkles } from 'lucide-react';
+import { Info, X, Scale, ArrowRightLeft, Check, Sparkles, MapPin } from 'lucide-react';
 import { TOLA_IN_GRAMS } from '../lib/pricing';
+
+export const STANDARD_TOLA_GRAMS = TOLA_IN_GRAMS; // 11.6638 grams - Standard Bullion Reference
+export const KPK_TOLA_GRAMS = 12.150;             // 12.150 grams - Khyber Pakhtunkhwa Regional Measurement
+
+export type TolaStandardType = 'standard' | 'kpk';
 
 export interface TolaGuideProps {
   /** Visual style for the trigger button */
@@ -41,6 +46,7 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
   };
 
   const [converterMode, setConverterMode] = useState<'gramsToTola' | 'tolaToGrams'>('gramsToTola');
+  const [standardType, setStandardType] = useState<TolaStandardType>('standard');
   const [inputValue, setInputValue] = useState<string>('11.6638');
   const [mounted, setMounted] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -84,6 +90,21 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
     }
   }, [isOpen]);
 
+  // Active conversion factor based on chosen standard
+  const activeTolaFactor = standardType === 'kpk' ? KPK_TOLA_GRAMS : STANDARD_TOLA_GRAMS;
+
+  // Handle standard switch
+  const handleSelectStandard = (type: TolaStandardType) => {
+    setStandardType(type);
+    if (converterMode === 'gramsToTola') {
+      if (inputValue === '11.6638' && type === 'kpk') {
+        setInputValue('12.150');
+      } else if (inputValue === '12.150' && type === 'standard') {
+        setInputValue('11.6638');
+      }
+    }
+  };
+
   // Converter calculations
   const numInput = parseFloat(inputValue) || 0;
   let convertedTolas = 0;
@@ -92,13 +113,13 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
   let rattiVal = 0;
 
   if (converterMode === 'gramsToTola') {
-    convertedTolas = numInput / TOLA_IN_GRAMS;
+    convertedTolas = numInput / activeTolaFactor;
     const wholeTolas = Math.floor(convertedTolas);
     const remMasha = (convertedTolas - wholeTolas) * 12;
     mashaVal = Math.floor(remMasha);
     rattiVal = (remMasha - mashaVal) * 8;
   } else {
-    convertedGrams = numInput * TOLA_IN_GRAMS;
+    convertedGrams = numInput * activeTolaFactor;
   }
 
   // Trigger button styling based on tone & variant
@@ -192,30 +213,58 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
 
         {/* SCROLLABLE MIDDLE CONTENT */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-5 text-xs sm:text-sm">
-          {/* Primary Standard Statement */}
+          {/* Primary Standard Statement (Pakistan & International Reference) */}
           <div className="p-4 rounded-xl bg-white border border-[#B8923A]/40 shadow-2xs space-y-2">
-            <div className="flex items-center gap-2 text-[#7A5A12] font-semibold text-xs uppercase tracking-wider">
-              <Sparkles className="w-4 h-4 text-[#C9A54B]" />
-              <span>Bullion Weight Standard</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[#7A5A12] font-semibold text-xs uppercase tracking-wider">
+                <Sparkles className="w-4 h-4 text-[#C9A54B]" />
+                <span>Standard Tola (Bullion Reference)</span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#F3EAD7] text-[#7A5A12] border border-[#B8923A]/30">
+                Official Benchmark
+              </span>
             </div>
             <p className="font-serif text-sm sm:text-base text-[#1A1410] font-medium leading-relaxed">
               Our tola = <strong className="text-[#7A5A12] font-bold">11.6638 grams</strong> (the standard used by the Pakistan bullion market, the same across all provinces including Khyber Pakhtunkhwa, Punjab, Sindh and Balochistan).
             </p>
           </div>
 
-          {/* Live Tola & Gram Converter */}
-          <div className="p-4 sm:p-5 rounded-xl bg-[#F3EAD7]/60 border border-[#E2D8C9] space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {/* KPK Regional Tola Informational Section */}
+          <div className="p-4 rounded-xl bg-white border border-[#E2D8C9] shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[#7A5A12] font-semibold text-xs uppercase tracking-wider">
+                <MapPin className="w-4 h-4 text-[#B8923A]" />
+                <span>KPK Regional Tola</span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#FAF7F2] text-[#5C5046] border border-[#E2D8C9]">
+                Regional Trade Context
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-[#1A1410] leading-relaxed">
+              In Khyber Pakhtunkhwa, a regional tola measurement of <strong className="text-[#7A5A12] font-bold">12.150 grams</strong> is used in some local gold-trading contexts. This differs from the 11.6638-gram standard tola.
+            </p>
+            <div className="p-2.5 rounded-lg bg-[#FAF7F2] border border-[#E2D8C9] text-[11px] text-[#5C5046] leading-relaxed space-y-1">
+              <div>
+                <strong className="text-[#1A1410]">Standard distinction:</strong> The 11.6638 g tola is the standard reference used in Pakistan and international bullion markets for official daily rates and catalogue estimations. The 12.150 g tola represents a traditional local trading custom in parts of KPK.
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Dual-Standard Weight Converter */}
+          <div className="p-4 sm:p-5 rounded-xl bg-[#F3EAD7]/60 border border-[#E2D8C9] space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2D8C9] pb-3">
               <span className="text-xs font-bold uppercase tracking-wider text-[#7A5A12] flex items-center gap-1.5">
                 <ArrowRightLeft className="w-3.5 h-3.5" />
-                <span>Weight Converter (11.6638 g standard)</span>
+                <span>Interactive Weight Converter</span>
               </span>
+
+              {/* Direction Toggle (g -> tola / tola -> g) */}
               <div className="inline-flex items-center gap-1 bg-white p-0.5 rounded-lg border border-[#E2D8C9] text-xs self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => {
                     setConverterMode('gramsToTola');
-                    setInputValue('11.6638');
+                    setInputValue(standardType === 'kpk' ? '12.150' : '11.6638');
                   }}
                   className={`min-h-[44px] sm:min-h-[32px] px-3 py-1.5 rounded cursor-pointer font-medium transition-colors ${
                     converterMode === 'gramsToTola'
@@ -240,6 +289,54 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
                   tola → g
                 </button>
               </div>
+            </div>
+
+            {/* Standard Selection Buttons */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#5C5046] flex items-center justify-between">
+                <span>Select Tola Standard:</span>
+                <span className="text-[#7A5A12] font-mono font-bold">
+                  Active: {standardType === 'standard' ? '11.6638 g' : '12.150 g'}
+                </span>
+              </label>
+
+              <div className="grid grid-cols-2 gap-2 bg-white p-1 rounded-xl border border-[#E2D8C9]">
+                <button
+                  type="button"
+                  onClick={() => handleSelectStandard('standard')}
+                  className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                    standardType === 'standard'
+                      ? 'bg-gradient-to-r from-[#B8923A] to-[#C9A54B] text-white shadow-xs'
+                      : 'text-[#5C5046] hover:text-[#1A1410] hover:bg-[#F3EAD7]/50'
+                  }`}
+                >
+                  <span className="leading-tight">Standard Tola</span>
+                  <span className="text-[10px] opacity-90 font-mono">11.6638 grams</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelectStandard('kpk')}
+                  className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                    standardType === 'kpk'
+                      ? 'bg-gradient-to-r from-[#B8923A] to-[#C9A54B] text-white shadow-xs'
+                      : 'text-[#5C5046] hover:text-[#1A1410] hover:bg-[#F3EAD7]/50'
+                  }`}
+                >
+                  <span className="leading-tight">KPK Regional Tola</span>
+                  <span className="text-[10px] opacity-90 font-mono">12.150 grams</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Clear Selected Standard Indicator */}
+            <div className="p-2 rounded-lg bg-white/80 border border-[#E2D8C9] flex items-center justify-between text-xs">
+              <span className="text-[#5C5046]">Calculation Basis:</span>
+              <span className="font-semibold text-[#7A5A12] font-mono">
+                {standardType === 'standard'
+                  ? 'Standard Bullion: 1 tola = 11.6638 g'
+                  : 'KPK Regional: 1 tola = 12.150 g'}
+              </span>
             </div>
 
             {/* Stacked on mobile, 2 columns on tablet/desktop */}
@@ -267,7 +364,11 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase tracking-wider text-[#5C5046]">
-                  {converterMode === 'gramsToTola' ? 'Calculated Tola' : 'Calculated Grams'}
+                  {converterMode === 'gramsToTola'
+                    ? standardType === 'kpk'
+                      ? 'Calculated KPK Tola'
+                      : 'Calculated Standard Tola'
+                    : 'Calculated Grams'}
                 </label>
                 <div className="min-h-[44px] px-3.5 py-2.5 bg-white border border-[#B8923A]/40 rounded-lg text-sm sm:text-base font-mono font-bold text-[#7A5A12] flex items-center justify-between">
                   <span>
@@ -283,7 +384,10 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
             {converterMode === 'gramsToTola' && numInput > 0 && (
               <div className="text-[11px] text-[#5C5046] font-medium pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <span>
-                  Traditional breakdown: <strong>{Math.floor(convertedTolas)} tola, {mashaVal} masha, {rattiVal.toFixed(1)} ratti</strong>
+                  Traditional breakdown ({standardType === 'kpk' ? 'KPK base' : '11.6638g base'}):{' '}
+                  <strong>
+                    {Math.floor(convertedTolas)} tola, {mashaVal} masha, {rattiVal.toFixed(1)} ratti
+                  </strong>
                 </span>
                 <span className="text-[#7A5A12] font-semibold">Zero rounding loss</span>
               </div>
@@ -310,6 +414,14 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
                     </td>
                     <td className="py-2.5 px-3 sm:px-4 font-mono font-bold text-[#7A5A12] text-right whitespace-nowrap">
                       11.6638 g
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-3 sm:px-4 font-medium text-[#1A1410] break-words whitespace-normal leading-snug">
+                      Khyber Pakhtunkhwa (Regional local trade)
+                    </td>
+                    <td className="py-2.5 px-3 sm:px-4 font-mono font-bold text-[#7A5A12] text-right whitespace-nowrap">
+                      12.150 g
                     </td>
                   </tr>
                   <tr>
@@ -365,7 +477,7 @@ export const TolaGuide: React.FC<TolaGuideProps> = ({
           {/* Note on Rounding & Verification */}
           <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#B8923A]/40 text-xs text-[#5C5046] leading-relaxed">
             <span className="font-semibold text-[#1A1410] block mb-0.5">Verification Guarantee:</span>
-            Some traders round a tola to 10 g or 12 g. We always use 11.6638 g, so you can verify any weight.
+            Some traders round a tola to 10 g or 12 g. We always use 11.6638 g for official quotations and pricing, so you can verify any weight.
           </div>
         </div>
 

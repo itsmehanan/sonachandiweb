@@ -421,6 +421,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                 <p className="text-sm text-[#5C5046] font-normal leading-relaxed">
                   We operate strictly on international and Pakistani legal bullion standards (11.6638 g). We never round down weight or inflate conversions.
                 </p>
+                <p className="text-[11px] text-[#7A5A12] font-medium leading-normal pt-0.5">
+                  Regional note: In Khyber Pakhtunkhwa, a local trade measurement of 12.150 g is also recognized.
+                </p>
               </div>
 
               {/* Full-width soft gold outline button with info icon */}
