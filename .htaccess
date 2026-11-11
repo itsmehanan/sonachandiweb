@@ -1,0 +1,29 @@
+# ==============================================================================
+# Sona Chandi Gold Collection - Apache / cPanel SPA Routing (.htaccess)
+# ==============================================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve existing physical files, directories, or symlinks directly
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+
+  # Route all other routes (e.g. /admin, /catalogue, /about) back to index.html
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Disable directory browsing for security
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>
+
+# Proper MIME types for Web Manifest and modern asset formats
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType image/webp .webp
+  AddType image/svg+xml .svg
+</IfModule>
