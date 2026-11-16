@@ -23,7 +23,7 @@ import { ProductDetailPage } from './pages/ProductDetailPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 
-import { Product, getProducts, getRates, getProductById, subscribeToStore } from './data/store';
+import { Product, getRates, getProductById, subscribeToStore, normalizeCategory } from './data/store';
 import { BullionRates, runPricingSelfChecks } from './lib/pricing';
 
 export default function App() {
@@ -82,13 +82,10 @@ export default function App() {
     const unsubscribe = subscribeToStore(() => {
       setRates(getRates());
       // Force refresh of selected product if open
-      if (selectedProduct) {
-        const fresh = getProductById(selectedProduct.id);
-        if (fresh) setSelectedProduct(fresh);
-      }
+      setSelectedProduct((prev) => (prev ? getProductById(prev.id) ?? prev : null));
     });
     return () => unsubscribe();
-  }, [selectedProduct]);
+  }, []);
 
   // Sync cart to localStorage
   useEffect(() => {
@@ -110,6 +107,28 @@ export default function App() {
         document.documentElement.style.setProperty('--bg-anim-opacity', '0.5');
       }
     }
+  }, [currentView]);
+
+  // Prevent search engine indexing when admin view is active
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const selector = 'meta[name="robots"][data-admin-robots="true"]';
+    if (currentView === 'admin') {
+      let meta = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'robots';
+        meta.content = 'noindex, nofollow';
+        meta.setAttribute('data-admin-robots', 'true');
+        document.head.appendChild(meta);
+      } else {
+        meta.content = 'noindex, nofollow';
+      }
+      return () => {
+        meta?.remove();
+      };
+    }
+    document.head.querySelectorAll(selector).forEach((el) => el.remove());
   }, [currentView]);
 
   // Listen to browser popstate
@@ -161,8 +180,11 @@ export default function App() {
 
     if (view === 'catalogue') {
       if (typeof filterOrOptions === 'object' && filterOrOptions !== null) {
+        const normalizedCategory = filterOrOptions.category
+          ? normalizeCategory(filterOrOptions.category) || undefined
+          : undefined;
         setCatalogueMetal(filterOrOptions.metal ?? 'all');
-        setCatalogueCategory(filterOrOptions.category);
+        setCatalogueCategory(normalizedCategory);
         setCatalogueKarat(filterOrOptions.karat ?? 'all');
         setCatalogueSort(filterOrOptions.sort ?? 'featured');
         setCatalogueSearch(filterOrOptions.search ?? '');
@@ -191,8 +213,9 @@ export default function App() {
           setCatalogueSearch('');
           setFilterResetNonce((n) => n + 1);
         } else {
-          // Category link from Footer or elsewhere
-          setCatalogueCategory(filter);
+          // Category link from Footer, HomePage curated tiles, or elsewhere
+          const normalizedCategory = normalizeCategory(filter) || undefined;
+          setCatalogueCategory(normalizedCategory);
           setCatalogueMetal('all');
           setCatalogueKarat('all');
           setCatalogueSort('featured');

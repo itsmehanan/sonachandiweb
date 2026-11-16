@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   ArrowRight,
   Sparkles,
@@ -26,8 +26,8 @@ import {
   getStoreStatus,
   subscribeToStore,
   optimizeCloudinaryShowcase,
+  normalizeCategory,
   ShowcaseTile,
-  StoreSettings,
 } from '../data/store';
 import {
   BullionRates,
@@ -75,19 +75,31 @@ const CuratedTileCard: React.FC<CuratedTileProps> = ({
     if (tile.imageUrl && tile.imageUrl.trim()) {
       return optimizeCloudinaryShowcase(tile.imageUrl.trim());
     }
-    const target = tile.target;
+    const rawTarget = (tile.target || '').trim().toLowerCase();
+    const normalizedTarget = normalizeCategory(tile.target);
     let matching: Product | undefined;
-    if (target === 'silver') {
+    if (rawTarget === 'silver' || rawTarget === 'gold') {
       matching = products
-        .filter((p) => p.inStock && p.metal === 'silver' && p.images && p.images.length > 0)
+        .filter((p) => p.inStock && p.metal === rawTarget && p.images && p.images.length > 0)
         .sort((a, b) => b.id.localeCompare(a.id))[0];
-    } else {
+    } else if (normalizedTarget) {
       matching = products
-        .filter((p) => p.inStock && p.category === target && p.images && p.images.length > 0)
+        .filter(
+          (p) =>
+            p.inStock &&
+            normalizeCategory(p.category) === normalizedTarget &&
+            p.images &&
+            p.images.length > 0
+        )
         .sort((a, b) => b.id.localeCompare(a.id))[0];
       if (!matching) {
         matching = products
-          .filter((p) => p.category === target && p.images && p.images.length > 0)
+          .filter(
+            (p) =>
+              normalizeCategory(p.category) === normalizedTarget &&
+              p.images &&
+              p.images.length > 0
+          )
           .sort((a, b) => b.id.localeCompare(a.id))[0];
       }
     }
@@ -174,22 +186,12 @@ export const HomePage: React.FC<HomePageProps> = ({
   onNavigateToCatalogue,
   onOpenCalculator,
 }) => {
-  const [products, setProducts] = useState<Product[]>(() => getProducts());
-  const [settings, setSettings] = useState<StoreSettings>(() => getSettings());
-  const [showcaseTiles, setShowcaseTiles] = useState<ShowcaseTile[]>(() => getShowcaseTiles());
-  const [storeStatus, setStoreStatus] = useState(() => getStoreStatus());
+  const products = useSyncExternalStore(subscribeToStore, getProducts, getProducts);
+  const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
+  const showcaseTiles = useSyncExternalStore(subscribeToStore, getShowcaseTiles, getShowcaseTiles);
+  const storeStatus = useMemo(() => getStoreStatus(), [settings]);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const prefersReducedMotion = useReducedMotion();
-
-  useEffect(() => {
-    const unsubscribe = subscribeToStore(() => {
-      setProducts(getProducts());
-      setSettings(getSettings());
-      setShowcaseTiles(getShowcaseTiles());
-      setStoreStatus(getStoreStatus());
-    });
-    return unsubscribe;
-  }, []);
 
   // 8 newest active products
   const newestProducts = useMemo(() => {

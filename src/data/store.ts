@@ -14,7 +14,7 @@ import {
   where,
   addDoc,
 } from 'firebase/firestore';
-import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import {
   BullionRates,
   GoldKarat,
@@ -23,6 +23,7 @@ import {
   MakingCharge,
   PricingProductInput,
 } from '../lib/pricing';
+import { SocialHandles } from '../components/SocialLinks';
 
 export type ProductCategory =
   | 'rings'
@@ -33,7 +34,7 @@ export type ProductCategory =
 
 export interface Product extends PricingProductInput {
   slug: string;
-  category: ProductCategory;
+  category: ProductCategory | '';
   featured: boolean;
   inStock: boolean;
   stock: number;
@@ -117,8 +118,6 @@ export const DEFAULT_SHOWCASE_TILES: ShowcaseTile[] = [
   },
 ];
 
-import { SocialHandles } from '../components/SocialLinks';
-
 export interface StoreSettings {
   brandName: string;
   tagline: string;
@@ -144,6 +143,72 @@ export interface StoreSettings {
     exchangePolicy?: string;
     shippingPolicy?: string;
   };
+}
+
+/**
+ * Normalize raw category names from Firestore, URLs, tiles, and UI links
+ * to canonical ProductCategory values, or '' if missing/unrecognised.
+ */
+export function normalizeCategory(raw: unknown): ProductCategory | '' {
+  if (typeof raw !== 'string') return '';
+  const cleaned = raw
+    .toLowerCase()
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  if (!cleaned) return '';
+
+  // Check bridal before set/necklaces
+  if (
+    cleaned === 'bridal' ||
+    cleaned === 'bridal set' ||
+    cleaned === 'bridal sets' ||
+    cleaned === 'bridal suite'
+  ) {
+    return 'bridal_sets';
+  }
+
+  if (
+    cleaned === 'necklace' ||
+    cleaned === 'necklaces' ||
+    cleaned === 'haar' ||
+    cleaned === 'haars' ||
+    cleaned === 'set' ||
+    cleaned === 'sets' ||
+    cleaned === 'necklace set' ||
+    cleaned === 'necklace sets'
+  ) {
+    return 'necklaces';
+  }
+
+  if (cleaned === 'ring' || cleaned === 'rings') {
+    return 'rings';
+  }
+
+  if (
+    cleaned === 'bangle' ||
+    cleaned === 'bangles' ||
+    cleaned === 'kara' ||
+    cleaned === 'karas' ||
+    cleaned === 'kada' ||
+    cleaned === 'kadas'
+  ) {
+    return 'bangles';
+  }
+
+  if (
+    cleaned === 'earring' ||
+    cleaned === 'earrings' ||
+    cleaned === 'jhumka' ||
+    cleaned === 'jhumkas' ||
+    cleaned === 'jhumki' ||
+    cleaned === 'jhumkis'
+  ) {
+    return 'earrings';
+  }
+
+  return '';
 }
 
 // Initial rates start empty (0) until fetched from settings/store
@@ -180,9 +245,23 @@ let currentSettings: StoreSettings = {
   aboutPageImageUrl2: '',
 };
 
+let currentShowcaseTiles: ShowcaseTile[] = DEFAULT_SHOWCASE_TILES;
+
 // Live in-memory cache populated exclusively from Firestore
 let liveProducts: Product[] = [];
+let productsLoaded = false;
+let settingsLoaded = false;
+let productsError = false;
+let settingsError = false;
 let listenersInitialized = false;
+
+const MAX_LISTENER_RETRIES = 5;
+let productsUnsub: (() => void) | null = null;
+let settingsUnsub: (() => void) | null = null;
+let productsRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let settingsRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let productsRetryCount = 0;
+let settingsRetryCount = 0;
 
 // Subscribers list for reactive UI updates
 const storeListeners = new Set<() => void>();
@@ -208,6 +287,15 @@ function mapDocToProduct(docData: any, docId: string): Product {
     karat = '925_sterling';
   }
 
+  const sku = docData.sku || 'SKU-000';
+  const normalizedCategory = normalizeCategory(docData.category);
+  if (!normalizedCategory) {
+    console.warn(
+      `[Store] Product "${docId}" (SKU: ${sku}) has missing or unrecognised category:`,
+      docData.category
+    );
+  }
+
   const stock = typeof docData.stock === 'number' ? docData.stock : 0;
   const weightGrams = Number(docData.weightG || docData.weightGrams || 0);
   const makingCharge: MakingCharge =
@@ -217,14 +305,14 @@ function mapDocToProduct(docData: any, docId: string): Product {
 
   return {
     id: docId,
-    sku: docData.sku || 'SKU-000',
+    sku,
     title: docData.name || docData.title || 'Fine Jewellery',
     slug: (docData.name || docData.sku || docId)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-'),
     metal,
     karat,
-    category: (docData.category || 'necklaces') as ProductCategory,
+    category: normalizedCategory,
     weightGrams,
     makingCharge,
     stock,
@@ -243,19 +331,25 @@ function mapDocToProduct(docData: any, docId: string): Product {
   };
 }
 
-/**
- * Real-time Firestore Subscriptions
- */
-export function initFirestoreStore(): void {
-  if (listenersInitialized || typeof window === 'undefined') return;
-  listenersInitialized = true;
+function subscribeSettings(): void {
+  if (settingsRetryTimer) {
+    clearTimeout(settingsRetryTimer);
+    settingsRetryTimer = null;
+  }
+  if (settingsUnsub) {
+    settingsUnsub();
+    settingsUnsub = null;
+  }
 
-  // 1. Listen to Settings / Store document
   try {
     const settingsRef = doc(db, 'settings', 'store');
-    onSnapshot(
+    settingsUnsub = onSnapshot(
       settingsRef,
       (docSnap) => {
+        settingsLoaded = true;
+        settingsError = false;
+        settingsRetryCount = 0;
+
         if (docSnap.exists()) {
           const data = docSnap.data();
           const gold = Number(data.gold24kPerTola) || 0;
@@ -266,7 +360,6 @@ export function initFirestoreStore(): void {
             gold24KPerTola: gold,
             silverRate: silver,
             silverUnit: data.silverUnit === 'gram' ? 'per_gram' : 'per_tola',
-            // Show last-updated time ONLY from ratesUpdatedAt
             lastUpdated: ratesUpdatedAt
               ? `Updated ${new Date(ratesUpdatedAt).toLocaleTimeString('en-US', {
                   hour: '2-digit',
@@ -276,44 +369,50 @@ export function initFirestoreStore(): void {
               : '',
           };
 
-          if (data.whatsappNumber) currentSettings.whatsappNumber = data.whatsappNumber;
-          if (data.hoursText) currentSettings.storeHoursDescription = data.hoursText;
-          if (data.address) currentSettings.address = data.address;
-          if (data.deliveryText) currentSettings.deliveryText = data.deliveryText;
+          const nextShowcaseTiles =
+            Array.isArray(data.showcaseTiles) && data.showcaseTiles.length > 0
+              ? data.showcaseTiles
+              : DEFAULT_SHOWCASE_TILES;
+          currentShowcaseTiles = nextShowcaseTiles;
+
+          const nextSettings: StoreSettings = {
+            ...currentSettings,
+            showcaseTiles: nextShowcaseTiles,
+          };
+
+          if (data.whatsappNumber) nextSettings.whatsappNumber = data.whatsappNumber;
+          if (data.hoursText) nextSettings.storeHoursDescription = data.hoursText;
+          if (data.address) nextSettings.address = data.address;
+          if (data.deliveryText) nextSettings.deliveryText = data.deliveryText;
           if (typeof data.aboutPageStory === 'string') {
-            currentSettings.aboutPageStory = data.aboutPageStory;
+            nextSettings.aboutPageStory = data.aboutPageStory;
           }
           if (typeof data.craftsmanshipText === 'string') {
-            currentSettings.craftsmanshipText = data.craftsmanshipText;
-          }
-          if (Array.isArray(data.showcaseTiles) && data.showcaseTiles.length > 0) {
-            currentSettings.showcaseTiles = data.showcaseTiles;
-          } else {
-            currentSettings.showcaseTiles = DEFAULT_SHOWCASE_TILES;
+            nextSettings.craftsmanshipText = data.craftsmanshipText;
           }
           if (typeof data.aboutPageImageUrl === 'string') {
-            currentSettings.aboutPageImageUrl = data.aboutPageImageUrl;
+            nextSettings.aboutPageImageUrl = data.aboutPageImageUrl;
           }
           if (typeof data.aboutPageImageUrl2 === 'string') {
-            currentSettings.aboutPageImageUrl2 = data.aboutPageImageUrl2;
+            nextSettings.aboutPageImageUrl2 = data.aboutPageImageUrl2;
           }
           if (typeof data.establishedYear === 'string') {
-            currentSettings.establishedYear = data.establishedYear;
+            nextSettings.establishedYear = data.establishedYear;
           }
           if (typeof data.familyLineEn === 'string') {
-            currentSettings.familyLineEn = data.familyLineEn;
+            nextSettings.familyLineEn = data.familyLineEn;
           }
           if (typeof data.familyLineUr === 'string') {
-            currentSettings.familyLineUr = data.familyLineUr;
+            nextSettings.familyLineUr = data.familyLineUr;
           }
           if (typeof data.contactEmail === 'string') {
-            currentSettings.contactEmail = data.contactEmail;
+            nextSettings.contactEmail = data.contactEmail;
           }
           if (typeof data.phone === 'string') {
-            currentSettings.phone = data.phone;
+            nextSettings.phone = data.phone;
           }
           if (data.socialHandles && typeof data.socialHandles === 'object') {
-            currentSettings.socialHandles = {
+            nextSettings.socialHandles = {
               instagram: data.socialHandles.instagram || data.instagram || '',
               facebook: data.socialHandles.facebook || data.facebook || '',
               tiktok: data.socialHandles.tiktok || data.tiktok || '',
@@ -321,8 +420,15 @@ export function initFirestoreStore(): void {
               snapchat: data.socialHandles.snapchat || data.snapchat || '',
               x: data.socialHandles.x || data.x || '',
             };
-          } else if (data.instagram || data.facebook || data.tiktok || data.youtube || data.snapchat || data.x) {
-            currentSettings.socialHandles = {
+          } else if (
+            data.instagram ||
+            data.facebook ||
+            data.tiktok ||
+            data.youtube ||
+            data.snapchat ||
+            data.x
+          ) {
+            nextSettings.socialHandles = {
               instagram: data.instagram || '',
               facebook: data.facebook || '',
               tiktok: data.tiktok || '',
@@ -331,6 +437,8 @@ export function initFirestoreStore(): void {
               x: data.x || '',
             };
           }
+
+          currentSettings = nextSettings;
           notifyStoreListeners();
         } else {
           currentRates = {
@@ -343,29 +451,119 @@ export function initFirestoreStore(): void {
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'settings/store');
+        console.error('Firestore settings listener error:', error);
+        settingsLoaded = true;
+        settingsError = true;
+        notifyStoreListeners();
+
+        if (settingsUnsub) {
+          settingsUnsub();
+          settingsUnsub = null;
+        }
+        if (settingsRetryCount < MAX_LISTENER_RETRIES) {
+          const delayMs = Math.min(2000 * Math.pow(1.5, settingsRetryCount), 15000);
+          settingsRetryCount += 1;
+          settingsRetryTimer = setTimeout(() => {
+            subscribeSettings();
+          }, delayMs);
+        }
       }
     );
   } catch (err) {
-    console.warn('Settings listener init error', err);
+    console.error('Settings listener init error:', err);
+    settingsLoaded = true;
+    settingsError = true;
+    notifyStoreListeners();
+  }
+}
+
+function subscribeProducts(): void {
+  if (productsRetryTimer) {
+    clearTimeout(productsRetryTimer);
+    productsRetryTimer = null;
+  }
+  if (productsUnsub) {
+    productsUnsub();
+    productsUnsub = null;
   }
 
-  // 2. Listen to active products
   try {
     const productsQuery = query(collection(db, 'products'), where('status', '==', 'active'));
-    onSnapshot(
+    productsUnsub = onSnapshot(
       productsQuery,
       (snapshot) => {
         liveProducts = snapshot.docs.map((d) => mapDocToProduct(d.data(), d.id));
+        productsLoaded = true;
+        productsError = false;
+        productsRetryCount = 0;
         notifyStoreListeners();
       },
       (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'products');
+        console.error('Firestore products listener error:', error);
+        // Keep last good products in memory and mark loaded so UI does not spin forever
+        productsLoaded = true;
+        productsError = true;
+        notifyStoreListeners();
+
+        if (productsUnsub) {
+          productsUnsub();
+          productsUnsub = null;
+        }
+        if (productsRetryCount < MAX_LISTENER_RETRIES) {
+          const delayMs = Math.min(2000 * Math.pow(1.5, productsRetryCount), 15000);
+          productsRetryCount += 1;
+          productsRetryTimer = setTimeout(() => {
+            subscribeProducts();
+          }, delayMs);
+        }
       }
     );
   } catch (err) {
-    console.warn('Products listener init error', err);
+    console.error('Products listener init error:', err);
+    productsLoaded = true;
+    productsError = true;
+    notifyStoreListeners();
   }
+}
+
+/**
+ * Manually retry Firestore listeners (used by Retry button & online recovery).
+ */
+export function retryStoreListeners(): void {
+  productsRetryCount = 0;
+  settingsRetryCount = 0;
+  productsError = false;
+  if (liveProducts.length === 0) {
+    productsLoaded = false;
+  }
+  notifyStoreListeners();
+  subscribeProducts();
+  if (settingsError || !settingsLoaded || !settingsUnsub) {
+    subscribeSettings();
+  }
+}
+
+/**
+ * Real-time Firestore Subscriptions
+ */
+export function initFirestoreStore(): void {
+  if (listenersInitialized || typeof window === 'undefined') return;
+  listenersInitialized = true;
+
+  subscribeSettings();
+  subscribeProducts();
+
+  // Auto-recover listeners when browser comes back online
+  window.addEventListener('online', () => {
+    if (productsError || !productsUnsub) {
+      productsRetryCount = 0;
+      subscribeProducts();
+    }
+    if (settingsError || !settingsUnsub) {
+      settingsRetryCount = 0;
+      subscribeSettings();
+    }
+  });
 }
 
 // Automatically initiate on module load in browser
@@ -374,10 +572,22 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Accessor Functions for Storefront Components
+ * Accessor Functions for Storefront Components (stable cached references for useSyncExternalStore)
  */
 export function getProducts(): Product[] {
-  return [...liveProducts];
+  return liveProducts;
+}
+
+export function areProductsLoaded(): boolean {
+  return productsLoaded;
+}
+
+export function areSettingsLoaded(): boolean {
+  return settingsLoaded;
+}
+
+export function hasProductsError(): boolean {
+  return productsError;
 }
 
 export function getProductById(id: string): Product | undefined {
@@ -393,7 +603,7 @@ export function getFeaturedProducts(): Product[] {
 }
 
 export function getRates(): BullionRates {
-  return { ...currentRates };
+  return currentRates;
 }
 
 export function updateRates(newRates: Partial<BullionRates>): BullionRates {
@@ -402,17 +612,15 @@ export function updateRates(newRates: Partial<BullionRates>): BullionRates {
     ...newRates,
   };
   notifyStoreListeners();
-  return { ...currentRates };
+  return currentRates;
 }
 
 export function getSettings(): StoreSettings {
-  return { ...currentSettings };
+  return currentSettings;
 }
 
 export function getShowcaseTiles(): ShowcaseTile[] {
-  return currentSettings.showcaseTiles && currentSettings.showcaseTiles.length > 0
-    ? [...currentSettings.showcaseTiles]
-    : [...DEFAULT_SHOWCASE_TILES];
+  return currentShowcaseTiles;
 }
 
 /**

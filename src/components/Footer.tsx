@@ -513,13 +513,6 @@ export const Footer: React.FC<FooterProps> = ({
               <RefreshCw className="w-3 h-3" />
               <span>Replay Intro</span>
             </button>
-            <span aria-hidden="true" className="text-[#3A332C]">·</span>
-            <button
-              onClick={() => onNavigate('admin')}
-              className="footer-link hover:text-[#C9A54B] transition-colors cursor-pointer"
-            >
-              Staff Portal (/admin)
-            </button>
           </div>
         </div>
       </div>

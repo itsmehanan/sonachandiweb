@@ -54,7 +54,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const secondaryImage = hasSecondImage ? product.images[1] : '';
 
   const metalLabel = product.metal === 'gold' ? `${product.karat} Gold` : '925 Silver';
-  const categoryLabel = product.category.replace('_', ' ');
+  const categoryLabel = product.category ? product.category.replace('_', ' ') : 'jewellery';
 
   const whatsappInquiryUrl = getWhatsAppProductInquiryUrl(
     product,

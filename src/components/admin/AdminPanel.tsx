@@ -90,6 +90,37 @@ interface AdminPanelProps {
   onBackToStore: () => void;
 }
 
+/**
+ * Ensures raw JSON / Firestore internal error details (UIDs, emails, paths)
+ * are logged to the console only and replaced with a friendly message in the UI.
+ */
+function getFriendlyAdminErrorMessage(err: unknown, fallback: string): string {
+  console.error(fallback, err);
+  const raw = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+  const trimmed = raw.trim();
+  if (!trimmed) return fallback;
+
+  const looksLikeSensitiveJson =
+    trimmed.startsWith('{') ||
+    trimmed.includes('"authInfo"') ||
+    trimmed.includes('"userId"') ||
+    trimmed.includes('"operationType"') ||
+    trimmed.includes('Missing or insufficient permissions') ||
+    trimmed.includes('permission-denied');
+
+  if (looksLikeSensitiveJson) {
+    if (
+      trimmed.includes('Missing or insufficient permissions') ||
+      trimmed.includes('permission-denied')
+    ) {
+      return 'You do not have permission to perform this action.';
+    }
+    return fallback;
+  }
+
+  return trimmed;
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [staffRecord, setStaffRecord] = useState<StaffMember | null>(null);
@@ -193,16 +224,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
           } else {
             setStaffRecord(null);
             setAccessDenied(true);
+            setProducts([]);
+            setEnquiries([]);
+            setRateHistory([]);
+            setStaffList([]);
+            setSettingsDoc(null);
           }
         } catch (err) {
-          console.error('Error fetching staff info:', err);
+          console.error('Error verifying staff authorization:', err);
+          setStaffRecord(null);
           setAccessDenied(true);
+          setProducts([]);
+          setEnquiries([]);
+          setRateHistory([]);
+          setStaffList([]);
+          setSettingsDoc(null);
         } finally {
           setLoadingAuth(false);
         }
       } else {
         setStaffRecord(null);
         setAccessDenied(false);
+        setProducts([]);
+        setEnquiries([]);
+        setRateHistory([]);
+        setStaffList([]);
+        setSettingsDoc(null);
         setLoadingAuth(false);
       }
     });
@@ -347,7 +394,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       } else if (code === 'auth/popup-blocked') {
         setSignInError('Sign-in popup was blocked by your browser. Please allow popups for this site and retry.');
       } else {
-        setSignInError(err?.message || 'Failed to sign in with Google. Please try again.');
+        console.error('Google sign-in error:', err);
+        setSignInError('Failed to sign in with Google. Please try again.');
       }
     } finally {
       setIsSigningIn(false);
@@ -379,8 +427,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       setRatesFeedback('✓ Bullion rates & atomic audit history logged successfully!');
       setTimeout(() => setRatesFeedback(null), 4000);
       await loadRateHistory();
-    } catch (err: any) {
-      setRatesFeedback(`Error saving rates: ${err.message || 'Check Firestore permissions'}`);
+    } catch (err: unknown) {
+      setRatesFeedback(
+        getFriendlyAdminErrorMessage(err, 'Unable to save rates right now. Please try again.')
+      );
     } finally {
       setSavingRates(false);
     }
@@ -456,8 +506,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
 
       setSettingsFeedback('✓ Store settings, contact details & social channels updated successfully!');
       setTimeout(() => setSettingsFeedback(null), 4000);
-    } catch (err: any) {
-      setSettingsFeedback(`Error saving settings: ${err.message}`);
+    } catch (err: unknown) {
+      setSettingsFeedback(
+        getFriendlyAdminErrorMessage(err, 'Unable to save store settings right now. Please try again.')
+      );
     } finally {
       setSavingSettings(false);
     }
@@ -513,8 +565,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       handleTileFieldChange(tileId, { imageUrl: secureUrl });
       setShowcaseFeedback('✓ Tile image uploaded successfully!');
       setTimeout(() => setShowcaseFeedback(null), 3000);
-    } catch (err: any) {
-      setShowcaseError(`Image upload failed: ${err.message}`);
+    } catch (err: unknown) {
+      setShowcaseError(
+        getFriendlyAdminErrorMessage(err, 'Image upload failed. Please try again.')
+      );
     } finally {
       setUploadingTileId(null);
     }
@@ -542,8 +596,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       setAboutPageImageUrl(secureUrl);
       setShowcaseFeedback('✓ About page photo uploaded successfully!');
       setTimeout(() => setShowcaseFeedback(null), 3000);
-    } catch (err: any) {
-      setShowcaseError(`About photo upload failed: ${err.message}`);
+    } catch (err: unknown) {
+      setShowcaseError(
+        getFriendlyAdminErrorMessage(err, 'About photo upload failed. Please try again.')
+      );
     } finally {
       setUploadingAboutPhoto(false);
     }
@@ -571,8 +627,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       setInputAboutImageUrl2(secureUrl);
       setSettingsFeedback('✓ Second About photo uploaded successfully! Click "Save Store Settings" to publish.');
       setTimeout(() => setSettingsFeedback(null), 4000);
-    } catch (err: any) {
-      setSettingsFeedback(`About photo upload failed: ${err.message}`);
+    } catch (err: unknown) {
+      setSettingsFeedback(
+        getFriendlyAdminErrorMessage(err, 'About photo upload failed. Please try again.')
+      );
     } finally {
       setUploadingAboutPhoto2(false);
     }
@@ -593,8 +651,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       });
       setShowcaseFeedback('✓ Homepage Showcase & About photo saved successfully!');
       setTimeout(() => setShowcaseFeedback(null), 4000);
-    } catch (err: any) {
-      setShowcaseError(`Error saving showcase: ${err.message}`);
+    } catch (err: unknown) {
+      setShowcaseError(
+        getFriendlyAdminErrorMessage(err, 'Unable to save showcase changes right now. Please try again.')
+      );
     } finally {
       setSavingShowcase(false);
     }
@@ -689,9 +749,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         images: [...existingImages, ...newUrls].slice(0, 6),
       });
       setUploadProgressText(null);
-    } catch (err: any) {
-      // Show clear red error message and do NOT silently save
-      setProductFormError(`Image upload failed: ${err.message || 'Unknown network error'}`);
+    } catch (err: unknown) {
+      // Show friendly error message and log full error to console only
+      setProductFormError(
+        getFriendlyAdminErrorMessage(err, 'Image upload failed. Please check your connection and try again.')
+      );
     } finally {
       setUploadingImage(false);
       setUploadProgressText(null);
@@ -748,8 +810,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       await saveProduct(editingProduct as any);
       setEditingProduct(null);
       await loadProducts();
-    } catch (err: any) {
-      setProductFormError(err.message || 'Error saving product');
+    } catch (err: unknown) {
+      setProductFormError(
+        getFriendlyAdminErrorMessage(err, 'Unable to save product right now. Please try again.')
+      );
     } finally {
       setProductSaving(false);
     }
@@ -879,9 +943,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
           </div>
 
           <div className="space-y-2">
-            <h2 className="font-serif text-xl font-bold text-[#1E1B18]">Access Restricted</h2>
+            <h2 className="font-serif text-xl font-bold text-[#1E1B18]">You do not have access</h2>
             <p className="text-xs text-[#64748B] leading-relaxed">
-              Signed in as <strong className="text-[#1E1B18]">{currentUser.email}</strong>, but this account is not registered in the staff roster.
+              This Google account is not registered as an approved staff member for Sona Chandi Gold Collection.
             </p>
           </div>
 

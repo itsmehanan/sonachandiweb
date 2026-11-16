@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   CheckCircle2,
 } from 'lucide-react';
-import { Product, getProducts, getSettings } from '../data/store';
+import { Product, getProducts, getSettings, subscribeToStore } from '../data/store';
 import {
   BullionRates,
   calculateProductPrice,
@@ -63,7 +63,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onAddToCart,
   onOpenCalculator,
 }) => {
-  const settings = getSettings();
+  const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
+  const allProducts = useSyncExternalStore(subscribeToStore, getProducts, getProducts);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -121,15 +122,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const currentImage = images[selectedImageIndex] || images[0] || null;
 
   const metalLabel = product.metal === 'gold' ? `${product.karat} Gold` : '925 Silver';
-  const categoryLabel = product.category.replace('_', ' ');
+  const categoryLabel = product.category ? product.category.replace('_', ' ') : 'jewellery';
 
   // Related products: 4 cards from same category (exclude current product)
   const relatedProducts = useMemo(() => {
-    const all = getProducts().filter((p) => p.id !== product.id);
-    const sameCat = all.filter((p) => p.category === product.category);
-    const otherCat = all.filter((p) => p.category !== product.category);
+    const others = allProducts.filter((p) => p.id !== product.id);
+    if (!product.category) return others.slice(0, 4);
+    const sameCat = others.filter((p) => p.category === product.category);
+    const otherCat = others.filter((p) => p.category !== product.category);
     return [...sameCat, ...otherCat].slice(0, 4);
-  }, [product.id, product.category]);
+  }, [allProducts, product.id, product.category]);
 
   const handleAddToCart = () => {
     if (isOutOfStock || isRateMissing) return;

@@ -1,15 +1,28 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useSyncExternalStore } from 'react';
 import {
-  Search,
   Filter,
   X,
   ChevronDown,
-  SlidersHorizontal,
   RotateCcw,
   Sparkles,
+  AlertCircle,
 } from 'lucide-react';
-import { Product, getProducts, getSettings } from '../data/store';
-import { BullionRates, calculateProductPrice, formatPKR } from '../lib/pricing';
+import {
+  Product,
+  getProducts,
+  getSettings,
+  subscribeToStore,
+  areProductsLoaded,
+  hasProductsError,
+  retryStoreListeners,
+  normalizeCategory,
+} from '../data/store';
+import {
+  BullionRates,
+  WHATSAPP_NUMBER,
+  calculateProductPrice,
+  formatPKR,
+} from '../lib/pricing';
 import { ProductCard } from '../components/ProductCard';
 import { WhatsAppButton } from '../components/WhatsAppButton';
 import { StaggerGrid, StaggerItem } from '../components/motion/MotionUtils';
@@ -49,14 +62,26 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
   onAddToCart,
   onNavigateHome,
 }) => {
-  const allProducts = getProducts();
-  const settings = getSettings();
+  const allProducts = useSyncExternalStore(subscribeToStore, getProducts, getProducts);
+  const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
+  const productsLoaded = useSyncExternalStore(
+    subscribeToStore,
+    areProductsLoaded,
+    areProductsLoaded
+  );
+  const productsError = useSyncExternalStore(
+    subscribeToStore,
+    hasProductsError,
+    hasProductsError
+  );
 
   // Internal Filter States
   const [internalSearch, setInternalSearch] = useState('');
   const [internalKarat, setInternalKarat] = useState<string>('all');
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [internalSortBy, setInternalSortBy] = useState<string>('newest');
+  // null = no price limit unless visitor actively moved the slider
+  const [selectedMaxPrice, setSelectedMaxPrice] = useState<number | null>(null);
 
   // Mobile Bottom Sheet Filter State
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -74,30 +99,28 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
     setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const activeCategory = category || 'all';
+  const activeCategory = useMemo(() => {
+    if (!category || category === 'all') return 'all';
+    return normalizeCategory(category) || category;
+  }, [category]);
+
   const activeKarat = karat !== undefined ? karat : internalKarat;
   const activeSort = controlledSortBy !== undefined ? controlledSortBy : internalSortBy;
   const activeSearch = controlledSearch !== undefined ? controlledSearch : internalSearch;
 
-  // Compute highest price in catalogue for the price slider bounds
+  // Compute highest price in catalogue during render for slider bounds
   const highestCataloguePrice = useMemo(() => {
     if (allProducts.length === 0) return 1000000;
-    const prices = allProducts.map(
-      (p) => calculateProductPrice(p, rates).totalEstimate
-    );
-    const max = Math.max(...prices);
-    return Math.ceil(max / 50000) * 50000; // round up to nearest 50k
+    const prices = allProducts.map((p) => calculateProductPrice(p, rates).totalEstimate);
+    const max = Math.max(...prices, 0);
+    return Math.max(50000, Math.ceil(max / 50000) * 50000);
   }, [allProducts, rates]);
 
-  // Price Range Filter State
-  const [maxPrice, setMaxPrice] = useState<number>(highestCataloguePrice);
-
-  // Reset maxPrice when catalogue bounds change
-  useEffect(() => {
-    if (highestCataloguePrice > 0) {
-      setMaxPrice(highestCataloguePrice);
-    }
-  }, [highestCataloguePrice]);
+  // Effective slider display & limit (null means unlimited)
+  const effectiveMaxPrice =
+    selectedMaxPrice !== null
+      ? Math.min(selectedMaxPrice, highestCataloguePrice)
+      : highestCataloguePrice;
 
   const handleKaratSelect = (newKarat: string) => {
     if (onKaratChange) {
@@ -123,14 +146,17 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
     }
   };
 
-  // Clear secondary filters when resetNonce changes (e.g. navbar click)
+  // Clear local secondary filters ONLY when resetNonce changes (e.g. navbar click)
   useEffect(() => {
     if (resetNonce !== undefined && resetNonce > 0) {
-      handleSearchInput('');
+      if (!onSearchChange) {
+        setInternalSearch('');
+      }
       setInStockOnly(false);
-      setMaxPrice(highestCataloguePrice);
+      setSelectedMaxPrice(null);
     }
-  }, [resetNonce, highestCataloguePrice]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetNonce]);
 
   // Lock scroll when mobile bottom sheet is open
   useEffect(() => {
@@ -163,9 +189,12 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           return false;
         }
 
-        // Category filter
-        if (activeCategory !== 'all' && product.category !== activeCategory) {
-          return false;
+        // Category filter (using canonical normalizer; uncategorized items stay in 'all')
+        if (activeCategory !== 'all') {
+          const productCat = normalizeCategory(product.category);
+          if (!productCat || productCat !== activeCategory) {
+            return false;
+          }
         }
 
         // Karat / Purity filter
@@ -182,10 +211,12 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           return false;
         }
 
-        // Price range slider
-        const price = calculateProductPrice(product, rates).totalEstimate;
-        if (price > maxPrice) {
-          return false;
+        // Price range slider (only apply when visitor has explicitly set a limit)
+        if (selectedMaxPrice !== null) {
+          const price = calculateProductPrice(product, rates).totalEstimate;
+          if (price > selectedMaxPrice) {
+            return false;
+          }
         }
 
         return true;
@@ -212,7 +243,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
     activeCategory,
     activeKarat,
     inStockOnly,
-    maxPrice,
+    selectedMaxPrice,
     activeSort,
     rates,
   ]);
@@ -223,11 +254,21 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
     onCategoryChange(undefined);
     handleKaratSelect('all');
     setInStockOnly(false);
-    setMaxPrice(highestCataloguePrice);
+    setSelectedMaxPrice(null);
     handleSortSelect('newest');
   };
 
-  const isPriceFiltered = maxPrice < highestCataloguePrice;
+  // Clears category, search, karat, in-stock, and price filters while keeping current metal
+  const handleShowAllInMetal = () => {
+    handleSearchInput('');
+    onCategoryChange(undefined);
+    handleKaratSelect('all');
+    setInStockOnly(false);
+    setSelectedMaxPrice(null);
+  };
+
+  const isPriceFiltered =
+    selectedMaxPrice !== null && selectedMaxPrice < highestCataloguePrice;
   const hasActiveFilters =
     activeSearch !== '' ||
     metal !== 'all' ||
@@ -277,11 +318,25 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
       : []),
   ];
 
-  const whatsappArrivalsHref = settings.whatsappNumber
-    ? `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-        'Hello Sona Chandi Gold Collection, I would like to inquire about your upcoming new arrivals and custom designs.'
-      )}`
-    : undefined;
+  const emptyStateWhatsAppHref = useMemo(() => {
+    const waNumber = (settings.whatsappNumber || WHATSAPP_NUMBER).replace(/[^0-9]/g, '');
+    const catWords =
+      activeCategory !== 'all' ? activeCategory.replace('_', ' ') : '';
+    let phrase = '';
+    if (metal !== 'all' && catWords) {
+      phrase = `${metal} ${catWords}`;
+    } else if (metal !== 'all') {
+      phrase = `${metal} jewellery`;
+    } else if (catWords) {
+      phrase = catWords;
+    }
+
+    const message = phrase
+      ? `Hello Sona Chandi Gold Collection, I am looking for ${phrase}. Can you help or make a custom piece?`
+      : 'Hello Sona Chandi Gold Collection, I am browsing your collection. Can you help or make a custom piece?';
+
+    return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+  }, [settings.whatsappNumber, metal, activeCategory]);
 
   // Filter content component reused between desktop sidebar and mobile bottom sheet
   const filterControls = (
@@ -470,7 +525,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
             <div className="flex items-center justify-between text-xs text-[#64748B]">
               <span>Up to:</span>
               <span className="font-serif font-bold text-sm text-[#1E1B18]">
-                {formatPKR(maxPrice)}
+                {formatPKR(effectiveMaxPrice)}
               </span>
             </div>
 
@@ -479,8 +534,11 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
               min={20000}
               max={highestCataloguePrice}
               step={10000}
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              value={effectiveMaxPrice}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setSelectedMaxPrice(val >= highestCataloguePrice ? null : val);
+              }}
               className="w-full accent-[#C9A54B] cursor-pointer"
             />
 
@@ -493,6 +551,8 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
       </div>
     </div>
   );
+
+  const gridKey = `${metal}|${activeCategory}|${activeKarat}|${activeSort}`;
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-8">
@@ -538,7 +598,11 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
             {pageTitle}
           </h1>
           <p className="text-sm text-[#4A3F35] mt-1 font-light">
-            Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'piece' : 'pieces'} with transparent live bullion pricing
+            {!productsLoaded
+              ? 'Loading collection with live bullion pricing...'
+              : `Showing ${filteredProducts.length} ${
+                  filteredProducts.length === 1 ? 'piece' : 'pieces'
+                } with transparent live bullion pricing`}
           </p>
         </div>
 
@@ -650,12 +714,12 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
             </span>
           )}
 
-          {isPriceFiltered && (
+          {isPriceFiltered && selectedMaxPrice !== null && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] text-[#1E1B18] shadow-2xs">
-              <span>Under {formatPKR(maxPrice)}</span>
+              <span>Under {formatPKR(selectedMaxPrice)}</span>
               <button
                 type="button"
-                onClick={() => setMaxPrice(highestCataloguePrice)}
+                onClick={() => setSelectedMaxPrice(null)}
                 className="hover:opacity-75 cursor-pointer"
                 aria-label="Remove price filter"
               >
@@ -698,12 +762,63 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           {filterControls}
         </aside>
 
-        {/* Product Grid Area with StaggerGrid animation */}
+        {/* Product Grid Area */}
         <div className="flex-1 w-full min-w-0">
-          {filteredProducts.length > 0 ? (
-            <StaggerGrid className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
-              {filteredProducts.map((product) => (
-                <StaggerItem key={product.id}>
+          {!productsLoaded ? (
+            /* Loading Skeleton Grid */
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6"
+              aria-label="Loading jewellery collection"
+            >
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white/85 border border-[#E2D8C9] rounded-2xl overflow-hidden flex flex-col animate-pulse"
+                >
+                  <div className="aspect-4/5 w-full bg-[#EFE9DF]" />
+                  <div className="p-4 sm:p-5 space-y-3">
+                    <div className="h-2.5 w-16 bg-[#EFE9DF] rounded" />
+                    <div className="h-4 w-3/4 bg-[#E6DDD0] rounded" />
+                    <div className="h-3 w-1/2 bg-[#EFE9DF] rounded" />
+                    <div className="pt-3 border-t border-[#E2D8C9]/70 flex items-center justify-between">
+                      <div className="h-5 w-24 bg-[#E6DDD0] rounded" />
+                      <div className="h-7 w-14 bg-[#EFE9DF] rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : productsError && allProducts.length === 0 ? (
+            /* Error State when listener failed and catalogue is empty */
+            <div className="py-16 sm:py-24 text-center bg-[#FAF7F2] border border-[#E2D8C9] rounded-2xl p-8 space-y-5">
+              <div className="w-14 h-14 rounded-full bg-[#FAF7F2] border border-[#C9A54B]/40 flex items-center justify-center mx-auto shadow-2xs">
+                <AlertCircle className="w-6 h-6 text-[#C9A54B]" />
+              </div>
+              <div className="space-y-1.5 max-w-md mx-auto">
+                <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#1E1B18]">
+                  We could not load our collection. Please try again.
+                </h3>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => retryStoreListeners()}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#C9A54B] to-[#F1D98B] text-[#1A1410] text-xs font-semibold uppercase tracking-wider rounded-full transition-all shadow-xs cursor-pointer min-h-[44px] hover:brightness-105 active:scale-[0.98]"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Retry</span>
+                </button>
+              </div>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            /* Mount-animated Grid keyed by filter/sort so cards never wait for scroll triggers */
+            <StaggerGrid
+              key={gridKey}
+              animateOnMount
+              className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6"
+            >
+              {filteredProducts.map((product, idx) => (
+                <StaggerItem key={product.id} animateOnMount index={idx}>
                   <ProductCard
                     product={product}
                     rates={rates}
@@ -728,23 +843,21 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3 max-w-sm mx-auto">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3 max-w-lg mx-auto">
+                <WhatsAppButton
+                  href={emptyStateWhatsAppHref}
+                  label="Message us on WhatsApp"
+                  size="md"
+                  className="w-full sm:w-auto"
+                />
+
                 <button
                   type="button"
-                  onClick={handleResetFilters}
-                  className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.98] text-white text-xs font-semibold uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer min-h-[44px]"
+                  onClick={handleShowAllInMetal}
+                  className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-[#D4AF37] via-[#C9A54B] to-[#B18D35] hover:brightness-105 active:scale-[0.98] text-white text-xs font-semibold uppercase tracking-wider rounded-full transition-all shadow-xs cursor-pointer min-h-[44px]"
                 >
-                  View all jewellery
+                  All pieces
                 </button>
-
-                {whatsappArrivalsHref && (
-                  <WhatsAppButton
-                    href={whatsappArrivalsHref}
-                    label="Ask us about new arrivals"
-                    size="md"
-                    className="w-full sm:w-auto"
-                  />
-                )}
               </div>
             </div>
           )}

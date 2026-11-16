@@ -55,30 +55,45 @@ interface StaggerGridProps {
   children: React.ReactNode;
   stagger?: number;
   className?: string;
+  animateOnMount?: boolean;
 }
 
 export const StaggerGrid: React.FC<StaggerGridProps> = ({
   children,
   stagger = 0.08,
   className = '',
+  animateOnMount = false,
 }) => {
   const shouldReduceMotion = useReducedMotion();
 
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: shouldReduceMotion ? 1 : 0 },
     show: {
       opacity: 1,
       transition: {
         staggerChildren: shouldReduceMotion ? 0 : stagger,
-        delayChildren: shouldReduceMotion ? 0 : 0.05,
+        delayChildren: shouldReduceMotion ? 0 : 0.03,
       },
     },
   };
 
+  if (animateOnMount) {
+    return (
+      <motion.div
+        initial={shouldReduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: shouldReduceMotion ? 0.01 : 0.2 }}
+        className={className}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       variants={containerVariants}
-      initial="hidden"
+      initial={shouldReduceMotion ? false : 'hidden'}
       whileInView="show"
       viewport={{ once: true, margin: '-40px' }}
       className={className}
@@ -88,11 +103,30 @@ export const StaggerGrid: React.FC<StaggerGridProps> = ({
   );
 };
 
-export const StaggerItem: React.FC<{ children: React.ReactNode; className?: string }> = ({
-  children,
-  className = '',
-}) => {
+export const StaggerItem: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  animateOnMount?: boolean;
+  index?: number;
+}> = ({ children, className = '', animateOnMount = false, index = 0 }) => {
   const shouldReduceMotion = useReducedMotion();
+
+  if (animateOnMount) {
+    return (
+      <motion.div
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: shouldReduceMotion ? 0.01 : 0.35,
+          ease: 'easeOut',
+          delay: shouldReduceMotion ? 0 : Math.min(index, 11) * 0.035,
+        }}
+        className={className}
+      >
+        {children}
+      </motion.div>
+    );
+  }
 
   const itemVariants = {
     hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 20 },
