@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, X, ArrowRight, Sparkles } from 'lucide-react';
-import { Product, getProducts } from '../data/store';
-import { BullionRates, calculateProductPrice, formatPKR } from '../lib/pricing';
+import {
+  Product,
+  getProducts,
+  getVisibleCategories,
+  getCategoryDisplayName,
+  subscribeToStore,
+} from '../data/store';
+import { BullionRates, calculateProductPrice } from '../lib/pricing';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -49,18 +55,37 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   }, [isOpen, onClose]);
 
   // Live filtered results
-  const allProducts = getProducts();
+  const allProducts = useSyncExternalStore(subscribeToStore, getProducts, getProducts);
+  const visibleCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleCategories,
+    getVisibleCategories
+  );
   const trimmed = query.trim().toLowerCase();
+
+  const popularSuggestions = useMemo(() => {
+    const fromCategories = visibleCategories.slice(0, 5).map((cat) => cat.name);
+    return [...fromCategories, '22K Gold', '925 Sterling Silver'];
+  }, [visibleCategories]);
 
   const matchingProducts = trimmed
     ? allProducts.filter((p) => {
         const titleMatch = p.title.toLowerCase().includes(trimmed);
         const skuMatch = p.sku.toLowerCase().includes(trimmed);
         const descMatch = p.shortDescription.toLowerCase().includes(trimmed);
-        const catMatch = p.category.toLowerCase().includes(trimmed);
+        const catSlugMatch = p.category.toLowerCase().includes(trimmed);
+        const catNameMatch = getCategoryDisplayName(p.category).toLowerCase().includes(trimmed);
         const metalMatch = p.metal.toLowerCase().includes(trimmed);
         const karatMatch = p.karat.toLowerCase().includes(trimmed);
-        return titleMatch || skuMatch || descMatch || catMatch || metalMatch || karatMatch;
+        return (
+          titleMatch ||
+          skuMatch ||
+          descMatch ||
+          catSlugMatch ||
+          catNameMatch ||
+          metalMatch ||
+          karatMatch
+        );
       })
     : [];
 
@@ -101,7 +126,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search jewellery, 22K gold, rings, SKU..."
+                placeholder="Search jewellery, 22K gold, 925 silver, SKU..."
                 className="w-full bg-transparent font-serif text-xl sm:text-3xl text-[#1E1B18] placeholder-[#94A3B8] outline-hidden"
               />
               {query && (
@@ -138,15 +163,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 Popular Searches:
               </span>
               <div className="flex flex-wrap gap-2">
-                {[
-                  'Bridal Sets',
-                  '22K Gold Necklaces',
-                  '21K Traditional Karas',
-                  '925 Sterling Silver',
-                  'Diamond Solitaire Rings',
-                  'Bangles',
-                  'Jhumkas',
-                ].map((s) => (
+                {popularSuggestions.map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -252,7 +269,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                     No jewellery found for "{query}"
                   </h3>
                   <p className="text-xs text-[#64748B] max-w-sm mx-auto">
-                    Try searching by piece (e.g. necklace, ring), metal (gold, silver), karat (22K), or product SKU.
+                    Try searching by piece name, category, metal (gold, silver), karat (22K), or product SKU.
                   </p>
                 </div>
               )}

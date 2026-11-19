@@ -13,7 +13,14 @@ import {
   ShieldCheck,
   CheckCircle2,
 } from 'lucide-react';
-import { Product, getProducts, getSettings, subscribeToStore } from '../data/store';
+import {
+  Product,
+  getProducts,
+  getSettings,
+  getVisibleCategories,
+  getCategoryDisplayName,
+  subscribeToStore,
+} from '../data/store';
 import {
   BullionRates,
   calculateProductPrice,
@@ -65,6 +72,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 }) => {
   const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
   const allProducts = useSyncExternalStore(subscribeToStore, getProducts, getProducts);
+  useSyncExternalStore(subscribeToStore, getVisibleCategories, getVisibleCategories);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -122,7 +130,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const currentImage = images[selectedImageIndex] || images[0] || null;
 
   const metalLabel = product.metal === 'gold' ? `${product.karat} Gold` : '925 Silver';
-  const categoryLabel = product.category ? product.category.replace('_', ' ') : 'jewellery';
+  const categoryLabel = product.category ? getCategoryDisplayName(product.category) : 'Jewellery';
 
   // Related products: 4 cards from same category (exclude current product)
   const relatedProducts = useMemo(() => {

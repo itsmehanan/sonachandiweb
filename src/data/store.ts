@@ -1,9 +1,9 @@
 /**
  * Sona Chandi Gold Collection - Centralized Data Store (Connected to Cloud Firestore)
  *
- * Clean production store with zero fake sample data.
- * All products and settings are read in real-time from Firestore.
- * If settings/store is missing or a rate is 0, "Rate unavailable" is triggered.
+ * Clean production store with zero fake product data.
+ * Products, settings, and categories are read in real-time from Firestore.
+ * Categories use an in-memory read-only fallback until Firestore responds or if empty.
  */
 
 import {
@@ -25,16 +25,32 @@ import {
 } from '../lib/pricing';
 import { SocialHandles } from '../components/SocialLinks';
 
-export type ProductCategory =
-  | 'rings'
-  | 'necklaces'
-  | 'bangles'
-  | 'earrings'
-  | 'bridal_sets';
+export type CategoryAppliesTo = 'both' | 'gold' | 'silver';
+
+/**
+ * Plain string category slug matching a document id in the Firestore "categories" collection
+ * (or '' if unrecognised/missing).
+ */
+export type ProductCategory = string;
+
+export interface Category {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  appliesTo: CategoryAppliesTo;
+  displayOrder: number;
+  visible: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
 
 export interface Product extends PricingProductInput {
   slug: string;
-  category: ProductCategory | '';
+  category: ProductCategory;
+  rawCategory?: string;
   featured: boolean;
   inStock: boolean;
   stock: number;
@@ -55,58 +71,80 @@ export interface ShowcaseTile {
   id: string;
   title: string;
   subtitle: string;
-  target: 'bridal_sets' | 'bangles' | 'earrings' | 'necklaces' | 'rings' | 'silver' | string;
+  target: string;
   imageUrl?: string;
   visible: boolean;
   order: number;
 }
 
-export const DEFAULT_SHOWCASE_TILES: ShowcaseTile[] = [
+/**
+ * Built-in read-only in-memory fallback categories used before the first Firestore
+ * snapshot arrives or if the Firestore categories collection is empty.
+ * Never written to Firestore automatically by storefront visitors.
+ */
+export const DEFAULT_CATEGORIES: Category[] = [
   {
-    id: 'bridal_sets',
-    title: 'Bridal Sets',
-    subtitle: 'Explore the collection',
-    target: 'bridal_sets',
+    id: 'rings',
+    slug: 'rings',
+    name: 'Rings',
+    description: '',
     imageUrl: '',
+    appliesTo: 'both',
+    displayOrder: 1,
     visible: true,
-    order: 1,
-  },
-  {
-    id: 'bangles',
-    title: 'Bangles & Karas',
-    subtitle: 'Explore the collection',
-    target: 'bangles',
-    imageUrl: '',
-    visible: true,
-    order: 2,
-  },
-  {
-    id: 'earrings',
-    title: 'Jhumkas & Balis',
-    subtitle: 'Explore the collection',
-    target: 'earrings',
-    imageUrl: '',
-    visible: true,
-    order: 3,
   },
   {
     id: 'necklaces',
-    title: 'Necklaces',
-    subtitle: 'Explore the collection',
-    target: 'necklaces',
+    slug: 'necklaces',
+    name: 'Necklaces',
+    description: '',
     imageUrl: '',
+    appliesTo: 'both',
+    displayOrder: 2,
     visible: true,
-    order: 4,
   },
   {
-    id: 'rings',
-    title: 'Gold Rings',
+    id: 'bangles',
+    slug: 'bangles',
+    name: 'Bangles',
+    description: '',
+    imageUrl: '',
+    appliesTo: 'both',
+    displayOrder: 3,
+    visible: true,
+  },
+  {
+    id: 'earrings',
+    slug: 'earrings',
+    name: 'Earrings & Jhumkas',
+    description: '',
+    imageUrl: '',
+    appliesTo: 'both',
+    displayOrder: 4,
+    visible: true,
+  },
+  {
+    id: 'bridal_sets',
+    slug: 'bridal_sets',
+    name: 'Bridal Sets',
+    description: '',
+    imageUrl: '',
+    appliesTo: 'both',
+    displayOrder: 5,
+    visible: true,
+  },
+];
+
+export const DEFAULT_SHOWCASE_TILES: ShowcaseTile[] = [
+  ...DEFAULT_CATEGORIES.map((cat, idx) => ({
+    id: cat.slug,
+    title: cat.name,
     subtitle: 'Explore the collection',
-    target: 'rings',
+    target: cat.slug,
     imageUrl: '',
     visible: true,
-    order: 5,
-  },
+    order: idx + 1,
+  })),
   {
     id: 'silver',
     title: 'Silver',
@@ -114,7 +152,7 @@ export const DEFAULT_SHOWCASE_TILES: ShowcaseTile[] = [
     target: 'silver',
     imageUrl: '',
     visible: true,
-    order: 6,
+    order: DEFAULT_CATEGORIES.length + 1,
   },
 ];
 
@@ -145,68 +183,152 @@ export interface StoreSettings {
   };
 }
 
+// Legacy aliases kept strictly inside store.ts for normalizing older/misspelled values
+const LEGACY_CATEGORY_ALIASES: Record<string, string> = {
+  bridal: 'bridal_sets',
+  'bridal set': 'bridal_sets',
+  'bridal sets': 'bridal_sets',
+  'bridal suite': 'bridal_sets',
+  necklace: 'necklaces',
+  necklaces: 'necklaces',
+  haar: 'necklaces',
+  haars: 'necklaces',
+  set: 'necklaces',
+  sets: 'necklaces',
+  'necklace set': 'necklaces',
+  'necklace sets': 'necklaces',
+  ring: 'rings',
+  rings: 'rings',
+  bangle: 'bangles',
+  bangles: 'bangles',
+  kara: 'bangles',
+  karas: 'bangles',
+  kada: 'bangles',
+  kadas: 'bangles',
+  earring: 'earrings',
+  earrings: 'earrings',
+  jhumka: 'earrings',
+  jhumkas: 'earrings',
+  jhumki: 'earrings',
+  jhumkis: 'earrings',
+};
+
 /**
- * Normalize raw category names from Firestore, URLs, tiles, and UI links
- * to canonical ProductCategory values, or '' if missing/unrecognised.
+ * Generates a unique URL-safe slug (2-50 chars, lowercase letters/digits/hyphens/underscores)
+ * from a category display name.
  */
-export function normalizeCategory(raw: unknown): ProductCategory | '' {
-  if (typeof raw !== 'string') return '';
-  const cleaned = raw
+export function generateCategorySlug(
+  name: string,
+  existingSlugs?: Iterable<string>
+): string {
+  const existingSet = new Set<string>();
+  if (existingSlugs) {
+    for (const s of existingSlugs) {
+      if (s) existingSet.add(s.toLowerCase().trim());
+    }
+  }
+
+  let base = name
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, ' ')
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/[-_]{2,}/g, '-')
+    .replace(/^[-_]+|[-_]+$/g, '');
+
+  if (base.length < 2) {
+    base = base ? `cat-${base}` : 'category';
+  }
+  if (base.length > 50) {
+    base = base.slice(0, 50).replace(/[-_]+$/g, '');
+  }
+
+  if (!existingSet.has(base)) {
+    return base;
+  }
+
+  let counter = 2;
+  while (counter < 1000) {
+    const suffix = `-${counter}`;
+    const candidate = `${base.slice(0, 50 - suffix.length)}${suffix}`;
+    if (!existingSet.has(candidate)) {
+      return candidate;
+    }
+    counter += 1;
+  }
+
+  return `${base.slice(0, 42)}-${Date.now().toString().slice(-6)}`;
+}
+
+/**
+ * Converts a category slug into a readable title when the category is not in the live list.
+ */
+export function formatCategorySlugFallback(slug: string | undefined | null): string {
+  if (!slug || typeof slug !== 'string') return '';
+  const cleaned = slug.trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+  if (!cleaned) return '';
+  return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeLookupKey(value: string): string {
+  return value
     .toLowerCase()
     .trim()
     .replace(/[_-]+/g, ' ')
     .replace(/\s+/g, ' ');
+}
 
+/**
+ * Normalize raw category names/slugs from Firestore, URLs, tiles, and UI links
+ * to a slug that exists in the live categories list (or '' if no live category matches).
+ */
+export function normalizeCategory(
+  raw: unknown,
+  categoriesOverride?: Category[]
+): ProductCategory {
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.toLowerCase().trim();
+  if (!trimmed) return '';
+
+  const cleaned = normalizeLookupKey(trimmed);
   if (!cleaned) return '';
 
-  // Check bridal before set/necklaces
-  if (
-    cleaned === 'bridal' ||
-    cleaned === 'bridal set' ||
-    cleaned === 'bridal sets' ||
-    cleaned === 'bridal suite'
-  ) {
-    return 'bridal_sets';
+  const source = categoriesOverride ?? effectiveCategories;
+  if (source.length === 0) return '';
+
+  // 1. Exact slug match
+  const exactSlug = source.find((c) => c.slug.toLowerCase() === trimmed);
+  if (exactSlug) return exactSlug.slug;
+
+  // 2. Hyphen/underscore/space normalized slug or display name match
+  const normalizedMatch = source.find(
+    (c) =>
+      normalizeLookupKey(c.slug) === cleaned ||
+      normalizeLookupKey(c.name) === cleaned
+  );
+  if (normalizedMatch) return normalizedMatch.slug;
+
+  // 3. Legacy aliases mapped to a live category if present
+  const aliasedSlug = LEGACY_CATEGORY_ALIASES[cleaned];
+  if (aliasedSlug) {
+    const liveAliasTarget = source.find(
+      (c) =>
+        c.slug.toLowerCase() === aliasedSlug ||
+        normalizeLookupKey(c.slug) === normalizeLookupKey(aliasedSlug)
+    );
+    if (liveAliasTarget) return liveAliasTarget.slug;
   }
 
-  if (
-    cleaned === 'necklace' ||
-    cleaned === 'necklaces' ||
-    cleaned === 'haar' ||
-    cleaned === 'haars' ||
-    cleaned === 'set' ||
-    cleaned === 'sets' ||
-    cleaned === 'necklace set' ||
-    cleaned === 'necklace sets'
-  ) {
-    return 'necklaces';
-  }
-
-  if (cleaned === 'ring' || cleaned === 'rings') {
-    return 'rings';
-  }
-
-  if (
-    cleaned === 'bangle' ||
-    cleaned === 'bangles' ||
-    cleaned === 'kara' ||
-    cleaned === 'karas' ||
-    cleaned === 'kada' ||
-    cleaned === 'kadas'
-  ) {
-    return 'bangles';
-  }
-
-  if (
-    cleaned === 'earring' ||
-    cleaned === 'earrings' ||
-    cleaned === 'jhumka' ||
-    cleaned === 'jhumkas' ||
-    cleaned === 'jhumki' ||
-    cleaned === 'jhumkis'
-  ) {
-    return 'earrings';
-  }
+  // 4. Simple singular/plural tolerance against live categories (e.g. "pendant" -> "pendants")
+  const singularOrPlural = cleaned.endsWith('s')
+    ? cleaned.slice(0, -1)
+    : `${cleaned}s`;
+  const fuzzyMatch = source.find(
+    (c) =>
+      normalizeLookupKey(c.slug) === singularOrPlural ||
+      normalizeLookupKey(c.name) === singularOrPlural
+  );
+  if (fuzzyMatch) return fuzzyMatch.slug;
 
   return '';
 }
@@ -247,7 +369,47 @@ let currentSettings: StoreSettings = {
 
 let currentShowcaseTiles: ShowcaseTile[] = DEFAULT_SHOWCASE_TILES;
 
-// Live in-memory cache populated exclusively from Firestore
+// Live categories cache & stable snapshots for useSyncExternalStore
+let liveCategories: Category[] = [];
+let effectiveCategories: Category[] = DEFAULT_CATEGORIES;
+let categoriesLoaded = false;
+let categoriesError = false;
+
+let cachedVisibleAll: Category[] = [];
+let cachedVisibleGold: Category[] = [];
+let cachedVisibleSilver: Category[] = [];
+let cachedAllAll: Category[] = [];
+let cachedAllGold: Category[] = [];
+let cachedAllSilver: Category[] = [];
+
+function sortCategoriesByOrder(list: Category[]): Category[] {
+  return [...list].sort((a, b) => {
+    const orderA = typeof a.displayOrder === 'number' ? a.displayOrder : 9999;
+    const orderB = typeof b.displayOrder === 'number' ? b.displayOrder : 9999;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function rebuildCategoryCaches(): void {
+  const sorted = sortCategoriesByOrder(effectiveCategories);
+  cachedAllAll = sorted;
+  cachedAllGold = sorted.filter((c) => c.appliesTo === 'both' || c.appliesTo === 'gold');
+  cachedAllSilver = sorted.filter((c) => c.appliesTo === 'both' || c.appliesTo === 'silver');
+  cachedVisibleAll = sorted.filter((c) => c.visible !== false);
+  cachedVisibleGold = cachedVisibleAll.filter(
+    (c) => c.appliesTo === 'both' || c.appliesTo === 'gold'
+  );
+  cachedVisibleSilver = cachedVisibleAll.filter(
+    (c) => c.appliesTo === 'both' || c.appliesTo === 'silver'
+  );
+}
+
+// Initialize caches from DEFAULT_CATEGORIES immediately so menus are never blank
+rebuildCategoryCaches();
+
+// Live in-memory products cache populated exclusively from Firestore
+let rawProductDocs: Array<{ id: string; data: any }> = [];
 let liveProducts: Product[] = [];
 let productsLoaded = false;
 let settingsLoaded = false;
@@ -258,10 +420,13 @@ let listenersInitialized = false;
 const MAX_LISTENER_RETRIES = 5;
 let productsUnsub: (() => void) | null = null;
 let settingsUnsub: (() => void) | null = null;
+let categoriesUnsub: (() => void) | null = null;
 let productsRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let settingsRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let categoriesRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let productsRetryCount = 0;
 let settingsRetryCount = 0;
+let categoriesRetryCount = 0;
 
 // Subscribers list for reactive UI updates
 const storeListeners = new Set<() => void>();
@@ -277,6 +442,36 @@ function notifyStoreListeners() {
   storeListeners.forEach((cb) => cb());
 }
 
+function mapDocToCategory(docData: any, docId: string): Category {
+  const rawAppliesTo = docData.appliesTo;
+  const appliesTo: CategoryAppliesTo =
+    rawAppliesTo === 'gold' || rawAppliesTo === 'silver' || rawAppliesTo === 'both'
+      ? rawAppliesTo
+      : 'both';
+  const slug =
+    typeof docData.slug === 'string' && docData.slug.trim()
+      ? docData.slug.trim()
+      : docId;
+  const name =
+    typeof docData.name === 'string' && docData.name.trim()
+      ? docData.name.trim()
+      : formatCategorySlugFallback(slug);
+
+  return {
+    id: docId,
+    slug,
+    name,
+    description: typeof docData.description === 'string' ? docData.description : '',
+    imageUrl: typeof docData.imageUrl === 'string' ? docData.imageUrl : '',
+    appliesTo,
+    displayOrder: typeof docData.displayOrder === 'number' ? docData.displayOrder : 999,
+    visible: docData.visible !== false,
+    createdAt: typeof docData.createdAt === 'string' ? docData.createdAt : undefined,
+    updatedAt: typeof docData.updatedAt === 'string' ? docData.updatedAt : undefined,
+    updatedBy: typeof docData.updatedBy === 'string' ? docData.updatedBy : undefined,
+  };
+}
+
 function mapDocToProduct(docData: any, docId: string): Product {
   const metal = (docData.metal || 'gold') as MetalType;
   let karat: GoldKarat | SilverPurity = '22K';
@@ -288,8 +483,9 @@ function mapDocToProduct(docData: any, docId: string): Product {
   }
 
   const sku = docData.sku || 'SKU-000';
-  const normalizedCategory = normalizeCategory(docData.category);
-  if (!normalizedCategory) {
+  const rawCategory = typeof docData.category === 'string' ? docData.category.trim() : '';
+  const normalizedCategory = normalizeCategory(rawCategory);
+  if (!normalizedCategory && categoriesLoaded) {
     console.warn(
       `[Store] Product "${docId}" (SKU: ${sku}) has missing or unrecognised category:`,
       docData.category
@@ -313,6 +509,7 @@ function mapDocToProduct(docData: any, docId: string): Product {
     metal,
     karat,
     category: normalizedCategory,
+    rawCategory,
     weightGrams,
     makingCharge,
     stock,
@@ -329,6 +526,78 @@ function mapDocToProduct(docData: any, docId: string): Product {
       occasion: docData.occasion || '',
     },
   };
+}
+
+function rebuildLiveProducts(): void {
+  if (rawProductDocs.length === 0) {
+    if (liveProducts.length > 0) {
+      liveProducts = [];
+    }
+    return;
+  }
+  liveProducts = rawProductDocs.map((entry) => mapDocToProduct(entry.data, entry.id));
+}
+
+function subscribeCategories(): void {
+  if (categoriesRetryTimer) {
+    clearTimeout(categoriesRetryTimer);
+    categoriesRetryTimer = null;
+  }
+  if (categoriesUnsub) {
+    categoriesUnsub();
+    categoriesUnsub = null;
+  }
+
+  try {
+    // Filter visible == true to satisfy public security rules without needing a composite index;
+    // sort by displayOrder on the client.
+    const categoriesQuery = query(
+      collection(db, 'categories'),
+      where('visible', '==', true)
+    );
+    categoriesUnsub = onSnapshot(
+      categoriesQuery,
+      (snapshot) => {
+        const mapped = sortCategoriesByOrder(
+          snapshot.docs.map((d) => mapDocToCategory(d.data(), d.id))
+        );
+        liveCategories = mapped;
+        // Fallback to built-in read-only defaults when collection is empty
+        effectiveCategories = mapped.length > 0 ? mapped : DEFAULT_CATEGORIES;
+        categoriesLoaded = true;
+        categoriesError = false;
+        categoriesRetryCount = 0;
+
+        rebuildCategoryCaches();
+        rebuildLiveProducts();
+        notifyStoreListeners();
+      },
+      (error) => {
+        console.error('Firestore categories listener error:', error);
+        // Keep last good categories in memory and mark loaded so UI never hangs
+        categoriesLoaded = true;
+        categoriesError = true;
+        notifyStoreListeners();
+
+        if (categoriesUnsub) {
+          categoriesUnsub();
+          categoriesUnsub = null;
+        }
+        if (categoriesRetryCount < MAX_LISTENER_RETRIES) {
+          const delayMs = Math.min(2000 * Math.pow(1.5, categoriesRetryCount), 15000);
+          categoriesRetryCount += 1;
+          categoriesRetryTimer = setTimeout(() => {
+            subscribeCategories();
+          }, delayMs);
+        }
+      }
+    );
+  } catch (err) {
+    console.error('Categories listener init error:', err);
+    categoriesLoaded = true;
+    categoriesError = true;
+    notifyStoreListeners();
+  }
 }
 
 function subscribeSettings(): void {
@@ -492,7 +761,8 @@ function subscribeProducts(): void {
     productsUnsub = onSnapshot(
       productsQuery,
       (snapshot) => {
-        liveProducts = snapshot.docs.map((d) => mapDocToProduct(d.data(), d.id));
+        rawProductDocs = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
+        rebuildLiveProducts();
         productsLoaded = true;
         productsError = false;
         productsRetryCount = 0;
@@ -532,12 +802,15 @@ function subscribeProducts(): void {
 export function retryStoreListeners(): void {
   productsRetryCount = 0;
   settingsRetryCount = 0;
+  categoriesRetryCount = 0;
   productsError = false;
+  categoriesError = false;
   if (liveProducts.length === 0) {
     productsLoaded = false;
   }
   notifyStoreListeners();
   subscribeProducts();
+  subscribeCategories();
   if (settingsError || !settingsLoaded || !settingsUnsub) {
     subscribeSettings();
   }
@@ -550,11 +823,16 @@ export function initFirestoreStore(): void {
   if (listenersInitialized || typeof window === 'undefined') return;
   listenersInitialized = true;
 
+  subscribeCategories();
   subscribeSettings();
   subscribeProducts();
 
   // Auto-recover listeners when browser comes back online
   window.addEventListener('online', () => {
+    if (categoriesError || !categoriesUnsub) {
+      categoriesRetryCount = 0;
+      subscribeCategories();
+    }
     if (productsError || !productsUnsub) {
       productsRetryCount = 0;
       subscribeProducts();
@@ -572,7 +850,92 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Accessor Functions for Storefront Components (stable cached references for useSyncExternalStore)
+ * Category Accessors (stable cached references for useSyncExternalStore)
+ */
+export interface GetCategoriesOptions {
+  metal?: 'all' | 'gold' | 'silver';
+  visibleOnly?: boolean;
+}
+
+export function getCategories(options: GetCategoriesOptions = {}): Category[] {
+  const metal = options.metal ?? 'all';
+  const visibleOnly = options.visibleOnly ?? true;
+
+  if (visibleOnly) {
+    if (metal === 'gold') return cachedVisibleGold;
+    if (metal === 'silver') return cachedVisibleSilver;
+    return cachedVisibleAll;
+  }
+
+  if (metal === 'gold') return cachedAllGold;
+  if (metal === 'silver') return cachedAllSilver;
+  return cachedAllAll;
+}
+
+export function getVisibleCategories(): Category[] {
+  return cachedVisibleAll;
+}
+
+export function getVisibleGoldCategories(): Category[] {
+  return cachedVisibleGold;
+}
+
+export function getVisibleSilverCategories(): Category[] {
+  return cachedVisibleSilver;
+}
+
+export function getCategoryBySlug(slug: string | undefined | null): Category | undefined {
+  if (!slug || typeof slug !== 'string') return undefined;
+  const trimmed = slug.toLowerCase().trim();
+  if (!trimmed) return undefined;
+  return cachedAllAll.find((c) => c.slug.toLowerCase() === trimmed);
+}
+
+export function getCategoryDisplayName(
+  slug: string | undefined | null,
+  fallback = 'Jewellery'
+): string {
+  if (!slug || typeof slug !== 'string' || !slug.trim()) return fallback;
+  const live = getCategoryBySlug(slug);
+  if (live) return live.name;
+  const normalized = normalizeCategory(slug);
+  if (normalized) {
+    const resolved = getCategoryBySlug(normalized);
+    if (resolved) return resolved.name;
+  }
+  return formatCategorySlugFallback(slug) || fallback;
+}
+
+export function getCategoryProductCount(
+  slug: string,
+  options: { activeOnly?: boolean } = {}
+): number {
+  const target = slug.toLowerCase().trim();
+  if (!target) return 0;
+  const activeOnly = options.activeOnly ?? true;
+  return liveProducts.filter((p) => {
+    if (activeOnly && (!p.inStock || p.stock <= 0)) {
+      // Note: liveProducts only contains status === 'active' products;
+      // keep counting all status==='active' unless caller strictly asks otherwise
+    }
+    return p.category.toLowerCase() === target;
+  }).length;
+}
+
+export function areCategoriesLoaded(): boolean {
+  return categoriesLoaded;
+}
+
+export function hasCategoriesError(): boolean {
+  return categoriesError;
+}
+
+export function isUsingDefaultCategories(): boolean {
+  return liveCategories.length === 0;
+}
+
+/**
+ * Product & Settings Accessor Functions (stable cached references for useSyncExternalStore)
  */
 export function getProducts(): Product[] {
   return liveProducts;
@@ -718,8 +1081,12 @@ export async function logWhatsAppEnquiry(enquiry: {
 }): Promise<boolean> {
   try {
     const raw: Record<string, any> = {
-      customerName: enquiry.customerName?.trim() ? enquiry.customerName.trim().slice(0, 100) : undefined,
-      customerPhone: enquiry.customerPhone?.trim() ? enquiry.customerPhone.trim().slice(0, 50) : undefined,
+      customerName: enquiry.customerName?.trim()
+        ? enquiry.customerName.trim().slice(0, 100)
+        : undefined,
+      customerPhone: enquiry.customerPhone?.trim()
+        ? enquiry.customerPhone.trim().slice(0, 50)
+        : undefined,
       fulfilment: enquiry.fulfilment === 'pickup' ? 'pickup' : 'courier',
       status: 'new',
       notes: enquiry.notes?.trim() ? enquiry.notes.trim().slice(0, 1000) : undefined,

@@ -26,18 +26,48 @@ import { ContactPage } from './pages/ContactPage';
 import { Product, getRates, getProductById, subscribeToStore, normalizeCategory } from './data/store';
 import { BullionRates, runPricingSelfChecks } from './lib/pricing';
 
+function readCatalogueParamsFromUrl(): {
+  isCatalogueDeepLink: boolean;
+  metal: 'all' | 'gold' | 'silver';
+  category: string | undefined;
+} {
+  if (typeof window === 'undefined' || window.location.pathname.startsWith('/admin')) {
+    return { isCatalogueDeepLink: false, metal: 'all', category: undefined };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const rawCategory = params.get('category')?.trim();
+  const rawMetal = params.get('metal')?.trim().toLowerCase();
+  const metal: 'all' | 'gold' | 'silver' =
+    rawMetal === 'gold' || rawMetal === 'silver' ? rawMetal : 'all';
+  const category = rawCategory && rawCategory.toLowerCase() !== 'all' ? rawCategory : undefined;
+  return {
+    isCatalogueDeepLink: Boolean(category || rawMetal === 'gold' || rawMetal === 'silver'),
+    metal,
+    category,
+  };
+}
+
 export default function App() {
+  const initialUrlCatalogue = readCatalogueParamsFromUrl();
+
   const [currentView, setCurrentView] = useState<
     'home' | 'catalogue' | 'product_detail' | 'about' | 'contact' | 'admin'
   >(() => {
     if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
       return 'admin';
     }
+    if (initialUrlCatalogue.isCatalogueDeepLink) {
+      return 'catalogue';
+    }
     return 'home';
   });
 
-  const [catalogueMetal, setCatalogueMetal] = useState<'all' | 'gold' | 'silver'>('all');
-  const [catalogueCategory, setCatalogueCategory] = useState<string | undefined>(undefined);
+  const [catalogueMetal, setCatalogueMetal] = useState<'all' | 'gold' | 'silver'>(
+    initialUrlCatalogue.metal
+  );
+  const [catalogueCategory, setCatalogueCategory] = useState<string | undefined>(
+    initialUrlCatalogue.category
+  );
   const [catalogueKarat, setCatalogueKarat] = useState<string>('all');
   const [catalogueSort, setCatalogueSort] = useState<string>('featured');
   const [catalogueSearch, setCatalogueSearch] = useState<string>('');
@@ -131,11 +161,35 @@ export default function App() {
     document.head.querySelectorAll(selector).forEach((el) => el.remove());
   }, [currentView]);
 
+  // Sync catalogue URL query params (?category=<slug>&metal=...) cleanly
+  useEffect(() => {
+    if (typeof window === 'undefined' || currentView === 'admin') return;
+    if (currentView === 'catalogue') {
+      const params = new URLSearchParams();
+      if (catalogueMetal !== 'all') params.set('metal', catalogueMetal);
+      if (catalogueCategory) params.set('category', catalogueCategory);
+      const nextSearch = params.toString();
+      const targetUrl = nextSearch ? `/?${nextSearch}` : '/';
+      if (window.location.pathname + window.location.search !== targetUrl) {
+        window.history.replaceState({}, '', targetUrl);
+      }
+    } else if (window.location.search) {
+      window.history.replaceState({}, '', '/');
+    }
+  }, [currentView, catalogueMetal, catalogueCategory]);
+
   // Listen to browser popstate
   useEffect(() => {
     const handlePopState = () => {
       if (window.location.pathname.startsWith('/admin')) {
         setCurrentView('admin');
+        return;
+      }
+      const parsed = readCatalogueParamsFromUrl();
+      if (parsed.isCatalogueDeepLink) {
+        setCatalogueMetal(parsed.metal);
+        setCatalogueCategory(parsed.category);
+        setCurrentView('catalogue');
       } else if (currentView === 'admin') {
         setCurrentView('home');
       }
@@ -180,11 +234,12 @@ export default function App() {
 
     if (view === 'catalogue') {
       if (typeof filterOrOptions === 'object' && filterOrOptions !== null) {
-        const normalizedCategory = filterOrOptions.category
-          ? normalizeCategory(filterOrOptions.category) || undefined
+        const rawCat = filterOrOptions.category?.trim();
+        const resolvedCategory = rawCat
+          ? normalizeCategory(rawCat) || rawCat.toLowerCase()
           : undefined;
         setCatalogueMetal(filterOrOptions.metal ?? 'all');
-        setCatalogueCategory(normalizedCategory);
+        setCatalogueCategory(resolvedCategory);
         setCatalogueKarat(filterOrOptions.karat ?? 'all');
         setCatalogueSort(filterOrOptions.sort ?? 'featured');
         setCatalogueSearch(filterOrOptions.search ?? '');
@@ -214,8 +269,9 @@ export default function App() {
           setFilterResetNonce((n) => n + 1);
         } else {
           // Category link from Footer, HomePage curated tiles, or elsewhere
-          const normalizedCategory = normalizeCategory(filter) || undefined;
-          setCatalogueCategory(normalizedCategory);
+          const rawCat = filter.trim();
+          const resolvedCategory = normalizeCategory(rawCat) || rawCat.toLowerCase();
+          setCatalogueCategory(resolvedCategory);
           setCatalogueMetal('all');
           setCatalogueKarat('all');
           setCatalogueSort('featured');

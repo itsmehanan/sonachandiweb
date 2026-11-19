@@ -168,12 +168,38 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
+    // Validation for Category documents
+    function isValidCategory(data, categoryId) {
+      return data.keys().hasOnly(['name', 'slug', 'description', 'imageUrl', 'appliesTo', 'displayOrder', 'visible', 'createdAt', 'updatedAt', 'updatedBy']) &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 40 &&
+             data.slug is string && data.slug == categoryId && data.slug.size() >= 2 && data.slug.size() <= 50 &&
+             data.slug.matches('^[a-z0-9][a-z0-9_-]*$') &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 160)) &&
+             data.appliesTo in ['both', 'gold', 'silver'] &&
+             data.displayOrder is number &&
+             data.visible is bool &&
+             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 500)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64)) &&
+             (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 150));
+    }
+
     // 5. STAFF COLLECTION
     match /staff/{email} {
       allow get: if isSignedIn() && (request.auth.token.email == email || isOwner());
       allow list: if isOwner();
       allow create, update, delete: if isOwner() &&
                                        (request.resource == null || request.resource.data.role in ['owner', 'rate_manager', 'product_manager', 'support', 'viewer']);
+    }
+
+    // 6. CATEGORIES COLLECTION
+    match /categories/{categoryId} {
+      allow read: if resource.data.visible == true || isStaff();
+      allow create: if isProductManager() && isValidCategory(request.resource.data, categoryId);
+      allow update: if isProductManager() &&
+                       isValidCategory(request.resource.data, categoryId) &&
+                       request.resource.data.slug == resource.data.slug;
+      allow delete: if isOwner();
     }
   }
 }

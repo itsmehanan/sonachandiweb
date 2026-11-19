@@ -23,6 +23,7 @@ import {
   getSettings,
   getProducts,
   getShowcaseTiles,
+  getVisibleCategories,
   getStoreStatus,
   subscribeToStore,
   optimizeCloudinaryShowcase,
@@ -189,6 +190,11 @@ export const HomePage: React.FC<HomePageProps> = ({
   const products = useSyncExternalStore(subscribeToStore, getProducts, getProducts);
   const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
   const showcaseTiles = useSyncExternalStore(subscribeToStore, getShowcaseTiles, getShowcaseTiles);
+  const visibleCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleCategories,
+    getVisibleCategories
+  );
   const storeStatus = useMemo(() => getStoreStatus(), [settings]);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -207,20 +213,42 @@ export const HomePage: React.FC<HomePageProps> = ({
     return feat.length > 0 ? feat : products.slice(0, 4);
   }, [products]);
 
-  // Visible tiles sorted by order
-  const visibleTiles = useMemo(() => {
-    return showcaseTiles
-      .filter((t) => t.visible !== false)
-      .sort((a, b) => a.order - b.order);
-  }, [showcaseTiles]);
+  // Curated collection tiles driven directly by live visible categories in displayOrder
+  const visibleTiles = useMemo<ShowcaseTile[]>(() => {
+    const showcaseByTarget = new Map<string, ShowcaseTile>();
+    for (const tile of showcaseTiles) {
+      const key = (tile.target || '').trim().toLowerCase();
+      if (key && !showcaseByTarget.has(key)) {
+        showcaseByTarget.set(key, tile);
+      }
+    }
 
-  // Hero image resolution (prioritize showcase tile image, then about image, then workspace poster)
+    return visibleCategories.map((cat) => {
+      const legacyTile = showcaseByTarget.get(cat.slug);
+      return {
+        id: `cat_${cat.slug}`,
+        title: cat.name,
+        subtitle:
+          cat.description?.trim() ||
+          legacyTile?.subtitle?.trim() ||
+          'Explore the collection',
+        target: cat.slug,
+        imageUrl: cat.imageUrl?.trim() || legacyTile?.imageUrl?.trim() || '',
+        order: cat.displayOrder,
+        visible: true,
+      };
+    });
+  }, [visibleCategories, showcaseTiles]);
+
+  // Hero image resolution (prioritize showcase tile image, then visible category image, then about image, then workspace poster)
   const heroImageUrl = useMemo(() => {
     const tileWithImage = showcaseTiles.find((t) => t.imageUrl && t.imageUrl.trim());
     if (tileWithImage?.imageUrl) return optimizeCloudinaryShowcase(tileWithImage.imageUrl);
+    const catWithImage = visibleCategories.find((c) => c.imageUrl && c.imageUrl.trim());
+    if (catWithImage?.imageUrl) return optimizeCloudinaryShowcase(catWithImage.imageUrl);
     if (settings.aboutPageImageUrl) return optimizeCloudinaryShowcase(settings.aboutPageImageUrl);
     return '/assets/aistudio/intro-poster_d8a114e6.jpg';
-  }, [showcaseTiles, settings.aboutPageImageUrl]);
+  }, [showcaseTiles, visibleCategories, settings.aboutPageImageUrl]);
 
   // Per-gram live rates derived strictly from pricing rules
   const rate24kGram = getGoldPerGramForKarat('24K', rates.gold24KPerTola);
@@ -231,10 +259,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   // Live stats from actual database
   const activeCount = useMemo(() => products.filter((p) => p.inStock).length, [products]);
-  const categoriesCount = useMemo(() => {
-    const set = new Set(products.map((p) => p.category).filter(Boolean));
-    return set.size || 6;
-  }, [products]);
+  const categoriesCount = visibleCategories.length;
 
   const toggleFaq = (index: number) => {
     setOpenFaq((prev) => (prev === index ? null : index));
@@ -484,7 +509,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <SectionHeading
             kicker="Curated Collections"
             title="Explore Fine Gold &amp; Silver Suites"
-            subtitle="Explore our handcrafted bridal sets, everyday gold rings, antique balis, and hallmark silver jewellery."
+            subtitle="Explore our handcrafted 24K, 22K, 21K, and 18K gold suites alongside solid 925 sterling silver jewellery."
           />
 
           {visibleTiles.length > 0 ? (
@@ -569,7 +594,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   Signature Creations
                 </h2>
                 <p className="text-xs sm:text-sm text-[#5C5046] mt-1 font-light">
-                  Royal 22K bridal ornaments and solid sterling silver masterworks.
+                  Hand-selected 22K gold ornaments and solid sterling silver masterworks.
                 </p>
               </div>
 
@@ -771,7 +796,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 Active Jewellery Pieces
               </h4>
               <p className="text-xs text-[#6E6259] font-light">
-                Ready in stock across bridal, rings, necklaces, and bangles
+                Ready in stock across our curated gold and sterling silver collections
               </p>
             </div>
 
@@ -783,7 +808,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 Curated Ornament Categories
               </h4>
               <p className="text-xs text-[#6E6259] font-light">
-                Gold bridal sets, bangles, necklaces, earrings, and solid 925 silver
+                Live storefront collections across fine gold and solid 925 silver
               </p>
             </div>
 
@@ -850,7 +875,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <h4 className="font-serif text-lg font-medium text-[#1A1410]">Royal Bridal</h4>
                   <p className="text-xs text-[#5C5046] font-light leading-relaxed">
-                    The time-honoured standard for Pakistani bridal sets, bangles, and heirloom necklaces.
+                    The time-honoured standard for Pakistani wedding and heirloom gold jewellery.
                   </p>
                 </div>
                 <div className="mt-4 pt-2.5 border-t border-[#E2D8C9] text-[10px] font-semibold text-[#7A5A12]">

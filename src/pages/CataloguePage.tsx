@@ -11,11 +11,17 @@ import {
   Product,
   getProducts,
   getSettings,
+  getVisibleCategories,
+  getVisibleGoldCategories,
+  getVisibleSilverCategories,
+  getCategoryDisplayName,
+  areCategoriesLoaded,
   subscribeToStore,
   areProductsLoaded,
   hasProductsError,
   retryStoreListeners,
   normalizeCategory,
+  optimizeCloudinaryShowcase,
 } from '../data/store';
 import {
   BullionRates,
@@ -64,6 +70,26 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 }) => {
   const allProducts = useSyncExternalStore(subscribeToStore, getProducts, getProducts);
   const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
+  const visibleAllCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleCategories,
+    getVisibleCategories
+  );
+  const visibleGoldCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleGoldCategories,
+    getVisibleGoldCategories
+  );
+  const visibleSilverCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleSilverCategories,
+    getVisibleSilverCategories
+  );
+  const categoriesLoaded = useSyncExternalStore(
+    subscribeToStore,
+    areCategoriesLoaded,
+    areCategoriesLoaded
+  );
   const productsLoaded = useSyncExternalStore(
     subscribeToStore,
     areProductsLoaded,
@@ -74,6 +100,13 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
     hasProductsError,
     hasProductsError
   );
+
+  const activeVisibleCategories =
+    metal === 'gold'
+      ? visibleGoldCategories
+      : metal === 'silver'
+      ? visibleSilverCategories
+      : visibleAllCategories;
 
   // Internal Filter States
   const [internalSearch, setInternalSearch] = useState('');
@@ -101,8 +134,19 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
   const activeCategory = useMemo(() => {
     if (!category || category === 'all') return 'all';
-    return normalizeCategory(category) || category;
-  }, [category]);
+    const resolved = normalizeCategory(category, visibleAllCategories);
+    return resolved || category.trim().toLowerCase();
+  }, [category, visibleAllCategories]);
+
+  const selectedCategoryObj = useMemo(() => {
+    if (activeCategory === 'all') return undefined;
+    return visibleAllCategories.find((c) => c.slug === activeCategory);
+  }, [activeCategory, visibleAllCategories]);
+
+  const activeCategoryLabel = useMemo(() => {
+    if (activeCategory === 'all') return '';
+    return selectedCategoryObj?.name || getCategoryDisplayName(activeCategory);
+  }, [activeCategory, selectedCategoryObj]);
 
   const activeKarat = karat !== undefined ? karat : internalKarat;
   const activeSort = controlledSortBy !== undefined ? controlledSortBy : internalSortBy;
@@ -181,7 +225,12 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           const matchesSku = product.sku.toLowerCase().includes(q);
           const matchesDesc = product.shortDescription.toLowerCase().includes(q);
           const matchesKarat = product.karat.toLowerCase().includes(q);
-          if (!matchesName && !matchesSku && !matchesDesc && !matchesKarat) return false;
+          const matchesCategory = getCategoryDisplayName(product.category)
+            .toLowerCase()
+            .includes(q);
+          if (!matchesName && !matchesSku && !matchesDesc && !matchesKarat && !matchesCategory) {
+            return false;
+          }
         }
 
         // Metal filter
@@ -189,9 +238,12 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           return false;
         }
 
-        // Category filter (using canonical normalizer; uncategorized items stay in 'all')
+        // Category filter (live visible categories; hidden/deleted category yields normal empty state)
         if (activeCategory !== 'all') {
-          const productCat = normalizeCategory(product.category);
+          if (categoriesLoaded && !selectedCategoryObj) {
+            return false;
+          }
+          const productCat = normalizeCategory(product.category, visibleAllCategories);
           if (!productCat || productCat !== activeCategory) {
             return false;
           }
@@ -241,6 +293,9 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
     activeSearch,
     metal,
     activeCategory,
+    categoriesLoaded,
+    selectedCategoryObj,
+    visibleAllCategories,
     activeKarat,
     inStockOnly,
     selectedMaxPrice,
@@ -277,31 +332,28 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
     inStockOnly ||
     isPriceFiltered;
 
-  // Dynamic Title Construction
+  // Dynamic Title Construction (driven by live category name)
   const pageTitle = useMemo(() => {
     const metalName =
       metal === 'gold' ? 'Gold' : metal === 'silver' ? 'Sterling Silver' : '';
-    const catName =
-      activeCategory !== 'all'
-        ? activeCategory === 'bridal_sets'
-          ? 'Bridal Sets'
-          : activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)
-        : '';
+    const catName = activeCategory !== 'all' ? activeCategoryLabel : '';
 
     if (metalName && catName) return `${metalName} ${catName}`;
     if (catName) return catName;
     if (metalName) return `${metalName} Collection`;
     return 'Fine Jewellery Collection';
-  }, [metal, activeCategory]);
+  }, [metal, activeCategory, activeCategoryLabel]);
 
-  const categories = [
-    { id: 'all', label: 'All Pieces' },
-    { id: 'rings', label: 'Rings' },
-    { id: 'necklaces', label: 'Necklaces' },
-    { id: 'bangles', label: 'Bangles & Karas' },
-    { id: 'earrings', label: 'Earrings & Jhumkas' },
-    { id: 'bridal_sets', label: 'Bridal Sets' },
-  ];
+  const categories = useMemo(
+    () => [
+      { id: 'all', label: 'All Pieces' },
+      ...activeVisibleCategories.map((cat) => ({
+        id: cat.slug,
+        label: cat.name,
+      })),
+    ],
+    [activeVisibleCategories]
+  );
 
   const purities = [
     { id: 'all', label: 'All Purities' },
@@ -320,8 +372,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
   const emptyStateWhatsAppHref = useMemo(() => {
     const waNumber = (settings.whatsappNumber || WHATSAPP_NUMBER).replace(/[^0-9]/g, '');
-    const catWords =
-      activeCategory !== 'all' ? activeCategory.replace('_', ' ') : '';
+    const catWords = activeCategory !== 'all' ? activeCategoryLabel.toLowerCase() : '';
     let phrase = '';
     if (metal !== 'all' && catWords) {
       phrase = `${metal} ${catWords}`;
@@ -336,7 +387,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
       : 'Hello Sona Chandi Gold Collection, I am browsing your collection. Can you help or make a custom piece?';
 
     return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
-  }, [settings.whatsappNumber, metal, activeCategory]);
+  }, [settings.whatsappNumber, metal, activeCategory, activeCategoryLabel]);
 
   // Filter content component reused between desktop sidebar and mobile bottom sheet
   const filterControls = (
@@ -369,8 +420,18 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
                   key={m.id}
                   type="button"
                   onClick={() => {
-                    onMetalChange(m.id as 'all' | 'gold' | 'silver');
+                    const nextMetal = m.id as 'all' | 'gold' | 'silver';
+                    onMetalChange(nextMetal);
                     handleKaratSelect('all');
+                    if (
+                      activeCategory !== 'all' &&
+                      selectedCategoryObj &&
+                      nextMetal !== 'all' &&
+                      selectedCategoryObj.appliesTo !== 'both' &&
+                      selectedCategoryObj.appliesTo !== nextMetal
+                    ) {
+                      onCategoryChange(undefined);
+                    }
                   }}
                   className={`py-2 px-2 text-xs font-semibold rounded-full text-center transition-all cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#B8923A] outline-hidden ${
                     isSelected
@@ -584,8 +645,8 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
         {activeCategory !== 'all' && (
           <>
             <span className="text-[#B8923A]/60" aria-hidden="true">/</span>
-            <span className="font-semibold text-[#1A1410] capitalize">
-              {activeCategory.replace('_', ' ')}
+            <span className="font-semibold text-[#1A1410]">
+              {activeCategoryLabel}
             </span>
           </>
         )}
@@ -598,7 +659,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
             {pageTitle}
           </h1>
           <p className="text-sm text-[#4A3F35] mt-1 font-light">
-            {!productsLoaded
+            {!productsLoaded || (activeCategory !== 'all' && !categoriesLoaded)
               ? 'Loading collection with live bullion pricing...'
               : `Showing ${filteredProducts.length} ${
                   filteredProducts.length === 1 ? 'piece' : 'pieces'
@@ -639,6 +700,31 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
         </div>
       </div>
 
+      {/* Optional Category Banner (shown when selected category has description or imageUrl) */}
+      {selectedCategoryObj &&
+        (selectedCategoryObj.description || selectedCategoryObj.imageUrl) && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 sm:p-5 bg-[#FAF7F2]/90 border border-[#E2D8C9] rounded-2xl shadow-2xs">
+            {selectedCategoryObj.imageUrl && (
+              <img
+                src={optimizeCloudinaryShowcase(selectedCategoryObj.imageUrl)}
+                alt={selectedCategoryObj.name}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-[#C9A54B]/40 shrink-0"
+                loading="lazy"
+              />
+            )}
+            <div className="space-y-1 min-w-0">
+              <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-[#7A5A12] block">
+                {selectedCategoryObj.name}
+              </span>
+              {selectedCategoryObj.description && (
+                <p className="text-xs sm:text-sm text-[#4A3F35] font-light leading-relaxed">
+                  {selectedCategoryObj.description}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
       {/* 3. Selected Filters Gold Chips with "Clear all" link */}
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -673,8 +759,8 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
           )}
 
           {activeCategory !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] text-[#1E1B18] shadow-2xs capitalize">
-              <span>{activeCategory.replace('_', ' ')}</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#C9A54B] to-[#E8CF8A] text-[#1E1B18] shadow-2xs">
+              <span>{activeCategoryLabel}</span>
               <button
                 type="button"
                 onClick={() => onCategoryChange(undefined)}
@@ -764,7 +850,7 @@ export const CataloguePage: React.FC<CataloguePageProps> = ({
 
         {/* Product Grid Area */}
         <div className="flex-1 w-full min-w-0">
-          {!productsLoaded ? (
+          {!productsLoaded || (activeCategory !== 'all' && !categoriesLoaded) ? (
             /* Loading Skeleton Grid */
             <div
               className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6"

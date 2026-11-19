@@ -619,7 +619,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             Discover Fine Pakistani Gold &amp; Silver
           </h2>
           <p className="text-sm sm:text-base text-[#5C5046] max-w-lg mx-auto font-normal leading-relaxed">
-            Browse our ready catalogue of bangles, bridal sets, and rings, or calculate custom ornament rates.
+            Browse our ready gold and silver jewellery catalogue, or calculate custom ornament rates.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <button

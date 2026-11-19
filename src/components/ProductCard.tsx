@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
-import { Product, getSettings } from '../data/store';
+import {
+  Product,
+  getSettings,
+  getVisibleCategories,
+  getCategoryDisplayName,
+  subscribeToStore,
+} from '../data/store';
 import {
   BullionRates,
   calculateProductPrice,
@@ -40,7 +46,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onSelect,
   onAddToCart,
 }) => {
-  const settings = getSettings();
+  const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
+  useSyncExternalStore(subscribeToStore, getVisibleCategories, getVisibleCategories);
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const isRateMissing =
@@ -54,7 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const secondaryImage = hasSecondImage ? product.images[1] : '';
 
   const metalLabel = product.metal === 'gold' ? `${product.karat} Gold` : '925 Silver';
-  const categoryLabel = product.category ? product.category.replace('_', ' ') : 'jewellery';
+  const categoryLabel = product.category ? getCategoryDisplayName(product.category) : 'Jewellery';
 
   const whatsappInquiryUrl = getWhatsAppProductInquiryUrl(
     product,

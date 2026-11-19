@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import {
   ShoppingBag,
   Menu,
@@ -11,7 +11,14 @@ import {
   Clock,
 } from 'lucide-react';
 import { BullionRates, formatPKR } from '../lib/pricing';
-import { getSettings, getStoreStatus, Product } from '../data/store';
+import {
+  getSettings,
+  getStoreStatus,
+  getVisibleGoldCategories,
+  getVisibleSilverCategories,
+  subscribeToStore,
+  Product,
+} from '../data/store';
 import { WhatsAppButton } from './WhatsAppButton';
 import { SearchOverlay } from './SearchOverlay';
 import { FamilyBrandLine } from './FamilyBrandLine';
@@ -66,8 +73,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileGoldOpen, setMobileGoldOpen] = useState(false);
   const [mobileSilverOpen, setMobileSilverOpen] = useState(false);
 
-  const settings = getSettings();
-  const storeStatus = getStoreStatus();
+  const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
+  const visibleGoldCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleGoldCategories,
+    getVisibleGoldCategories
+  );
+  const visibleSilverCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleSilverCategories,
+    getVisibleSilverCategories
+  );
+  const storeStatus = useMemo(() => getStoreStatus(), [settings]);
 
   // Shrink header slightly on scroll
   useEffect(() => {
@@ -167,18 +184,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isNewArrivalsActive = currentView === 'catalogue' && currentSort === 'newest';
   const isGoldActive = currentView === 'catalogue' && currentMetal === 'gold';
   const isSilverActive = currentView === 'catalogue' && currentMetal === 'silver';
-  const isBridalActive = currentView === 'catalogue' && currentCategory === 'bridal_sets';
   const isAboutActive = currentView === 'about';
   const isContactActive = currentView === 'contact';
 
-  const shopGoldCategories = [
-    { label: 'All Gold', category: undefined },
-    { label: 'Rings', category: 'rings' },
-    { label: 'Necklaces', category: 'necklaces' },
-    { label: 'Bangles', category: 'bangles' },
-    { label: 'Earrings', category: 'earrings' },
-    { label: 'Bridal Sets', category: 'bridal_sets' },
-  ];
+  const shopGoldCategories = useMemo(
+    () => [
+      { label: 'All Gold', category: undefined as string | undefined },
+      ...visibleGoldCategories.map((cat) => ({
+        label: cat.name,
+        category: cat.slug as string | undefined,
+      })),
+    ],
+    [visibleGoldCategories]
+  );
 
   const goldPurities = [
     { label: '24K Gold', sub: '99.9% Pure Bullion', karat: '24K' },
@@ -187,14 +205,16 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: '18K Gold', sub: '75.0% Contemporary', karat: '18K' },
   ];
 
-  const shopSilverCategories = [
-    { label: 'All Silver', category: undefined },
-    { label: 'Rings', category: 'rings' },
-    { label: 'Necklaces', category: 'necklaces' },
-    { label: 'Bangles', category: 'bangles' },
-    { label: 'Earrings', category: 'earrings' },
-    { label: 'Bridal Sets', category: 'bridal_sets' },
-  ];
+  const shopSilverCategories = useMemo(
+    () => [
+      { label: 'All Silver', category: undefined as string | undefined },
+      ...visibleSilverCategories.map((cat) => ({
+        label: cat.name,
+        category: cat.slug as string | undefined,
+      })),
+    ],
+    [visibleSilverCategories]
+  );
 
   const whatsappHref = settings.whatsappNumber
     ? `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
@@ -534,30 +554,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* 5. Bridal Sets */}
-            <button
-              onClick={() =>
-                handleNav('catalogue', {
-                  category: 'bridal_sets',
-                  metal: 'all',
-                  karat: 'all',
-                  sort: 'featured',
-                })
-              }
-              aria-current={isBridalActive ? 'page' : undefined}
-              className={`relative py-2.5 transition-colors duration-200 group whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C9A54B] focus-visible:ring-offset-2 rounded outline-hidden ${
-                isBridalActive ? 'text-[#8E6E24] font-semibold' : 'hover:text-[#1E1B18]'
-              }`}
-            >
-              <span>Bridal Sets</span>
-              <span
-                className={`absolute bottom-0 left-0 right-0 h-[2px] bg-[#C9A54B] rounded-full transition-transform duration-300 ease-out origin-center ${
-                  isBridalActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-                }`}
-              />
-            </button>
-
-            {/* 6. Rates (opens Price Estimator) */}
+            {/* 5. Rates (opens Price Estimator) */}
             {onOpenCalculator && (
               <button
                 type="button"
@@ -900,26 +897,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                   )}
                 </div>
-
-                {/* Bridal Sets */}
-                <button
-                  onClick={() =>
-                    handleNav('catalogue', {
-                      category: 'bridal_sets',
-                      metal: 'all',
-                      karat: 'all',
-                      sort: 'featured',
-                    })
-                  }
-                  aria-current={isBridalActive ? 'page' : undefined}
-                  className={`w-full min-h-[46px] px-4 py-2.5 text-left text-sm font-medium rounded-xl flex items-center transition-colors cursor-pointer ${
-                    isBridalActive
-                      ? 'bg-white text-[#8E6E24] font-semibold border-l-4 border-[#C9A54B] shadow-2xs'
-                      : 'text-[#1E1B18] hover:bg-white/80'
-                  }`}
-                >
-                  Bridal Sets
-                </button>
 
                 {/* Rates (Price Estimator) */}
                 {onOpenCalculator && (

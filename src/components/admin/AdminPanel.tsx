@@ -35,6 +35,7 @@ import {
   ExternalLink,
   Mail,
   Globe,
+  Tags,
 } from 'lucide-react';
 import { TolaGuide } from '../TolaGuide';
 import {
@@ -67,6 +68,7 @@ import {
   updateEnquiryStatus,
   fetchStoreSettingsAdmin,
   updateStoreSettingsInfo,
+  fetchAllCategoriesAdmin,
 } from '../../lib/adminService';
 import { uploadToCloudinary, ALLOWED_IMAGE_TYPES } from '../../lib/cloudinary';
 import {
@@ -77,6 +79,8 @@ import {
   formatPKR,
 } from '../../lib/pricing';
 import {
+  Category,
+  DEFAULT_CATEGORIES,
   getRates,
   updateRates,
   getSettings,
@@ -85,6 +89,7 @@ import {
   ShowcaseTile,
   optimizeCloudinaryShowcase,
 } from '../../data/store';
+import { CategoriesManager } from './CategoriesManager';
 
 interface AdminPanelProps {
   onBackToStore: () => void;
@@ -129,8 +134,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'rates' | 'products' | 'inventory' | 'enquiries' | 'rateHistory' | 'staff' | 'settings' | 'showcase'
+    | 'overview'
+    | 'rates'
+    | 'categories'
+    | 'products'
+    | 'inventory'
+    | 'enquiries'
+    | 'rateHistory'
+    | 'staff'
+    | 'settings'
+    | 'showcase'
   >('overview');
+
+  // Categories state (single source of truth from Firestore)
+  const [adminCategories, setAdminCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   // Rates state
   const [rates, setRatesState] = useState<BullionRates>(() => getRates());
@@ -147,6 +165,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Partial<AdminProduct> | null>(null);
   const [productFormError, setProductFormError] = useState<string | null>(null);
+  const [metalChangeNotice, setMetalChangeNotice] = useState<string | null>(null);
   const [productSaving, setProductSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgressText, setUploadProgressText] = useState<string | null>(null);
@@ -225,6 +244,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
             setStaffRecord(null);
             setAccessDenied(true);
             setProducts([]);
+            setAdminCategories([]);
             setEnquiries([]);
             setRateHistory([]);
             setStaffList([]);
@@ -235,6 +255,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
           setStaffRecord(null);
           setAccessDenied(true);
           setProducts([]);
+          setAdminCategories([]);
           setEnquiries([]);
           setRateHistory([]);
           setStaffList([]);
@@ -246,6 +267,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
         setStaffRecord(null);
         setAccessDenied(false);
         setProducts([]);
+        setAdminCategories([]);
         setEnquiries([]);
         setRateHistory([]);
         setStaffList([]);
@@ -261,8 +283,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
   useEffect(() => {
     if (!currentUser || !staffRecord) return;
 
-    if (activeTab === 'overview' || activeTab === 'products' || activeTab === 'inventory') {
+    if (
+      activeTab === 'overview' ||
+      activeTab === 'products' ||
+      activeTab === 'inventory' ||
+      activeTab === 'categories'
+    ) {
       loadProducts();
+    }
+    if (
+      activeTab === 'overview' ||
+      activeTab === 'categories' ||
+      activeTab === 'products' ||
+      activeTab === 'showcase'
+    ) {
+      loadCategories();
     }
     if (activeTab === 'overview' || activeTab === 'enquiries') {
       loadEnquiries();
@@ -273,7 +308,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
     if (activeTab === 'staff' && staffRecord.role === 'owner') {
       loadStaff();
     }
-    if (activeTab === 'settings' || activeTab === 'overview' || activeTab === 'rates' || activeTab === 'showcase') {
+    if (
+      activeTab === 'settings' ||
+      activeTab === 'overview' ||
+      activeTab === 'rates' ||
+      activeTab === 'showcase' ||
+      activeTab === 'categories'
+    ) {
       loadStoreSettings();
     }
   }, [activeTab, currentUser, staffRecord]);
@@ -340,6 +381,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       console.error(err);
     } finally {
       setLoadingProducts(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const data = await fetchAllCategoriesAdmin();
+      setAdminCategories(data);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    } finally {
+      setLoadingCategories(false);
     }
   };
 
@@ -792,6 +845,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
       setProductFormError('SKU and Product Title are required');
       return;
     }
+    const chosenCategory = (editingProduct.category || '').trim();
+    if (!chosenCategory) {
+      setProductFormError('Please select a category for this product.');
+      return;
+    }
+    const availableCategoryPool =
+      adminCategories.length > 0 ? adminCategories : DEFAULT_CATEGORIES;
+    const matchedCategory = availableCategoryPool.find((c) => c.slug === chosenCategory);
+    const chosenMetal = editingProduct.metal || 'gold';
+    if (
+      matchedCategory &&
+      matchedCategory.appliesTo !== 'both' &&
+      matchedCategory.appliesTo !== chosenMetal
+    ) {
+      setProductFormError(
+        `"${matchedCategory.name}" only applies to ${matchedCategory.appliesTo} jewellery. Please pick a matching category.`
+      );
+      return;
+    }
     if (!editingProduct.weightG || editingProduct.weightG <= 0) {
       setProductFormError('Weight must be greater than 0 grams');
       return;
@@ -809,6 +881,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
     try {
       await saveProduct(editingProduct as any);
       setEditingProduct(null);
+      setMetalChangeNotice(null);
       await loadProducts();
     } catch (err: unknown) {
       setProductFormError(
@@ -1039,6 +1112,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
               <span>Bullion Rates</span>
             </button>
           )}
+
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'categories'
+                ? 'bg-[#1E1B18] text-white shadow-xs'
+                : 'text-[#64748B] hover:text-[#1E1B18] hover:bg-[#FAF7F2]'
+            }`}
+          >
+            <Tags className="w-4 h-4" />
+            <span>Categories</span>
+          </button>
 
           {canAccessProducts && (
             <>
@@ -1364,22 +1449,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
             </div>
           )}
 
+          {/* TAB 2B: CATEGORIES */}
+          {activeTab === 'categories' && (
+            <CategoriesManager
+              categories={adminCategories}
+              loading={loadingCategories}
+              products={products}
+              canEdit={canAccessProducts}
+              isOwner={staffRecord.role === 'owner'}
+              staffEmail={currentUser.email || 'staff'}
+              getCloudinaryConfig={getCloudinaryConfig}
+              getFriendlyError={getFriendlyAdminErrorMessage}
+              onRefreshCategories={loadCategories}
+              onRefreshProducts={loadProducts}
+            />
+          )}
+
           {/* TAB 3: PRODUCTS & IMAGES */}
           {activeTab === 'products' && canAccessProducts && (
             <div className="space-y-6">
               <div className="bg-white border border-[#E2D8C9] rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="font-serif text-xl font-bold text-[#1E1B18]">Jewellery Catalogue Management</h2>
-                  <p className="text-xs text-[#64748B]">Add or edit pieces with multi-file Firebase Storage image uploads</p>
+                  <p className="text-xs text-[#64748B]">Add or edit pieces with multi-file Cloudinary image uploads</p>
                 </div>
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    setProductFormError(null);
+                    setMetalChangeNotice(null);
                     setEditingProduct({
                       sku: `SC-${Math.floor(100 + Math.random() * 900)}`,
                       name: '',
                       description: '',
                       metal: 'gold',
-                      category: 'necklaces',
+                      category: '',
                       karat: 22,
                       weightG: 10,
                       makingType: 'perGram',
@@ -1388,8 +1491,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       status: 'active',
                       featured: false,
                       images: [],
-                    })
-                  }
+                    });
+                  }}
                   className="gold-sheen px-4 py-2 bg-[#C9A54B] hover:bg-[#B18D35] text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
@@ -1455,7 +1558,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                           </td>
                           <td className="py-3 px-4 text-right space-x-2">
                             <button
-                              onClick={() => setEditingProduct({ ...p })}
+                              onClick={() => {
+                                setProductFormError(null);
+                                setMetalChangeNotice(null);
+                                setEditingProduct({ ...p });
+                              }}
                               className="p-1 text-[#64748B] hover:text-[#1E1B18] cursor-pointer"
                               title="Edit"
                             >
@@ -1542,50 +1649,123 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block font-semibold text-[#64748B] mb-1">Metal</label>
-                        <select
-                          value={editingProduct.metal || 'gold'}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, metal: e.target.value as any })}
-                          className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
-                        >
-                          <option value="gold">Gold</option>
-                          <option value="silver">Silver</option>
-                        </select>
-                      </div>
+                    {(() => {
+                      const activeMetal = editingProduct.metal || 'gold';
+                      const categoryPool =
+                        adminCategories.length > 0 ? adminCategories : DEFAULT_CATEGORIES;
+                      const metalCategories = categoryPool.filter(
+                        (c) => c.appliesTo === 'both' || c.appliesTo === activeMetal
+                      );
+                      const currentCategoryValue = editingProduct.category || '';
+                      const isCurrentInList =
+                        !currentCategoryValue ||
+                        metalCategories.some((c) => c.slug === currentCategoryValue);
 
-                      {editingProduct.metal === 'gold' && (
-                        <div>
-                          <label className="block font-semibold text-[#64748B] mb-1">Karat (Required)</label>
-                          <select
-                            value={editingProduct.karat || 22}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, karat: parseInt(e.target.value, 10) })}
-                            className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
-                          >
-                            <option value={24}>24K</option>
-                            <option value={22}>22K</option>
-                            <option value={21}>21K</option>
-                            <option value={18}>18K</option>
-                          </select>
+                      return (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block font-semibold text-[#64748B] mb-1">Metal</label>
+                              <select
+                                value={activeMetal}
+                                onChange={(e) => {
+                                  const nextMetal = e.target.value as 'gold' | 'silver';
+                                  const currentSlug = (editingProduct.category || '').trim();
+                                  const currentCat = categoryPool.find(
+                                    (c) => c.slug === currentSlug
+                                  );
+                                  const incompatible =
+                                    Boolean(currentSlug) &&
+                                    Boolean(currentCat) &&
+                                    currentCat!.appliesTo !== 'both' &&
+                                    currentCat!.appliesTo !== nextMetal;
+
+                                  if (incompatible) {
+                                    setMetalChangeNotice(
+                                      `Category "${currentCat!.name}" only applies to ${currentCat!.appliesTo} jewellery and was cleared. Please select a ${nextMetal} category.`
+                                    );
+                                    setEditingProduct({
+                                      ...editingProduct,
+                                      metal: nextMetal,
+                                      category: '',
+                                    });
+                                  } else {
+                                    setMetalChangeNotice(null);
+                                    setEditingProduct({
+                                      ...editingProduct,
+                                      metal: nextMetal,
+                                    });
+                                  }
+                                }}
+                                className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                              >
+                                <option value="gold">Gold</option>
+                                <option value="silver">Silver</option>
+                              </select>
+                            </div>
+
+                            {activeMetal === 'gold' && (
+                              <div>
+                                <label className="block font-semibold text-[#64748B] mb-1">
+                                  Karat (Required)
+                                </label>
+                                <select
+                                  value={editingProduct.karat || 22}
+                                  onChange={(e) =>
+                                    setEditingProduct({
+                                      ...editingProduct,
+                                      karat: parseInt(e.target.value, 10),
+                                    })
+                                  }
+                                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                                >
+                                  <option value={24}>24K</option>
+                                  <option value={22}>22K</option>
+                                  <option value={21}>21K</option>
+                                  <option value={18}>18K</option>
+                                </select>
+                              </div>
+                            )}
+
+                            <div>
+                              <label className="block font-semibold text-[#64748B] mb-1">
+                                Category <span className="text-rose-600">*</span>
+                              </label>
+                              <select
+                                value={currentCategoryValue}
+                                onChange={(e) => {
+                                  setMetalChangeNotice(null);
+                                  setEditingProduct({
+                                    ...editingProduct,
+                                    category: e.target.value,
+                                  });
+                                }}
+                                className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
+                              >
+                                <option value="">Select a category...</option>
+                                {!isCurrentInList && currentCategoryValue && (
+                                  <option value={currentCategoryValue}>
+                                    {currentCategoryValue} (Unrecognized / Legacy)
+                                  </option>
+                                )}
+                                {metalCategories.map((cat) => (
+                                  <option key={cat.slug} value={cat.slug}>
+                                    {cat.name}
+                                    {!cat.visible ? ' (Hidden)' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          {metalChangeNotice && (
+                            <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                              {metalChangeNotice}
+                            </p>
+                          )}
                         </div>
-                      )}
-
-                      <div>
-                        <label className="block font-semibold text-[#64748B] mb-1">Category</label>
-                        <select
-                          value={editingProduct.category || 'necklaces'}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
-                          className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E2D8C9] rounded-md text-[#1E1B18]"
-                        >
-                          <option value="necklaces">Necklaces</option>
-                          <option value="bridal_sets">Bridal Sets</option>
-                          <option value="bangles">Bangles &amp; Karas</option>
-                          <option value="earrings">Earrings</option>
-                          <option value="rings">Rings</option>
-                        </select>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     <div className="grid grid-cols-3 gap-3">
                       <div>
@@ -2661,12 +2841,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                                   }
                                   className="w-full px-3 py-2 bg-white border border-[#E2D8C9] rounded-lg text-[#1E1B18] focus:outline-[#C9A54B]"
                                 >
-                                  <option value="bridal_sets">Bridal Sets (Category)</option>
-                                  <option value="bangles">Bangles &amp; Karas (Category)</option>
-                                  <option value="earrings">Jhumkas &amp; Balis (Category)</option>
-                                  <option value="necklaces">Necklaces (Category)</option>
-                                  <option value="rings">Gold Rings (Category)</option>
-                                  <option value="silver">Silver Collection (Metal)</option>
+                                  {(() => {
+                                    const categoryPool =
+                                      adminCategories.length > 0
+                                        ? adminCategories
+                                        : DEFAULT_CATEGORIES;
+                                    const knownTargets = new Set([
+                                      ...categoryPool.map((c) => c.slug),
+                                      'gold',
+                                      'silver',
+                                    ]);
+                                    return (
+                                      <>
+                                        {categoryPool.map((cat) => (
+                                          <option key={cat.slug} value={cat.slug}>
+                                            {cat.name} (Category{!cat.visible ? ', Hidden' : ''})
+                                          </option>
+                                        ))}
+                                        <option value="gold">Gold Collection (Metal)</option>
+                                        <option value="silver">Silver Collection (Metal)</option>
+                                        {tile.target && !knownTargets.has(tile.target) && (
+                                          <option value={tile.target}>
+                                            {tile.target} (Legacy Target)
+                                          </option>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </select>
                               </div>
 

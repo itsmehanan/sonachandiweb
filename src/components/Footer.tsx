@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import {
   Clock,
   MapPin,
@@ -11,7 +11,12 @@ import {
   Sparkles,
   Mail,
 } from 'lucide-react';
-import { getSettings, getStoreStatus } from '../data/store';
+import {
+  getSettings,
+  getStoreStatus,
+  getVisibleCategories,
+  subscribeToStore,
+} from '../data/store';
 import { BullionRates, formatPKR } from '../lib/pricing';
 import { WhatsAppButton } from './WhatsAppButton';
 import { FamilyBrandLine } from './FamilyBrandLine';
@@ -31,8 +36,14 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenCalculator,
   onReplayIntro,
 }) => {
-  const settings = getSettings();
-  const storeStatus = getStoreStatus();
+  const settings = useSyncExternalStore(subscribeToStore, getSettings, getSettings);
+  const visibleCategories = useSyncExternalStore(
+    subscribeToStore,
+    getVisibleCategories,
+    getVisibleCategories
+  );
+  const footerCategories = useMemo(() => visibleCategories.slice(0, 6), [visibleCategories]);
+  const storeStatus = useMemo(() => getStoreStatus(), [settings]);
 
   // Scroll tracking for fade-in of back-to-top button
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -226,7 +237,7 @@ export const Footer: React.FC<FooterProps> = ({
 
         {/* 3 Columns: Shop, Information, Visit & Contact (Desktop Grid / Mobile Smooth Accordions) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 pb-10 border-b border-[#292420]">
-          {/* Column 1: Shop (Gold, Silver, Rings, Necklaces, Bangles, Earrings, Bridal Sets) */}
+          {/* Column 1: Shop (Gold, Silver, and first 6 live visible categories) */}
           <div className="space-y-4">
             <button
               type="button"
@@ -262,46 +273,16 @@ export const Footer: React.FC<FooterProps> = ({
                     Silver (925 Solid Sterling)
                   </button>
                 </li>
-                <li>
-                  <button
-                    onClick={() => onNavigate('catalogue', 'rings')}
-                    className="footer-link hover:text-[#C9A54B] cursor-pointer text-left"
-                  >
-                    Rings &amp; Bands
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => onNavigate('catalogue', 'necklaces')}
-                    className="footer-link hover:text-[#C9A54B] cursor-pointer text-left"
-                  >
-                    Necklaces &amp; Chains
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => onNavigate('catalogue', 'bangles')}
-                    className="footer-link hover:text-[#C9A54B] cursor-pointer text-left"
-                  >
-                    Bangles &amp; Karas
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => onNavigate('catalogue', 'earrings')}
-                    className="footer-link hover:text-[#C9A54B] cursor-pointer text-left"
-                  >
-                    Earrings &amp; Jhumkas
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => onNavigate('catalogue', 'bridal_sets')}
-                    className="footer-link hover:text-[#C9A54B] cursor-pointer text-left"
-                  >
-                    Bridal Sets &amp; Rani Haars
-                  </button>
-                </li>
+                {footerCategories.map((cat) => (
+                  <li key={cat.slug}>
+                    <button
+                      onClick={() => onNavigate('catalogue', cat.slug)}
+                      className="footer-link hover:text-[#C9A54B] cursor-pointer text-left"
+                    >
+                      {cat.name}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
